@@ -91,3 +91,16 @@ censor_files=[plat_op+'censor_files/' for plat_op in platform_op]
 [create_dir(censfile) for censfile in censor_files]
 output_pq=[plat_op+output_name+'/' for (plat_op,output_name) in zip(platform_op,output_names)]
 [create_dir(outpq) for outpq in output_pq]
+
+
+# Validation the folder structure 
+
+import os
+lst1=[]
+lst2=[]
+#main_lst=['']
+for x in os.walk("/data/data/weibull/"):
+    lst1.append(x[0])
+    lst2.append(x[1])
+print(x)
+
