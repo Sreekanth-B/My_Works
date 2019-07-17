@@ -2,7 +2,7 @@
 # Python Functions for Preprocessing and Post processing of data
 
 
-# 1 Creating required folder structure in the DSVM
+# 1 Creating required folder structure in the DSVM for model setup
 
 import os
 import sys
