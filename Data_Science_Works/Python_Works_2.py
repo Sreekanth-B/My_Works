@@ -34,11 +34,26 @@ import pandas as pd
 pandas_df = pd.read_parquet('final_Parquet_file.parquet')
 pandas_df.to_csv('final_Parquet_file.csv')
 
+# Spliting the csv file and saving the splited files in specific folder
+# here we are creating the small files which are 3rd part of big file
+import sys
+fil=sys.argv[1]
+fil = "main_file_.csv"
+csvfilename = open(fil, 'r').readlines()
+file = 1
+l=len(csvfilename)
+k = round(len(csvfilename)/3.0)
+for j in range(l):
+    if j % k == 0:
+        open("Path_to_save/" +"main_file_"+ str(file) + '.csv', 'w+').writelines(csvfilename[j:j+k]) 
+        file += 1
+		
 
 # Using Python in unix file system 
-
+'''
 $ipython
 
 To quit from python
 
 $exit
+'''
