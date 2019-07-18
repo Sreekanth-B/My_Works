@@ -1,0 +1,127 @@
+# To run the created shell script
+
+sh input_count.sh
+
+# to move outof directory 
+cd ..
+# to move into  directory
+cd <Directory_name>
+# TO navigate to respective directory
+cd notebooks/ap_25/ds/Weibull/src/
+
+# removing the directory
+rm -r <directory name>  =========== removes directory even it is having files
+rm -f  <directory name>  == forcing the removing execution
+rm -r -f <directory name>  
+
+# removing the file
+rm <filename>
+
+rm -r <filename> -- recursively removing 
+
+rm -r -f <filename> --  forcing the removing execution
+
+# Copying the files or directory
+cp <file_path> <dest_path>
+# the destination directory has to exist
+# if the filename already exists there, it will be overwritten
+
+# Renaming the file or directory 
+mv <old_name> <new_name>  ======= to rename the file
+
+# Moving the entire file or directory
+
+mv <old_path> <new_path> 
+
+
+# pattern filtering
+# Below command filters the rows having LOG in the temp.txt
+
+grep "^LOG" temp.txt >>final_temp.txt
+
+--  **** here >> will save the result into new txt file
+
+# Selecting the 2nd and 3rd columns in the file
+
+cut -d ':' -f 2,3 final_temp.txt  >>output.txt
+
+# revoving the blank spaces in the file
+sed -e 's/[\t ]//g;/^$/d' output.txt >>final.txt
+
+# TO DELETE ALL THE LINES IN SCRIPT :::	
+# Open the file using vi and enter escape button then enter below
+:%d
+where
+% means all the line
+d : delete
+
+# TO see hidden files present in directory
+ls -a
+
+# USEFULL UNIX FILE COMANDS =================================================
+
+======= to know number of records in file
+
+>> ls
+fail_code  fault_code  options_df  options_df_fail_1_.csv  options_df_fault_1_.csv
+
+>> wc -l options_df*.csv
+  23724 options_df_fail_1_.csv
+  28989 options_df_fault_1_.csv
+  52713 total
+
+>> ls
+CENSOR_DATA_b.csv  MONTH.csv  YEAR.csv
+
+>> wc -l MONTH.csv
+19141 MONTH.csv
+
+ # To chect the files in respect path in UAT DSVM 
+
+ll -h /data/data/weibull/model_output/weibull_x/pqout_x/*.parquet
+ll -h /data/data/weibull/model_output/weibull_x/upload_folder/*.csv
+
+# ========= TO execute scripts without showing its execution on DSVM
+
+-- it starts with 'nohup' and ends with '&'
+--- here auth.py is a python file running in UAT using the config file conf_file_uat.yaml and results are saving in wblb.log
+
+nohup python auth.py UAT /home/qx816/notebooks/Sree_B/conf_file_uat.yaml>/tmp/wblb.log &
+
+it will give job id 
+
+we can see the result using 
+
+ps aux|grep 97994  ---------- the number indicates the task id it is executing as job
+
+-------ANd to see the results of above script we use
+
+nohup: is defied as ==  ignoring input and redirecting stderr to stdout
+
+tail -f /tmp/wblb.log
+
+
+#  Perl Code for Continuous execution of codes in DSVM
+
+to execute --------- nohup perl execution_wbl.pl >/tmp/pl.log &
+
+print("Executing l ",`date`);
+#data download
+print `python /home/qx816/notebooks/sree_b/main.py UAT /home/qx816/notebooks/sree_b/conf_file_uat.yaml >/tmp/wbll.log`;
+###create options
+print `Rscript /home/qx816/notebooks/sree_b/R/bayesian.R /home/qx816/notebooks/sree_b/conf_file_uat.yaml fail_input.csv >>/tmp/wbll.log`;
+###Post process#
+print `Rscript /home/qx816/notebooks/sree_b/R/bayesian_post_process.R /home/qx816/notebooks/sree_b/conf_file_uat.yaml fail_input.csv  >>/tmp/wbll.log`;
+##
+####Post process#
+print `Rscript /home/qx816/notebooks/sree_b/bayesian_post_process.R /home/qx816/notebooks/sree_b/conf_file_uat.yaml fault_input.csv  >>/tmp/wbll.log`;
+### Upload results #
+print `python /home/qx816/notebooks/sree_b/results_upload.py DEV /home/qx816/notebooks/sree_b/conf_file_uat.yaml >>/tmp/wbll.log`;
+
+
+#========== Schema check
+
+sp_columns table_name  for MS-SQL
+
+
+
