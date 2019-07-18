@@ -1,0 +1,65 @@
+
+# SOme useful Content for Big Data for Data processing
+
+# here we discuss different technologies and languages used in Big Data and their differencs with each other
+
+Apache Spark can be termed as Hadoop’s faster counterpart. It’s API is meant for data processing and analysis in multiple programming 
+languages like Java, Python, and Scala.
+
+Apache Spark is the widely used tool in the industry which is written using Scala programming language. 
+Spark is an extension for Hadoop which does batch processing as well as real-time processing. Compared to Hadoop, Spark is more efficient due to many reasons. 
+
+At its core, Spark is a “computational engine” that is responsible for scheduling, distributing, and monitoring applications consisting of 
+many computational tasks across many worker machines, or a computing cluster
+On the speed side, Spark extends the popular MapReduce model to efficiently support more types of computations, including interactive queries and stream processing. 
+One of the main features Spark offers for speed is the ability to run computations in memory.
+
+Spark can run in Hadoop clusters and access any Hadoop data source, including Cassandra (NoSQL database management system)
+
+Because Spark is a general-purpose framework for cluster computing, it is used for a diverse range of applications.
+
+
+
+Scala and Python for Apache Spark :: 
+  
+Both these programming languages are easy and offer a lot of productivity to programmers. Most data scientists opt to learn both these languages for Apache Spark. However, you will hear a majority of data scientists picking Scala over Python for Apache Spark. The major reason for this is that Scala offers more speed. It happens to be ten times faster than Python. Few more reasons are:
+
+Scala helps handle the complicated and diverse infrastructure of big data systems. Such complex systems demand powerful language, and Scala is perfect for a programmer looking to write efficient lines of codes.
+
+Despite being statically typed language, Scala does help in pinpointing time errors.
+
+Scala is fast and powerful, but there are many complexities with Scala. As a result, when a direct comparison is drawn between Pyspark and Scala, python for Apache Spark might take the winning cup.
+
+
+
+Differences B/W SPARK and HADOOP MapReduce ::
+
+To make the comparison fair, here we will contrast Spark with Hadoop MapReduce, as both are responsible for data processing. In fact, the key difference between them lies in the 
+approach to processing: Spark can do it in-memory, while Hadoop MapReduce has to read from and write to a disk. As a result, 
+the speed of processing differs significantly – Spark may be up to 100 times faster. However, the volume of data processed also differs: 
+Hadoop MapReduce is able to work with far larger data sets than Spark.
+
+Tasks Hadoop MapReduce is good for:
+
+Linear processing of huge data sets. Hadoop MapReduce allows parallel processing of huge amounts of data. It breaks a large chunk into smaller ones 
+to be processed separately on different data nodes and automatically gathers the results across the multiple nodes to return a single result. 
+In case the resulting dataset is larger than available RAM, Hadoop MapReduce may outperform Spark.Economical solution, if no immediate results are 
+expected. Our Hadoop team considers MapReduce a good solution if the speed of processing is not critical. For instance, if data processing can be 
+done during night hours, it makes sense to consider using Hadoop MapReduce.
+
+
+Tasks Spark is good for:
+Fast data processing. In-memory processing makes Spark faster than Hadoop MapReduce – up to 100 times for data in RAM and up to 10 times for data in storage.
+
+Iterative processing. If the task is to process data again and again – Spark defeats Hadoop MapReduce. Spark’s Resilient Distributed Datasets 
+(RDDs) enable multiple map operations in memory, while Hadoop MapReduce has to write interim results to a disk.
+
+Near real-time processing. If a business needs immediate insights, then they should opt for Spark and its in-memory processing.
+
+Graph processing. Spark’s computational model is good for iterative computations that are typical in graph processing. And Apache Spark has GraphX – an API for graph computation.
+
+Machine learning. Spark has MLlib – a built-in machine learning library, while Hadoop needs a third-party to provide it. MLlib has out-of-the-box 
+algorithms that also run in memory. But if required, our Spark specialists will tune and adjust them to tailor to your needs.
+
+Joining datasets. Due to its speed, Spark can create all combinations faster, though Hadoop may be better if joining of very large data sets that 
+requires a lot of shuffling and sorting is needed.
