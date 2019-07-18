@@ -1,7 +1,9 @@
 
 # Created By Sreekanth_B
 # Python Functions for Preprocessing and Post processing of data
+# Automatically creating and validating the required folder structure
 
+# Below python is useful to create required folder structure for model execution automatically 
 
 # 1 Creating required folder structure in the DSVM for model setup
 
