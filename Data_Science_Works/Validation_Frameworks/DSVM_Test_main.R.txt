@@ -1,0 +1,275 @@
+rm(list = ls())
+
+############################ B Series Engines ##############################
+
+date_part=gsub("[[:punct:]]","",Sys.Date())
+source("/home/qx816/notebooks/qx816_Weibull/ds/Weibull/weibull_testscripts_B.R")
+path_op2="/home/qx816/notebooks/qx816_Weibull/ds/data/"
+path_op1="/home/qx816/notebooks/qx816_Weibull/ds/month/"
+
+output_failcode_month_B=read.csv(gsub(" ","",paste(path_op1,"WEIBULL_",date_part,"_b_","finaloutput_BUILD_MONTH.csv")),stringsAsFactors=FALSE)
+
+output_failcode_year_B=read.csv(gsub(" ","",paste(path_op2,"WEIBULL_",date_part,"_b_","finaloutput_BUILD_YEAR.csv")),stringsAsFactors=FALSE)
+
+#censor_data_B=read.csv(paste0(path_op,"CENSOR_DATA_b.csv"))
+
+
+# Validate to check the failure count is more than one.
+
+check_failures_failcode_month_B(output_failcode_month_B)
+
+check_failures_failcode_year_B(output_failcode_year_B)
+
+# Validate the RPH value should not be Null
+
+check_null_failcode_month_B(output_failcode_month_B)
+
+check_null_failcode_year_B(output_failcode_year_B)
+
+# Validate the Predicted RPH value should be greater than 0
+
+check_prph_failcode_month_B(output_failcode_month_B)
+
+check_prph_failcode_year_B(output_failcode_year_B)
+
+# Validate the Actual RPH value should be greater than or equal to 0
+
+check_arph_failcode_month_B(output_failcode_month_B)
+
+check_arph_failcode_year_B(output_failcode_year_B)
+
+# Validate the PROGRAM_GROUP_NAME should have only two values.
+
+check_program_name_month_B(output_failcode_month_B)
+
+check_program_name_year_B(output_failcode_year_B)
+
+# Validate the Engine Names in B Type
+
+check_engine_names_month_B(output_failcode_month_B)
+
+check_engine_names_year_B(output_failcode_year_B)
+
+# Validate the REL_USER_APPL_DESC values has only the types as AUTO; BUS, SCHOOL;BUS, NOT SCHOOL; FIRE TRUCK;RV
+
+check_application_desc_month_B(output_failcode_month_B)
+
+check_application_desc_year_B(output_failcode_year_B)
+
+# Validate the Actual RPH and Predicted RPH relation
+    
+check_RPH_month_B(output_failcode_month_B)
+
+check_RPH_year_B(output_failcode_year_B)
+
+# Validate the Messages in the Output file.
+
+check_message_output_month_B(output_failcode_month_B)
+
+# Validate the Source type as B only
+
+check_source_month_B(output_failcode_month_B)
+
+check_source_year_B(output_failcode_year_B)
+
+# Validate the CPE should have positive values
+
+check_cpe_month_B(output_failcode_month_B)
+
+check_cpe_year_B(output_failcode_year_B)
+
+# Validate when Failures count is less than 2 the CPE value should be 0
+
+#check_cpevalue_month_B(output_failcode_month_B)
+
+# Validate the Censor file has unique ESNs.
+
+#check_censorfile_B(censor_data_B)
+
+# Validate the Engine Miles are positive.
+
+#check_miles_B(censor_data_B)
+
+#################################### L Type Engines ###########################################
+if(false){
+
+#date_part=gsub("[[:punct:]]","",Sys.Date())
+
+source("/home/qk850/notebooks/ds/Weibull/weibull_testscripts_L.R")
+path_op="/data/data/weibull/model_output/weibull_l/upload_folder/"
+
+output_failcode_month_L=read.csv(gsub(" ","",paste(path_op,"WEIBULL_",date_part,"_l_BUILD_MONTH.csv")),stringsAsFactors=FALSE)
+output_failcode_year_L=read.csv(gsub(" ","",paste(path_op,"WEIBULL_",date_part,"_l_BUILD_YEAR.csv")),stringsAsFactors=FALSE)
+
+censor_data_L=read.csv(paste0(path_op,"CENSOR_DATA_l.csv"))
+
+
+# Validate to check the failure count is more than one.
+
+check_failures_failcode_month_L(output_failcode_month_L)
+
+check_failures_failcode_year_L(output_failcode_year_L)
+
+# Validate the RPH value should not be Null
+
+check_null_failcode_month_L(output_failcode_month_L)
+
+check_null_failcode_year_L(output_failcode_year_L)
+
+# Validate the Predicted RPH value should be greater than 0
+
+check_prph_failcode_month_L(output_failcode_month_L)
+
+check_prph_failcode_year_L(output_failcode_year_L)
+
+# Validate the Actual RPH value should be greater than or equal to 0
+
+check_arph_failcode_month_L(output_failcode_month_L)
+
+check_arph_failcode_year_L(output_failcode_year_L)
+
+# Validate the PROGRAM_GROUP_NAME should have only two values.
+
+check_program_name_month_L(output_failcode_month_L)
+
+check_program_name_year_L(output_failcode_year_L)
+
+# Validate the Engine Names in L Type
+
+check_engine_names_month_L(output_failcode_month_L)
+
+check_engine_names_year_L(output_failcode_year_L)
+
+# Validate the REL_USER_APPL_DESC values has only the types as AUTO; BUS, SCHOOL;BUS, NOT SCHOOL; FIRE TRUCK;RV
+
+check_application_desc_month_L(output_failcode_month_L)
+
+check_application_desc_year_L(output_failcode_year_L)
+
+# Validate the Actual RPH and Predicted RPH relation
+    
+check_RPH_month_L(output_failcode_month_L)
+
+check_RPH_year_L(output_failcode_year_L)
+
+# Validate the Messages in the Output file.
+
+check_message_output_month_L(output_failcode_month_L)
+
+# Validate the Source type as L only
+
+check_source_month_L(output_failcode_month_L)
+
+check_source_year_L(output_failcode_year_L)
+
+# Validate the CPE should have positive values
+
+check_cpe_month_L(output_failcode_month_L)
+
+check_cpe_year_L(output_failcode_year_L)
+
+# Validate when Failures count is less than 2 the CPE value should be 0
+
+#check_cpevalue_month_L(output_failcode_month_L)
+
+# Validate the Censor file has unique ESNs.
+
+check_censorfile_L(censor_data_L)
+
+# Validate the Engine Miles are positive.
+
+check_miles_L(censor_data_L)
+
+
+#################################### X _Bayes Series Engines ###########################################
+
+#date_part=gsub("[[:punct:]]","",Sys.Date())
+
+source("/home/qk850/notebooks/ds/Weibull/weibull_testscripts_X.R")
+path_op="/data/data/weibull/model_output/weibull_x/upload_folder/"
+output_failcode_month_X=read.csv(gsub(" ","",paste(path_op,"WEIBULL_",date_part,"_x_BUILD_MONTH.csv")),stringsAsFactors=FALSE)
+output_failcode_year_X=read.csv(gsub(" ","",paste(path_op,"WEIBULL_",date_part,"_x_BUILD_YEAR.csv")),stringsAsFactors=FALSE)
+
+censor_data_X=read.csv(paste0(path_op,"CENSOR_DATA_x.csv"))
+
+
+# Validate to check the failure count is more than one.
+
+check_failures_failcode_month_X(output_failcode_month_X)
+
+check_failures_failcode_year_X(output_failcode_year_X)
+
+# Validate the RPH value should not be Null
+
+check_null_failcode_month_X(output_failcode_month_X)
+
+check_null_failcode_year_X(output_failcode_year_X)
+
+# Validate the Predicted RPH value should be greater than 0
+
+check_prph_failcode_month_X(output_failcode_month_X)
+
+check_prph_failcode_year_X(output_failcode_year_X)
+
+# Validate the Actual RPH value should be greater than or equal to 0
+
+check_arph_failcode_month_X(output_failcode_month_X)
+
+check_arph_failcode_year_X(output_failcode_year_X)
+
+# Validate the PROGRAM_GROUP_NAME should have only two values.
+
+check_program_name_month_X(output_failcode_month_X)
+
+check_program_name_year_X(output_failcode_year_X)
+
+# Validate the Engine Names in L Type
+
+check_engine_names_month_X(output_failcode_month_X)
+
+check_engine_names_year_X(output_failcode_year_X)
+
+# Validate the REL_USER_APPL_DESC values has only the types as AUTO; BUS, SCHOOL;BUS, NOT SCHOOL; FIRE TRUCK;RV
+
+check_application_desc_month_X(output_failcode_month_X)
+
+check_application_desc_year_X(output_failcode_year_X)
+
+# Validate the Actual RPH and Predicted RPH relation
+    
+check_RPH_month_X(output_failcode_month_X)
+
+check_RPH_year_X(output_failcode_year_X)
+
+# Validate the Messages in the Output file.
+
+check_message_output_month_X(output_failcode_month_X)
+
+# Validate the Source type as L only
+
+check_source_month_X(output_failcode_month_X)
+
+check_source_year_X(output_failcode_year_X)
+
+# Validate the CPE should have positive values
+
+check_cpe_month_X(output_failcode_month_X)
+
+check_cpe_year_X(output_failcode_year_X)
+
+# Validate when Failures count is less than 2 the CPE value should be 0
+
+#check_cpevalue_month_X(output_failcode_month_X)
+
+# Validate the Censor file has unique ESNs.
+
+check_censorfile_X(censor_data_X)
+
+# Validate the Engine Miles are positive.
+
+check_miles_X(censor_data_X)
+
+# Validate the BUILD Year Column for YEAR file is 1970
+
+check_build_year_X(output_failcode_year_X)
+    }

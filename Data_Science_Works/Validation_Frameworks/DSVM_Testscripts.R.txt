@@ -1,0 +1,351 @@
+# -------------- Tests Cases----------------
+
+cat("Testing Log Files for B Series Engines",file="Result_weibull_b.log",append=FALSE)
+
+# Validate to check the failure count is one or more.
+
+check_failures_failcode_month_B=function(output_failcode){
+        
+        if (min(as.numeric(output_failcode$NUM_FAILURES))>=0)    
+        {
+             cat("\n Test Case 1: Passed",file="Result_weibull_b.log",append=TRUE)
+        }  
+        else{
+            cat("\n Test Case 1: Failed - Failure count should not be negative",file="Result_weibull_b.log",append=TRUE)
+            }
+    }
+
+check_failures_failcode_year_B=function(output_failcode){
+        
+        if (min(as.numeric(output_failcode$NUM_FAILURES))>=0)    
+        {
+              cat("\n Test Case 2: Passed",file="Result_weibull_b.log",append=TRUE)
+        }  
+        else{
+            cat("\n Test Case 2: Failed - Failure count should not be negative",file="Result_weibull_b.log",append=TRUE)
+            }
+    }
+
+# Validate the output should not have Null Values
+
+check_null_failcode_month_B=function(output_failcode){
+    null_data=colSums(is.na(output_failcode))
+    for(i in 1:length(null_data)){
+        if(null_data[i]==0){
+            flag=1
+            }
+        else{
+            flag=0
+            }
+        }
+    if(flag==1){
+        cat("\n Test Case 3 Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test case 3 Failed:Output data has NA values",null_input_data[i],file="Result_weibull_b.log",append=TRUE)
+        }
+    }
+
+check_null_failcode_year_B=function(output_failcode){
+    null_data=colSums(is.na(output_failcode))
+    for(i in 1:length(null_data)){
+        if(null_data[i]==0){
+            flag=1
+            }
+        else{
+            flag=0
+            }
+        }
+    if(flag==1){
+        cat("\n Test Case 4 Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test case 4 Failed:Output data has NA values",null_input_data[i],file="Result_weibull_b.log",append=TRUE)
+        }
+    }
+
+   
+# Validate the predicted RPH value should be greater than 0
+
+check_prph_failcode_month_B=function(df){
+    if(min(df$RPH_MILEAGE_LOWER_BOUND)>0 & min(df$RPH_MILEAGE_MEDIAN)>0 & min(df$RPH_MILEAGE_UPPER_BOUND)>0 & min(df$RPH_MONTH_IN_SERVICE_LOWER_BOUND)>0 & min(df$RPH_MONTH_IN_SERVICE_MEDIAN)>0 & min(df$RPH_MONTH_IN_SERVICE_UPPER_BOUND)>0){
+        cat("\n Test Case 5: Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test Case 5: Failed - The RPH Values should be greater than 0",file="Result_weibull_b.log",append=TRUE )
+        }
+    }
+              
+
+check_prph_failcode_year_B=function(df){
+    if(min(df$RPH_MILEAGE_LOWER_BOUND)>=0 & min(df$RPH_MILEAGE_MEDIAN)>=0 & min(df$RPH_MILEAGE_UPPER_BOUND)>=0 & min(df$RPH_MONTH_IN_SERVICE_LOWER_BOUND)>=0 & min(df$RPH_MONTH_IN_SERVICE_MEDIAN)>=0 & min(df$RPH_MONTH_IN_SERVICE_UPPER_BOUND)>=0){
+        cat("\n Test Case 6: Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test Case 6: Failed - The RPH Values should be greater than 0",file="Result_weibull_b.log",append=TRUE)
+        }
+    }
+
+# Validate the Actual RPH value should be 0 or more
+
+check_arph_failcode_month_B=function(df){
+    if(min(df$ACTUAL_RPH)>=0){
+        cat("\n Test Case 7: Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test Case 7: Failed - The RPH Values should be greater than 0",file="Result_weibull_b.log",append=TRUE )
+        }
+    }
+
+
+check_arph_failcode_year_B=function(df){
+    if(min(df$ACTUAL_RPH)>=0){
+        cat("\n Test Case 8: Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test Case 8: Failed - The RPH Values should be greater than 0",file="Result_weibull_b.log",append=TRUE)
+        }
+    }
+
+           
+# Validate the Program_Group_Name has only two values.
+
+check_program_name_month_B= function(df_output){
+    Test_PGN=unique(df_output$PROGRAM_GROUP_NAME)
+    if (("WARRANTY" %in% Test_PGN) & ("EMISSIONS" %in% Test_PGN) & length(Test_PGN) <3){
+        cat ("\n Test Case 9: Passed", file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test Case 9: Failed - The Program group name has other values ",file="Result_weibull_b.log",append=TRUE )
+        }
+    }
+   
+
+check_program_name_year_B=function(df_output){
+    Test_PGN=unique(df_output$PROGRAM_GROUP_NAME)
+    if (("WARRANTY" %in% Test_PGN) & ("EMISSIONS" %in% Test_PGN)& length(Test_PGN)< 3){
+        cat ("\n Test Case 10: Passed", file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test Case 10: Failed - The Program group name has other values ",file="Result_weibull_b.log",append=TRUE )
+        }
+    }
+
+# Validate the B type Engine Names
+
+check_engine_names_month_B=function(df_output){
+    Test_ENM=unique(df_output$REL_ENGINE_NAME_DESC)
+    flag=0
+    for (i in 1:length(Test_ENM)){
+        if (Test_ENM[i] =='B6.7 2017' | Test_ENM[i] =='ISB6.7 2013'){
+            flag= flag+1
+            }
+        else{
+            flag=0     
+            }
+        }
+    if (flag != 0){
+        cat ("\n Test Case 11: Passed", file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test Case 11: Failed - The Engine Types for B types has other values ",file="Result_weibull_b.log",append=TRUE )
+        }
+    }
+
+    
+check_engine_names_year_B=function(df_output){
+    Test_ENM=unique(df_output$REL_ENGINE_NAME_DESC)
+    flag=0
+    for (i in 1:length(Test_ENM)){
+        if (Test_ENM[i] =='B6.7 2017' | Test_ENM[i] =='ISB6.7 2013'){
+            flag= flag+1
+            }
+        else{
+            flag=0
+            }
+        }
+    if (flag != 0){
+        cat ("\n Test Case 12: Passed", file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test Case 12: Failed - The Engine Types for B types has other values ",file="Result_weibull_b.log",append=TRUE )
+        }
+    }
+    
+# Validate the Application Description for B type Engines
+
+check_application_desc_month_B=function(df_output){
+    ENG_DESC=unique(df_output$REL_USER_APPL_DESC)
+    flag=0
+    for (i in 1:length(ENG_DESC)){
+        if (ENG_DESC[i] =='AUTO' | ENG_DESC[i] =='BUS, SCHOOL'|ENG_DESC[i] =='BUS, NOT SCHOOL' | ENG_DESC[i] =='FIRE TRUCK'| ENG_DESC[i] =='RV'){
+            flag= flag+1
+            }
+        else{
+            flag=0
+            }
+        }
+    if (flag != 0){
+        cat ("\n Test Case 13: Passed", file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test Case 13: Failed - The Engine Description for B types has other values ",file="Result_weibull_b.log",append=TRUE ) 
+        }
+    }
+    
+check_application_desc_year_B=function(df_output){
+    ENG_DESC=unique(df_output$REL_USER_APPL_DESC)
+    flag=0
+    for (i in 1:length(ENG_DESC)){
+        if (ENG_DESC[i] =='AUTO' | ENG_DESC[i] =='BUS, SCHOOL'|ENG_DESC[i] =='BUS, NOT SCHOOL' | ENG_DESC[i] =='FIRE TRUCK'| ENG_DESC[i] =='RV'){
+            flag= flag+1
+            }
+        else{
+            flag=0
+            }
+        }
+    if (flag != 0){
+        cat ("\n Test Case 14: Passed", file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test Case 14: Failed - The Engine Description for B types has other values ",file="Result_weibull_b.log",append=TRUE )
+        }
+    }
+
+# validate the message shows the Bayesian model executed
+
+check_message_output_month_B= function (df_output){
+    df_out=df_output[df_output$NUM_FAILURES> 0,]
+    df_out_err=df_output[df_output$NUM_FAILURES== 0,]
+    
+    if (("Bayes" %in% df_out$MESSAGE) & length(unique(df_out$MESSAGE))==1){
+        cat("\n Test case 15: Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test case 15: Failed- Bayesian algorithm didn't execute",file="Result_weibull_b.log",append=TRUE)
+        }
+         
+    if (("No qualifying claims present but inference successful" %in% df_out_err$MESSAGE) & length(unique(df_out_err$MESSAGE))==1){
+        cat("\n Test case 16: Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test case 16: Failed-Error in the algorithm",file="Result_weibull_b.log",append=TRUE)
+        }
+    }
+
+    
+# Validate the Actual RPH and Predicted RPH relation
+    
+ check_RPH_month_B=function(df_month){
+     if ( as.numeric(df_month$RPH_MILEAGE_MEDIAN) >= as.numeric(df_month$ACTUAL_RPH) & as.numeric(df_month$RPH_MONTH_IN_SERVICE_MEDIAN) >= as.numeric(df_month$ACTUAL_RPH)){
+         cat("\n Test case 17: Passed",file="Result_weibull_b.log",append=TRUE)
+         }
+     else{
+         cat("\n Test case 17: Failed- Actual RPH is greater than Predicted",file="Result_weibull_b.log",append=TRUE)
+         }
+     }
+ 
+check_RPH_year_B=function(df_output){
+    if ( as.numeric(df_output$RPH_MILEAGE_MEDIAN) >= as.numeric(df_output$ACTUAL_RPH) & as.numeric(df_output$RPH_MONTH_IN_SERVICE_MEDIAN) >= as.numeric(df_output$ACTUAL_RPH)){
+        cat("\n Test case 18: Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test case 18: Failed- Actual RPH is greater than Predicted",file="Result_weibull_b.log",append=TRUE)
+        }
+    }
+  
+
+# validate the Source is only b type
+
+check_source_month_B=function(df_month){
+    flag=0  
+    for (i in 1:nrow(df_month)){
+        if(df_month$ENGINE_SERIES[i] =='b'){
+            flag=flag+1  
+            }
+        }
+    if (flag!=0){
+        cat("\n Test case 19: Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test case 19: Failed- The Source is other than B type for B config file.",file="Result_weibull_b.log",append=TRUE)
+        }
+    }
+
+
+check_source_year_B=function(df_month){
+    flag=0  
+    for (i in 1:nrow(df_month)){
+               
+        if(df_month$ENGINE_SERIES[i] =='b'){
+            flag=flag+1  
+            }
+        }
+    if (flag!=0){
+        cat("\n Test case 20: Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test case 20: Failed- The Source is other than B type for B config file.",file="Result_weibull_b.log",append=TRUE)
+        }
+    }
+
+
+# Validate the CPE should have positive values 
+
+check_cpe_month_B= function(df_output){
+    if (min(as.numeric(df_output$CPE_MILEAGE_LOWER_BOUND)) >=0 & min(as.numeric(df_output$CPE_MILEAGE_MEDIAN)) >=0 & min(as.numeric(df_output$CPE_MILEAGE_UPPER_BOUND)) >=0 & min(as.numeric(df_output$CPE_MONTH_IN_SERVICE_LOWER_BOUND)) >=0 &min(as.numeric(df_output$CPE_MONTH_IN_SERVICE_MEDIAN)) >=0 & min(as.numeric(df_output$CPE_MONTH_IN_SERVICE_UPPER_BOUND)) >=0 ){
+        cat("\n Test case 21: Passed",file="Result_weibull_b.log",append=TRUE) 
+        }
+    else{
+        cat("\n Test case 21: Failed- CPE columns have negative values.",file="Result_weibull_b.log",append=TRUE)
+        }
+    }
+             
+
+check_cpe_year_B= function(df_output){
+    if (min(as.numeric(df_output$CPE_MILEAGE_LOWER_BOUND)) >=0 & min(as.numeric(df_output$CPE_MILEAGE_MEDIAN)) >=0 & min(as.numeric(df_output$CPE_MILEAGE_UPPER_BOUND)) >=0 & min(as.numeric(df_output$CPE_MONTH_IN_SERVICE_LOWER_BOUND)) >=0 & min(as.numeric(df_output$CPE_MONTH_IN_SERVICE_MEDIAN)) >=0 & min(as.numeric(df_output$CPE_MONTH_IN_SERVICE_UPPER_BOUND)) >=0 ){
+        cat("\n Test case 22: Passed",file="Result_weibull_b.log",append=TRUE) 
+        }
+    else{
+        cat("\n Test case 22: Failed- CPE columns have negative values.",file="Result_weibull_b.log",append=TRUE)
+        }
+    }
+
+# Validate when Failures count is less than 2 the CPE value should be 0
+
+check_cpevalue_month_B= function(df_output){
+    df_cpe=df_output[df_output$NUM_FAILURES<2,]
+    if (max(as.numeric(df_output$CPE_MILEAGE_LOWER_BOUND)) ==0 & max(as.numeric(df_output$CPE_MILEAGE_MEDIAN)) ==0 & max(as.numeric(df_output$CPE_MILEAGE_UPPER_BOUND)) ==0 & max(as.numeric(df_output$CPE_MONTH_IN_SERVICE_LOWER_BOUND)) ==0 & max(as.numeric(df_output$CPE_MONTH_IN_SERVICE_MEDIAN)) ==0 & max(as.numeric(df_output$CPE_MONTH_IN_SERVICE_UPPER_BOUND)) ==0 ){
+        cat("\n Test case 23: Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test case 23: Failed- CPE value should be equal to 0 if failure is less than 2.",file="Result_weibull_b.log",append=TRUE)
+        }
+    }
+
+
+# Validate the Censor file has unique ESNs.
+
+check_censorfile_B=function(censor_file){
+    unique_ESN= length(unique(censor_file$ENGINE_SERIAL_NUM))
+    total_ESN= length(censor_file$ENGINE_SERIAL_NUM)
+    
+    if (unique_ESN == total_ESN){
+        cat("\n Test Case 24: Passed",file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test case 24: Failed - There are duplicate ESNs in the Censor file.",file="Result_weibull_b.log",append=TRUE)
+        }
+    }
+
+# Validate the Engine Miles are positive.
+
+check_miles_B=function(censor_file){
+    if (min(as.numeric(censor_file$CURRENT_ENGINE_MILES_IMPUTED))>=0 &  min(as.numeric(censor_file$PROJECTED_MILEAGE))>=0)
+        {
+        cat("\n Test case 25: Passed", file="Result_weibull_b.log",append=TRUE)
+        }
+    else{
+        cat("\n Test Case 25: Failed- Engine Miles can't be negative.", file=" Result_weibull_b.log",append=TRUE)
+        }
+    }
