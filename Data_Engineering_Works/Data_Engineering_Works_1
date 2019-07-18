@@ -1,0 +1,102 @@
+SELECT 
+      ROWID, OCCURRENCE_TIMESTAMP, PROCESS_TIMESTAMP, default.collect(name,value[0]) AS parameter_value_map 
+      FROM insite_raw.insite_master 
+      WHERE ( array_contains(tags, "Header") OR ( (array_contains(tags,"root") OR array_contains(tags,"Root") ) AND ( array_contains(tags,"ECM_Application") OR  array_contains(tags,"OEM Information") OR array_contains(tags, "AFT DPF Ash Load") OR array_contains(tags, "Aggregate Engine Run Time") ) ) )
+      GROUP BY ROWID, OCCURRENCE_TIMESTAMP, PROCESS_TIMESTAMP 
+SELECT 
+rowid,
+occurrence_timestamp,
+process_timestamp,tags[0] as Record_number,default.collect(name,value)  AS audit_value_map 
+from insite_raw.insite_master   
+where  array_contains(tags,"Audit Trail")
+group by rowid,occurrence_timestamp,process_timestamp,tags[0]) auditsectiontable
+LEFT OUTER JOIN 
+(SELECT 
+rowid,
+occurrence_timestamp,
+process_timestamp,default.collect(name,value)  AS parameter_value_map 
+from insite_raw.insite_master
+where (name in 
+('_System_Serial_Number','_Calibration_Version','_ECM_Code','_ECM_Name',
+'_System_Model','_VIN_Or_Equipment_Serial_Number',
+'ToolInstance') 
+) 
+group by rowid,occurrence_timestamp,process_timestamp ) commontable 
+ON auditsectiontable.rowid=commontable.rowid and 
+auditsectiontable.occurrence_timestamp=commontable.occurrence_timestamp and 
+auditsectiontable.process_timestamp=commontable.process_timestamp )unexplodedTable
+lateral view outer explode(audit_trail_codes)dummy as audit_trail_code
+
+
+# Table creation and 
+-- Create temp table
+CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:JOB_NAME}_temp ( 
+  OCC_TIMESTAMP STRING,
+  FILENAME STRING,
+  ESN STRING,
+  CALIBRATION_SOFTWARE_PHASE STRING,
+  ECM_CODE STRING,
+  ECM_NAME STRING,
+  ENGINE_MODEL STRING,
+  VIN STRING,
+  PCID STRING,
+  OCC_DATE STRING,
+  EVENT_ID STRING,
+  ECM_TIME STRING,
+  ECM_REAL_TIME STRING,
+  START_SOOT_FILL_MONITOR_STATUS STRING,
+  END_SOOT_FILL_MONITOR_STATUS STRING,
+  START_DOC_INLET_TEMPERATURE_UNIT STRING,
+  START_DOC_INLET_TEMPERATURE STRING,
+  MAXIMUM_DOC_OUT_TEMPERATURE_DURING_UNIT STRING,
+  MAXIMUM_DOC_OUT_TEMPERATURE_DURING STRING,
+  MAXIMUM_DPF_OUT_TEMPERATURE_DURING_UNIT STRING,
+  MAXIMUM_DPF_OUT_TEMPERATURE_DURING STRING,
+  MAXIMUM_DPF_DELTA_P_DURING_UNIT STRING,
+  MAXIMUM_DPF_DELTA_P_DURING STRING
+) 
+ROW FORMAT DELIMITED 
+  FIELDS TERMINATED BY '|' 
+STORED AS TEXTFILE 
+LOCATION '${hiveconf:HDFSLocation}_temp';
+
+-- Create Final external base table 
+CREATE EXTERNAL TABLE IF NOT EXISTS MDSG_INSITE_${hiveconf:JOB_NAME}_BASE_T ( 
+  OCC_TIMESTAMP STRING,
+  FILENAME STRING,
+  ESN STRING,
+  CALIBRATION_SOFTWARE_PHASE STRING,
+  ECM_CODE STRING,
+  ECM_NAME STRING,
+  ENGINE_MODEL STRING,
+  VIN STRING,
+  PCID STRING,
+  EVENT_ID STRING,
+  ECM_TIME STRING,
+  ECM_REAL_TIME STRING,
+  START_SOOT_FILL_MONITOR_STATUS STRING,
+  END_SOOT_FILL_MONITOR_STATUS STRING,
+  START_DOC_INLET_TEMPERATURE_UNIT STRING,
+  START_DOC_INLET_TEMPERATURE STRING,
+  MAXIMUM_DOC_OUT_TEMPERATURE_DURING_UNIT STRING,
+  MAXIMUM_DOC_OUT_TEMPERATURE_DURING STRING,
+  MAXIMUM_DPF_OUT_TEMPERATURE_DURING_UNIT STRING,
+  MAXIMUM_DPF_OUT_TEMPERATURE_DURING STRING,
+  MAXIMUM_DPF_DELTA_P_DURING_UNIT STRING,
+  MAXIMUM_DPF_DELTA_P_DURING STRING
+) 
+PARTITIONED BY (OCC_DATE STRING) 
+ROW FORMAT DELIMITED 
+  FIELDS TERMINATED BY '|' 
+STORED AS ORC 
+LOCATION '${hiveconf:HDFSLocation}';
+
+-- TODO : Replace INTO instead of OVERWRITE once the master table partition implemented
+-- Insert partition data into final base table
+INSERT OVERWRITE TABLE MDSG_INSITE_${hiveconf:JOB_NAME}_BASE_T PARTITION (OCC_DATE) SELECT OCC_TIMESTAMP,FILENAME,ESN,CALIBRATION_SOFTWARE_PHASE,ECM_CODE,ECM_NAME,ENGINE_MODEL,VIN,PCID,EVENT_ID,ECM_TIME,ECM_REAL_TIME,START_SOOT_FILL_MONITOR_STATUS,END_SOOT_FILL_MONITOR_STATUS,START_DOC_INLET_TEMPERATURE_UNIT,START_DOC_INLET_TEMPERATURE,MAXIMUM_DOC_OUT_TEMPERATURE_DURING_UNIT,MAXIMUM_DOC_OUT_TEMPERATURE_DURING,MAXIMUM_DPF_OUT_TEMPERATURE_DURING_UNIT,MAXIMUM_DPF_OUT_TEMPERATURE_DURING,MAXIMUM_DPF_DELTA_P_DURING_UNIT,MAXIMUM_DPF_DELTA_P_DURING,OCC_DATE FROM ${hiveconf:JOB_NAME}_TEMP DISTRIBUTE BY OCC_DATE SORT BY OCC_DATE;
+
+-- Final View Creation
+CREATE VIEW IF NOT EXISTS MDSG_INSITE_${hiveconf:JOB_NAME}_V AS SELECT * FROM MDSG_INSITE_${hiveconf:JOB_NAME}_BASE_T;
+
+-- DROP tables
+DROP TABLE IF EXISTS ${hiveconf:JOB_NAME}_transient;
