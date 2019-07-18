@@ -1,0 +1,72 @@
+================= Spark Technical Session by Data Engineer Akshay @ Cummins India
+
+Most processing done on memory where in haddop all done in Map & Reduce
+
+For large data sets sprak is the best options
+
+Scala is default language for spark
+
+there is a library SparkR for R language in spark core
+
+DAG --> direct assigic graph
+RDD --> Resilient distruted dataset
+Immutable parallel data structure
+
+spark -- lazyly computed until findes the action it won't do job
+
+Many times park retrigger the errors in its flow that's why we dont see error mostly -- it gives most exact and req results 
+
+spark do shuffeling thts why it takes time to execution
+
+why shuffling happens --> it spllits the program or transfermations into diff stages if stage 3 faills it starts again from stage 0-- 
+shuffling happens while reading or loading the data -- if more actions then more suffling happens like(grouping sorting other)
+
+spark developed in scala -- if any developent done in spark comes into scala
+scala have scripting and object oriented compatibility  like python gives 
+
+
+================ BY Manjusha machine learning 
+
+Databricks in Pyspark 
+
+Pyspark library -- to use spark functionally in python
+
+used in cloud computing  == collection of servers and data 
+
+Data bricks -- code rewrriting required if not used by using processing is fast 
+
+supports spark, scala, python, R
+
+and easy for data connectivity and using and data analyzing
+
+notebooks are avalible in databricks we can execute notebooks like jobs 
+
+pipeline workflows are compatibilty for notebooks also in databricks
+
+
+we can get all at one place by usong data bricks
+
+multy language supprot -python, scala, sql, R -- all we can use in one notebook -- wecan call all languages in notebooks
+
+we can share easily and team can modify the note books and code easily
+
+we can create widgets in notebooks 
+
+allows you to monitor spark progress directly from notebook
+
+--- MLflow -- open source machine learning platform 
+
+help us to record the tracking and metric .. reproducible run, 
+
+we can publish dashbords, continuous data updates possible , provide drop downs,
+
+even non tech user can handle
+
+we can shedule jobs directly from dashbords
+
+also dashbord widgets also avilable 
+
+we can connct Power BI also from Databricks -- directly connect data clusters
+
+we can get graphs also instant using Databricks 
+we can get graphs also instant using Databricks 
