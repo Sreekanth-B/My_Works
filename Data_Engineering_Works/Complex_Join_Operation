@@ -1,0 +1,79 @@
+
+# here we are joining the different table present in the insite_raw database and the result is creating as view at the end
+
+USE insite_raw;
+
+
+set hive.auto.convert.join = false;
+set hive.cli.print.header=true;
+
+CREATE VIEW insite_dm1920_V AS
+SELECT Process_Timestamp,epasub.rowid as FileName,Engine_Serial_Number,Calibration_Software_Phase,ECM_Code,ECM_Name,Engine_Model,
+VIN,PCID,Occurrence_Date,ECM_Run_Time,Engine_Run_Time,Manufacture,Kms,ODO,Gen_Den,Ignition_Cycle,NMHCCatNum,NMHCCatDen,NMHCCatRat,NOxCatNum,
+NOxCatDen,NOxCatRat,DPFNum,DPFDen,DPFRat,ExhGasSenNum,ExhGasSenDen,ExhGasSenRat,EGRNum,EGRDen,EGRRat,BoostNum,BoostDen,BoostRat,FuelNum,FuelDen,
+FuelRat,OBD_Flag,dm19map['Calibration_Verification_Number'][0] as Calibration_Verification_Number_0,
+dm19map['Calibration_Verification_Number'][1] as Calibration_Verification_Number_1,
+dm19map['Calibration_Verification_Number'][2] as Calibration_Verification_Number_2,
+dm19map['Calibration_Verification_Number'][3] as Calibration_Verification_Number_3,
+dm19map['Calibration_Identification'][0] as Calibration_Identification_0,dm19map['Calibration_Identification'][1] as Calibration_Identification_1,
+dm19map['Calibration_Identification'][2] as Calibration_Identification_2,dm19map['Calibration_Identification'][3] as Calibration_Identification_3 
+FROM
+(
+SELECT process_timestamp AS Process_Timestamp,
+dminner.rowid,
+parameter_value_map['_System_Serial_Number'] AS Engine_Serial_Number,
+parameter_value_map['_Calibration_Version'] AS Calibration_Software_Phase,
+parameter_value_map['_ECM_Code'] AS ECM_Code,
+parameter_value_map['_ECM_Name'] AS ECM_Name,
+parameter_value_map['_System_Model'] AS Engine_Model,
+parameter_value_map['_VIN_Or_Equipment_Serial_Number'] AS VIN,
+parameter_value_map['ToolInstance'] AS PCID,
+to_date(occurrence_timestamp) AS Occurrence_Date,
+parameter_value_map['_ECM_Run_Time'] AS ECM_Run_Time,
+parameter_value_map['_TI_Base_Engine_Trip_Run_Time'] AS Engine_Run_Time,
+parameter_value_map['_OEM_Name_Ver2'] AS Manufacture,
+parameter_value_map['_TI_Vehicle_Total_ECM_Distance'] AS Kms,
+parameter_value_map['_TI_Vehicle_Total_ECM_Distance']/1.609344 AS ODO,
+parameter_value_map['OBD_Monitoring_Conditions_Encountered'] AS Gen_Den,
+parameter_value_map['Ignition_Cycle_Counter'] AS Ignition_Cycle,
+parameter_value_map['OBD_Flag'] AS OBD_Flag
+FROM
+(
+SELECT rowid,process_timestamp,Occurrence_timestamp,default.collect(name,value[0]) AS parameter_value_map from insite_raw.insite_master where 
+array_contains(tags, "Header") OR ((array_contains(tags,"root") OR array_contains(tags,"Root")) AND (array_contains(tags,"ECM _Application") 
+OR array_contains(tags,"OEM Information") OR array_contains(tags,"Engine Information")))  or ( array_contains(tags,"FeaturesAndParameters") 
+and array_contains(tags,"Customer Information") ) or array_contains(tags,"Vehicle/OEM Information") OR array_contains(tags,"OBDLogs") 
+OR array_contains(tags,"Trip Information - Vehicle") OR array_contains(tags,"All Trips (Cumulative)") OR array_contains(tags,"Trip Since Last Reset") 
+group by rowid,process_timestamp,Occurrence_timestamp
+)dminner
+)dmsub
+JOIN 
+(select pm.rowid,MonNum_Map['3055'] as FuelNum,MonDen_Map['3055'] as FuelDen, (MonNum_Map['3055']/MonDen_Map['3055']) as FuelRat,
+MonNum_Map['3058'] as EGRNum,MonDen_Map['3058'] as EGRDen, (MonNum_Map['3058']/MonDen_Map['3058']) as EGRRat,MonNum_Map['3064'] as DPFNum,
+MonDen_Map['3064'] as DPFDen, (MonNum_Map['3064']/MonDen_Map['3064']) as DPFRat,MonNum_Map['4792'] as NOxCatNum,MonDen_Map['4792'] as NOxCatDen,
+ (MonNum_Map['4792']/MonDen_Map['4792']) as NOxCatRat,MonNum_Map['5318'] as ExhGasSenNum,MonDen_Map['5318'] as ExhGasSenDen,
+ (MonNum_Map['5318']/MonDen_Map['5318']) as ExhGasSenRat,MonNum_Map['5321'] as BoostNum,MonDen_Map['5321'] as BoostDen, 
+ (MonNum_Map['5321']/MonDen_Map['5321']) as BoostRat,MonNum_Map['5322'] as NMHCCatNum,MonDen_Map['5322'] as NMHCCatDen, 
+ (MonNum_Map['5322']/Monden_Map['5322']) as NMHCCatRat from (
+select 
+  rowid,
+  default.collect(group_map['SPN_of_Applicable_System_Monitor'], group_map['Applicable_System_Monitor_Numerator']) as MonNum_Map,
+  default.collect(group_map['SPN_of_Applicable_System_Monitor'], group_map['Applicable_System_Monitor_Denominator']) as MonDen_Map
+from 
+  ( select
+      rowid,
+      default.collect(name,value[0]) as group_map, tags[0] as Mont
+    from insite_raw.insite_master where array_contains(tags,"OBDLogs") or array_contains(tags,"CalibrationVerificationNumber")
+    group by rowid,tags[0]
+) gm  group by rowid) pm 
+)epasub ON dmsub.rowid=epasub.rowid
+JOIN
+(
+
+select dm19_1.rowid, default.collect(paramnames, value_list) dm19map
+from(
+select rowid, name as paramnames, default.collect(value[0]) value_list
+from insite_raw.insite_master where  array_contains(tags,"CalibrationVerificationNumber")
+group by rowid, name
+) dm19_1 group by rowid
+)dm19 ON epasub.rowid=dm19.rowid and dmsub.rowid=dm19.rowid;
