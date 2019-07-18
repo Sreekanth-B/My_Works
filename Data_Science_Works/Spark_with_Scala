@@ -1,0 +1,68 @@
+# File consists of oppurations done using scala language on spark 
+# And also Spark-sql and its commands 
+
+# Creating Scala shell script to run on ADLS(Azure Data Lake servies) data
+# To enter into spark - environment
+
+spark-shell --conf spark.ui.port=2021<<EOF
+
+println("LOG: OUTPUT TABLE ------om_output-------")
+
+val df = spark.read.option("header","true").option("delimiter","|").format("csv").load("adl://eaasedlstgadls.azuredatalakestore.net/data/mo/quality_engine/om_output/")
+
+df.groupBy("combinations","fail_code","engine_series").count.filter($"count">1).count
+
+EOF
+
+# Schema Check and column values
+
+df.columns
+df.printSchema 
+
+# to get null values count
+df.filter('ANALYTICS_RUN_DATE.isNull).count
+
+# TO check distinct values of column
+
+df_st.select("cost_nbr_population").distinct.show(50,false)
+
+# checking the duplicates values in the data based on primary key
+
+df.groupBy("col_1","col_2").count.filter($"count">1).count)
+# Below command gives the duplicate values count for 3 col taken as primary key
+df.groupBy("col_1","col_2","col_3").count.filter($"count">1).count
+
+# To check the max and min values of the column in the dataframe
+
+om_output_df.groupBy("ENGINE_SERIES").agg(max("CALC_DATE"), min("CALC_DATE")).show()
+df.agg(min("A"), max("A")).show()
+
+----------- For max and Min dates 
+df.select(max("CALC_DATE")).show() 
+
+
+# =================================  Spark _SQL =================================  
+# Spark-sql gives the compatability to write direct sql commands on the data present in the hadoop clusters 
+
+======= TO find Duplications=========
+
+println("LOG: TABLES DUPLICATION COUNT ")
+
+println("LOG: om_stat : "+spark.sql("select count(*) from(select concat(CALC_ID,CODE,CALC_DATE,SOURCE) from quality_uat_reporting.om_stat group by concat(CALC_ID,CODE,CALC_DATE,SOURCE) having count(concat(CALC_ID,CODE,CALC_DATE,SOURCE))>1)temp").show(false))
+
+println("LOG: om_esn : "+spark.sql("select count(*) from (select concat(ESN,calc_date,code,source) from quality_uat_reporting.om_esn group by concat(ESN,calc_date,code,source) having count(concat(ESN,calc_date,code,source))>1)temp").show(false))
+
+
+println("LOG: om_stat : "+spark.sql("select count(*) from(select concat(CALC_ID,CODE,CALC_DATE,SOURCE) from quality_uat_reporting.om_stat group by concat(CALC_ID,CODE,CALC_DATE,SOURCE) having count(concat(CALC_ID,CODE,CALC_DATE,SOURCE))>1)temp").show(false))
+
+println("LOG: om_esn : "+spark.sql("select count(*) from (select concat(ESN,calc_date,code,source) from quality_uat_reporting.om_esn group by concat(ESN,calc_date,code,source) having count(concat(ESN,calc_date,code,source))>1)temp").show(false))
+
+# To get the max value from column
+
+println("LOG: INS_EA_CMP_COOLANT_TMP_SEC_SEV_TOTAL_PERCENT :"+spark.sql("select max(INS_EA_CMP_COOLANT_TMP_SEC_SEV_TOTAL_PERCENT) from quality_b_mi.full_features").first())
+
+
+#=================== TO Print first row of the column from Table
+
+println("LOG: INS_EA_CMP_COOLANT_TMP_SEC_SEV_TOTAL_PERCENT :"+spark.sql("select max(INS_EA_CMP_COOLANT_TMP_SEC_SEV_TOTAL_PERCENT) from quality_b_mi.full_features").first())
+
