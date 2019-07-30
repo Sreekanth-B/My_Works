@@ -1,15 +1,15 @@
 
-# File created to automate the execution of Data Engineering script
+# This is a sample File created to automate the execution of Data Engineering Validation Scripts to generate the differents values
 
 # After execution code gives the column names and their counts at the end which after can be evalivated with the previous records
 
-# using to check the data connsistancy
+# using to check the data connsistancy, Data Redundency and some basic as well as Business Scenarios
 
 cd ..
-cd QA_Test/
+cd Validate_QA/
 
 sh input_count.sh >> temp.txt
-# below we are removing 
+# below we are removing old results file
 rm new_results.txt
 grep "^LOG" temp.txt >>final_temp.txt
 cut -d ':' -f 2,3 final_temp.txt  >>output.txt
