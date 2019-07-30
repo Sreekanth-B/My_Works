@@ -1,11 +1,11 @@
-# Creating the View based on the aggregations defined on the insite_raw database.
+# Creating the View based on the aggregations defined on the required database.
 
-USE insite_raw;
+USE <Database_Name>;
 
 set hive.auto.convert.join = false;
 set hive.cli.print.header=true;
 
-CREATE VIEW IF NOT EXISTS insite_aftertreatmenthist_V AS 
+CREATE VIEW IF NOT EXISTS <View_name> AS 
   SELECT 
     commontable.process_timestamp AS Process_Timestamp,
     commontable.rowid AS FileName,
