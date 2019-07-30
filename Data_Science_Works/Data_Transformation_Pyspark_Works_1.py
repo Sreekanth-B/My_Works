@@ -17,7 +17,7 @@ import pyspark
 import pandas as pd
 
 # Reading the data
-wb_out= spark.read.option("header","true").option("delimiter",",").option("inferSchema", "true").format("csv").load("/home/qx816/notebooks/Wb_may8/data/model_input/raw/weibull_b/build.csv")
+wb_out= spark.read.option("header","true").option("delimiter",",").option("inferSchema", "true").format("csv").load("/home/notebooks/Sreekanth/input_1.csv")
 
 #Schema and count of pyspark dataframe
 #gives the columns values 
@@ -26,7 +26,7 @@ wb_out.columns
 wb_out.printSchema()
 wb_out.count()
 
-# Converting that into table 
+# Converting Dataframe into table 
 
 #useful when we want to write direct sql quiries on the data and saving the result into new df
 
@@ -35,20 +35,20 @@ sqlContext.registerDataFrameAsTable(wb_out2, "wb_out2")
 
 # Writting the sql commands on top of registered tables
 
-ck = sqlContext.sql("select max(BUILD_DATE) as Max, min(BUILD_DATE) as Min from failm_ou1")
+ck = sqlContext.sql("select max(DATE) as Max, min(DATE) as Min from wb_out1")
 
 ck.show()
 
-co=sqlContext.sql("select OM_CRRT_PRIORITY_SCORE from om_out_df where om_algo == 'MA_Ribbon' and cast(OM_CRRT_PRIORITY_SCORE as int)<0 ")
+co=sqlContext.sql("select col_name from wb_out1 where algo == 'MA_Ribbon' and cast(PRIORITY_SCORE as int)<0 ")
 
 co.count()
 
-co=sqlContext.sql("select OM_SCORE_REL_BUCKET,count(CALC_ID) from om_out_df where calc_date == '2019-03-07' GROUP BY OM_SCORE_REL_BUCKET ")
+co=sqlContext.sql("select SCORE_REL_BUCKET,count(CALC_ID) from wb_out1 where calc_date == '2019-06-07' GROUP BY SCORE_REL_BUCKET ")
 
-cd=sqlContext.sql("select distinct(REL_BUILD_DATE) from ff_csv_1")
+cd=sqlContext.sql("select distinct(DATE) from wb_out1")
 
 # Saving the results into csv 
-#first we need to convert into pandas df and then we can save using python function
+# first we need to convert into pandas df and then we can save using python function
 
 cdf = cd.toPandas()
 
@@ -60,10 +60,10 @@ cdf.to_csv('Wb_L_file_May_2_Gold.csv')
 df.describe().show()
 
 # ============= column wise
-df.describe('Product_ID').show()
+df.describe('col_name').show()
 
 # To select column(s) from the DataFrame
-df.select('User_ID','Age').show(5)
+df.select('col_1','Age').show(5)
 
 #  to find the number of distinct product in train and test files
 train.select('Product_ID').distinct().count(),test.select('Product_ID').distinct().count()
@@ -81,6 +81,8 @@ train.crosstab('Age', 'Gender').show()
 # What If I want to get the DataFrame which won’t have duplicate rows of given DataFrame ..?
 
 train.select('Age','Gender').dropDuplicates().show()
+
+# =========================================================================================================
 
 # What if I want to drop the all rows with null value ..?
 The dropna operation can be use here. To drop row from the DataFrame it consider three options.
