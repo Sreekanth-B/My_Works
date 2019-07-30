@@ -1,6 +1,6 @@
 # Created BY Sreekanth_B
 
-All the contents placed in this git repository are cmpletly open source and self learning and practiced samples 
+All the contents placed in this git repository are completly open source and self learning and practiced samples 
 
 # Data_Engineering_Works
  This Repository consists of the works that are related to data engineering includes Hadoop, Spark, Scala, Pyspark technologies
