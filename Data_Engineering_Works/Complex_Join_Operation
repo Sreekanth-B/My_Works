@@ -1,5 +1,5 @@
 
-# here we are joining the different table present in the insite_raw database and the result is creating as view at the end
+# here we are joining the different table present in the same database to create a view at the end
 
 USE insite_raw;
 
@@ -7,7 +7,7 @@ USE insite_raw;
 set hive.auto.convert.join = false;
 set hive.cli.print.header=true;
 
-CREATE VIEW insite_dm1920_V AS
+CREATE VIEW New_View_IMP AS
 SELECT Process_Timestamp,epasub.rowid as FileName,Engine_Serial_Number,Calibration_Software_Phase,ECM_Code,ECM_Name,Engine_Model,
 VIN,PCID,Occurrence_Date,ECM_Run_Time,Engine_Run_Time,Manufacture,Kms,ODO,Gen_Den,Ignition_Cycle,NMHCCatNum,NMHCCatDen,NMHCCatRat,NOxCatNum,
 NOxCatDen,NOxCatRat,DPFNum,DPFDen,DPFRat,ExhGasSenNum,ExhGasSenDen,ExhGasSenRat,EGRNum,EGRDen,EGRRat,BoostNum,BoostDen,BoostRat,FuelNum,FuelDen,
