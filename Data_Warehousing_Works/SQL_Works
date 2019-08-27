@@ -180,3 +180,37 @@ List all the items which are not been sold
 Select * from item where not exists(select * from lineitem where item.itemcode=lineitem.itemcode)
 
 
+The following SQL statement lists the employees that have registered more than 10 orders:
+
+SELECT Employees.LastName, COUNT(Orders.OrderID) AS NumberOfOrders
+FROM (Orders INNER JOIN Employees ON Orders.EmployeeID = Employees.EmployeeID) GROUP BY LastName HAVING COUNT(Orders.OrderID) > 10;
+
+The following SQL statement lists if the employees "Davolio" or "Fuller" have registered more than 25 orders:
+
+SELECT Employees.LastName, COUNT(Orders.OrderID) AS NumberOfOrders
+FROM Orders INNER JOIN Employees ON Orders.EmployeeID = Employees.EmployeeID WHERE LastName = 'Davolio' OR LastName = 'Fuller'
+GROUP BY LastName HAVING COUNT(Orders.OrderID) > 25;
+
+IMPORTANT sql::
+STUDENTS (Sno: int, Sname: varchar(64), Gender: ‘F’ or ‘M’, Age: int),
+COURSES (Cno: int, Cname: varchar(32)),
+ENROLLMENT (Sno: int, Cno:int, Grade: int).
+
+1.	Find the names of the students who enroll in all the courses.
+2.	Find the names of the students who enroll more than 3 courses.
+3.	Find the name and the average grade for each course.
+
+3
+	SELECT S.Sname
+	FROM Students AS S INNER JOIN Enrollment AS E ON S.Sno = E.Sno
+	GROUP BY S.Sno, S.Sname 
+	HAVING COUNT(*) = (SELECT COUNT(*) FROM Courses)
+4
+	SELECT S.Sname
+	FROM Students AS S INNER JOIN Enrollment AS E ON E.Sno = S.Sno
+	GROUP BY S.Sno, S.Sname
+	HAVING COUNT(*) > 3
+5
+	SELECT C.CName, AVG(E.Grade) AS AvgGrade
+	FROM Courses AS C INNER JOIN Enrollment AS E ON C.CNo = E.CNo 
+	GROUP BY C.Cno, C.CName
