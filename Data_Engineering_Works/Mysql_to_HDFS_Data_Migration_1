@@ -1,0 +1,169 @@
+
+// This file contains th SQOOP operations to migrate the data from MySQL to HDFS and HDFS to MySQL
+
+// SQOOP is Created by cloudera,now an apache project
+
+// It is an RDBMS import and export tool
+
+// Imports data from RDBMS and writes it to Hadoop HDFS
+
+// Similarly exports data from hadoop HDFS to RDBMS
+
+
+// To know the SQOOP version 
+
+$ sqoop version
+
+// Listing the databases in SQOOP
+
+$ sqoop list-databases \
+-- connect (mysql URL)/ \  
+--username root
+
+// backslash \ is used to conntinue th code in next line
+
+// Listing tables in SQOOP
+
+$ sqoop list-tables \
+-- connect (mysql URL)/ \ 
+--username root
+
+// Migrating data from MySQL to HDFS
+
+$ sqoop import \
+-- connect (mysql URL)/ \  
+--username root \
+--table emp \
+--m 1 \ 
+--target-dir /sreekanth/sqoop/empdetails \                        (destination path)
+--fields-terminated-by ‘,’ \
+--lines-terminated-by ‘\n’
+
+// here m 1 is =(based on table size here we are dealing small table so we use 1 map)
+
+// Note : It will start the Mapreduce job and put the files into HDFS from mysql. If the path not exists it will create new
+
+// To filter out records, we can add option in import command = like below 
+
+$ sqoop import \
+-- connect (mysql URL)/ \  
+--username root \
+--table emp \
+--m 1 \
+--where “city = ‘Berlin’” \
+--target-dir /sreekanth/sqoop/empdetails \
+
+// If we want to select specific columns then 
+$ sqoop import \
+-- connect (mysql URL)/ \  
+--username root \
+--table emp \
+--m 1 \ 
+--target-dir /sreekanth/sqoop/empdetails/cols_1 \ 
+--columns empid,salary
+
+// When we need to increase parallelism where m is not 1 then. 
+// Example : when we want to split the data based on specific column into 2 splits then 
+
+$ sqoop import \
+-- connect (mysql URL)/ \  
+--username root \
+--table emp \
+--split-by- desg \                      (desg is the column name)
+--m 2 \
+--target-dir /sreekanth/sqoop/empdetails/col1 \  
+
+// Note : use option –direct if using MySQL or PostGr
+
+// If we want to compress the output in the destination path 
+
+$ sqoop import \
+-- connect (mysql URL)/  \
+--username root \
+--table emp \
+--m 1 \
+--target-dir /sreekanth/sqoop/compress_emp \ 
+--compress
+
+// Or alternatively use –z for compression
+// If we want to useexpliset compress codec then we use it as below at the end of command
+
+$ sqoop import \
+-- connect (mysql URL)/  \
+--username root \
+--table emp \
+--m 1 \
+--target-dir /sreekanth/sqoop/compress_emp_Zip \ 
+--compress
+--compression-codec org.pache.hadoop.io.compress.BZip2Codec
+
+// If we want to perform some queries on tables and load the result into hdfs then 
+
+$ sqoop import \
+-- connect (mysql URL)/  \
+--username root \
+-query ‘SELECT e1.empid,e1.ename,e2.city FROM emp e1 JOIN emp_addr e2 on (e1.empid = e2.empid) WHERE $CONDITIONS’ \
+--m 1 \
+--target-dir /sreekanth/sqoop/EMP_jOINS \ 
+
+// IF WE WANT TO DO SPLIT WE NEED TO DO IT AS BELOW
+
+$ sqoop import \
+-- connect (mysql URL)/  \
+--username root \
+-query ‘SELECT e1.empid,e1.ename,e2.city FROM emp e1 JOIN emp_addr e2 on (e1.empid = e2.empid) WHERE $CONDITIONS’ \
+--m 2 \
+--split-by e2.city
+--target-dir /sreekanth/sqoop/EMP_jOINS \ 
+
+// *** Incremental import : let us assume we have already imported the data into HDFS from mysql
+
+// If the new data is added into the mysql data, instead of loading all the data again we can import only the newly added data as below 
+// Let us take table messages where id is unique and msg will append every time. And we need to append the newly added data to hdfs file
+
+$ sqoop import \
+-- connect (mysql URL)/  \
+--username root \
+--table message \
+--target-dir /sreekanth/sqoop/message \
+--m 1 \
+--incremental append \  
+--check-column id \                   (need to specify which is the unique col to be taken for appending)
+--last-value 3                        (specifying the last record which is added into the table based on unique key)
+
+// After the execution we will see two files in the HDFS path where the new file will have the newly added data, 
+
+// IMPORT ALL TABLES FROM MYSQL to HDFS
+
+$ sqoop import-all-tables \
+--connect jdbc: (mysql URL)/  \
+--username root \
+--warehouse-dir /sreekanth/sqoop/alltabs
+
+// Note : all tables need to have primary key 
+// If we want import all tables but except certain tables then 
+
+$ sqoop import-all-tables \
+--connect (mysql URL)/  \
+--username root \
+--m 1 \
+--warehouse-dir /sreekanth/sqoop/fewtabs \
+--exclude-tables emp_contact
+
+
+// EXPORTING THE TABLES FROM HDFS TO SQL 
+// Exportings the accounts txt file data into accounts table in mysql
+
+// Steps : create accounts table In the mysql with the desired schema then folow the below command flow
+
+$ sqoop export \
+--connect (mysql URL)/  \
+--username root \
+--table accounts \
+--export-dir /sreekanth/sqoop/account.txt \
+--columns accno,custname,acctype,balance                                    [OPTIONAL]
+
+// Use below code directly to access mysql
+
+mysql –user root –e ‘select * from mydb.accounts’
+
