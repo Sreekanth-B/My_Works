@@ -1,0 +1,512 @@
+
+
+// Spark - Core Programming 
+
+// file consists of different data tranformations on Big Data using Scala and Spark-SQL
+
+// And usage of Spark-SQL in best Effective Manner
+
+// Reading the file from HDFS into RDD
+
+val rdd =sc.textFile("HDFS/ Path");
+
+// In the above snippet, sc refers to built-in SparkContext
+
+//Filtering Message and Message Type fields
+//For every record split the fields and concatenate Message Type(r(8)) and Message (r(9)) fields with “,”
+
+val rdd2 = map(_.split("\t")).map(r => (r(8)+ ","+r(9)))
+
+
+
+//Filtering the ERROR records and count the router specific errors
+
+//Filter records starting with errors
+val rdd3 = rdd2. filter(_.startsWith(“ERROR”)) 
+
+//Count Rtr1 records
+val R1Errs = rdd3.map(_.contains(“RTR1”)).count() 
+
+// Count Rtr2 records
+val R2Errs = rdd3.map(_.contains(“RTR2”)).count() 
+
+// load the router error counts into array and paralleize into RDD
+val outarray = Array(“Router 1 contains ”+R1Errs,”Router 2 contains ”+R2Errs); 
+
+val outrdd = sc.paralleize(outarray)
+
+
+// print and save final RDD into output file
+
+outrdd.collect.foreach(println)
+
+outrdd.saveAsTextFile("HDFS path to save")
+
+
+
+//////////////// spliting the fields with "," and fetching only first 2 fields
+
+val FieldsRDD = logsRDD.map(_.split(",")).map(r => (r(0),r(1)))
+
+
+============================================================================================================================================
+
+///// In this demo, Load the data as RDD, compute and find the number of unique occurrence of each record in the dataset
+// Type in spark-shell command to open the Spark scala shell.
+// Type in the below code line by line in the shell        
+
+ val lines = sc.textFile(“/hdfspath/routerLog.tsv ")
+ val pairs = lines.map(record => (record, 1))
+ val counts = pairs.reduceByKey((a, b) => a + b)
+ counts.collect.foreach(println)
+ counts.collect.saveAsTextFile(“/hdfspath/myuniquedirectory”)
+
+// You can find the output as (record, number of occurrences)
+
+
+Consider a banking scenario where credit card transaction logs need to be processed. Log contains CustomerID, CustomerName, CreditCard Number, TransactionAmount. Which of the below code snippet creates a paired RDD <CustomerID, TransactionAmount>?
+Ans :: val logsRDD = sc.textFile("/HDFSPath/Logs.txt"); val LogsPairedRDD = logsRDD.map(_.split(",")).map(r => (r(0),r(3).toInt))
+
+============================================================================================================================================
+
+
+// joins in spark data frames
+
+// Implementation steps to join
+
+// Step 1: Create Case classes representing datasets
+// Create two case classes representing schema of each dataset.
+// Case class representing RouterLocationInfo.tsv schema
+
+case class RouterLocation(rid:Int,name:String,location:String);
+
+// Case class representing RouterPurchaseInfo.tsv schema
+
+case class RouterPurchase(rid:Int,date:String,pmemory:Long,smemory:Long,cost:Float);
+
+// Step 2: Generate K,V pairs using case class object
+// In this step,datasets are loaded as RDDs
+// Paired RDDs  (K, V) are created where K = common column in both RDDs, V = Case class object.
+//Load RouterLocation dataset and generate Rid(common field),RouterLocation object
+
+val locRDD = sc.textFile(“RouterLocationInfo.tsv").map(_.split("\t")).map(r => (r(0), RouterLocation(r(0).toInt,r(1),r(2)))
+
+//Load RouterPurchase dataset and generate Rid(common field),RouterLocation object
+
+val purRDD = sc.textFile(“RouterPurchaseInfo.tsv").map(_.split("\t")).map(r => (r(0), RouterPurchase(r(0).toInt,r(1),r(2).toLong,r(3).toLong,r(4).toFloat))
+
+// Step 3: Apply join() function
+// In this step, Spark join is applied against the grouped fields of locRDD and purRDD from the previous step.
+//Join locRDD with purRDD using join()
+
+locRDD.join(purRDD).collect()
+
+
+DEMO Steps:
+
+      scala>case class RouterLocation(rid:Int,name:String,location:String);
+       scala>case class RouterPurchase(rid:Int,date:String,pmemory:Long,smemory:Long,cost:Float);
+       scala>val locdata = sc.textFile(“RouterLocationInfo.tsv").map(_.split("\t"));
+       scala>val locRDD = locadata.map(r => (r(0), RouterLocation(r(0).toInt,r(1),r(2)));
+       scala>val purRDD = sc.textFile(“RouterPurchaseInfo.tsv").map(_.split("\t")).map(r => (r(0),   RouterPurchase(r(0).toInt, r(1), r(2).toLong, r(3).toLong, r(4).toFloat));
+       scala>locRDD.join(purRDD).collect()
+
+
+
+
+
+
+
+============================================================================================================================================
+
+////// Example : Below code is used to identify and count empty lines in dataset using Accumulator.
+
+val rdd = sc.textFile("/HDFSPath");
+//Create and initialize accumulator to count blank lines in  the file.
+
+val blankLinesCounter = sc.accumulator(0);
+//verify each line and increment the counter
+
+rdd.foreach { line =>
+if(line.length() == 0) blankLinesCounter  += 1
+}
+println("Empty Lines: " + blankLinesCounter )
+
+
+
+
+
+
+
+
+============================================================================================================================================
+
+
+//////////////////////   Spark- SQL on Spark Core
+
+//Loading a text file in to an RDD
+val Car_Info = sc.textFile("/HDFSPath/ArisconnCars.txt");
+
+//Referring the header of the file
+val header = Car_Info.first();
+
+//Removing header and splitting records with ',' as delimiter and fetching relevant fields
+val Car_temp = Car_Info.filter(record => record!=header).map(_.split(",")).map(c =>(c(0),c(1),c(2).toDouble,c(3).toDouble,c(6).toInt,c(9)));
+
+//Filtering only valid records(records not starting with '?'), and _._1 refers to first field (sensorid)
+val Car_Eng_Specs = Car_temp.filter(!_._1.startsWith("?"));
+
+//Filtering records holding only error messages and _._6 refers to 6th field (Typeofmessage)
+
+val Car_Error_logs = Car_Eng_Specs.filter(_._6.startsWith("ERR"));
+
+
+
+============================================================================================================================================
+
+Code to compute the number of errors produced by every car
+//Loading a text file in to an RDD
+val Car_Info = sc.textFile("/HDFSPath/ArisconnCars.txt");
+//Splitting records with ',' as delimitter and fetching relevant fields
+val Car_temp = Car_Info.map(_.split(",")).map(c =>(c(0), c(1), c(2).toDouble, c(3).toDouble, c(6).toInt, c(9)));
+// Filtering only valid records not starting with '?'
+val Car_Eng_Specs = Car_temp.filter(!_._1.startsWith("?"));
+val Car_Error_logs = Car_Eng_Specs.filter(_._5.startsWith("ERR"));
+//Filtering records holding only error messages
+val Car1Errors = Car_Error_logs.filter(_._1.startsWith("CAR_34853")).count();
+//Filtering car1 records and counting the number of occurences
+val Car2Errors = Car_Error_logs.filter(_._1.startsWith("CAR_34854")).count();
+//Filtering car2 records and counting the number of occurences 
+.
+
+
+//Lines of code would increase as per more number of cars.
+//Combining and aggregating all the cars errors and printing them would be highly challenging
+We observed that count() in the above code is applied individually on each car. With more number of cars, more number of statements would be required.
+Same applies to other complex aggregate functions such as AVG, SUM, MIN, MAX. 
+
+
+
+
+============================================================================================================================================
+
+Spark-SQL Code
+
+//SQL Context object creation in Spark SQL
+val sqlContext = new org.apache.spark.sql.SQLContext(sc);
+
+//Loading a text file in to an RDD
+val Car_Info = sc.textFile("hdfs://vimsmys-42:9000/user/jai_trng/jaihdfs/ArisconnCars.txt");
+
+// Creating a case class mapping the fields in the dataset
+case class Cars(sensorid:String, carid:String, latitude:Double, longitude:Double, engine_speed:Int, accelerator_pedal_position:Int, vehicle_speed:Int, torque_at_transmission:Int, fuel_level:Double, TypeOfMessage:String, timestamp:Double);
+val header = Car_Info.first();
+
+// Creating a Spark SQL DataFrame
+val DF = Car_Info.filter(c => c!=header).map(_.split(",")).map(c => Cars(c(0), c(1), c(2).toDouble, c(3).toDouble, c(4).toInt, c(5).toInt, c(6).toInt, c(7).toInt, c(8).toDouble, c(9), c(10).toDouble)).toDF();
+
+//Registering the DataFrame as a temporary table
+DF.registerTempTable("cars");
+
+// A simple query to implement all 4 requirements of Arisconn cars
+val errors= sqlContext.sql("SELECT sensorid,carid,latitude,longitude,vehicle_speed,count(TypeOfMessage) FROM cars WHERE sensorID!='sensorID' AND carid!='?' AND TypeOfMessage Like 'ERR.*' group by carid");
+
+
+
+============================================================================================================================================
+
+// Requirement : ArisconnCars dataset has few corrupted records which needs to be filtered.
+
+// Solution:
+
+// 2. Create a SQLContext object using SQLContext class
+//Creation of a SQLContext object in Spark SQL
+
+val sqlContext = new org.apache.spark.sql.SQLContext(sc);
+
+// 1. Create a SparkContext object and load the dataset using the SparkContext object's textFile() method
+// File provided in the path is loaded in to Spark RDD using SparkContext object 'sc'
+
+val Car_Info = sc.textFile("/HDFSpath/ArisconnCars.txt");
+
+//dataset's first record contains schema details which needs to be ignored while processing
+
+val header = Car_Info.first()
+
+// 3. Create a DataFrame and load a normal RDD in to the DataFrame using Case class
+// Creation of a case class mapping the fields in the dataset
+
+case class Cars(sensorid: String, carid: String, latitude:Double, longitude:Double, engine_speed:Int, accelerator_pedal_position:Int, vehicle_speed:Int, torque_at_transmission:Int, fuel_level:Double, TypeOfMessage:String, timestamp:Double)
+
+/*Creation of a Spark SQL DataFrame by delimiting the fields, and loading them as case class properties. Note: "toInt", "toDouble" are Scala methods for converting text fields in to numerical*/
+
+val DF = Car_Info.filter(c => c!=header).map(_.split(",")).map(c => Cars(c(0), c(1), c(2).toDouble, c(3).toDouble, c(4).toInt, c(5).toInt, c(6).toInt, c(7).toInt, c(8).toDouble, c(9), c(10).toDouble)).toDF()
+
+// 4. Register the DataFrame as a normal table using registerTempTable() method
+//Registering the DataFrame as a temporary table
+
+DF.registerTempTable("cars");
+
+// 5. Write and execute Spark SQL queries against the table using SQLContext object's sql() method
+/* Query using sql method to filter corrupted records and consider only valid data for further analysis */
+
+val valrecords= sqlContext.sql("SELECT sensorid,carid,latitude,longitude,vehicle_speed,TypeOfMessage FROM cars WHERE sensorid Like 'SEN_%' AND carid Like 'CAR_%' AND sensorid!='sensorID'");
+
+//display the dataframe records on console
+
+valrecords.show()
+
+============================================================================================================================================
+
+// Working with Data Sets
+
+1.	val sqlContext = new org.apache.spark.sql.SQLContext(sc);
+2.	
+3.	val Cust_Info = sc.textFile("/HDFSPath/Customer.txt");
+4.	
+5.	case class Customer(custid: String,firstname: String,lastname:String,age:Int,profession:String);
+6.	
+7.	//Creating a Dataset using toDS() method
+8.	
+9.	val DS = Cust_Info.map(_.split(",")).map(c => Customer(c(0),c(1),c(2),c(3).toInt,c(4)).toDS();
+10.	
+11.	//Creating and registering the Dataset as a temporary view
+12.	
+13.	DS.createOrReplaceTempView("customer");
+14.	
+15.	//Spark SQL query to compute Profession, Average age of that profession
+16.	
+17.	val pilotavg= sqlContext.sql("SELECT profession,AVG(age) FROM customer group by profession");
+18.	
+19.	pilotavg.show();
+
+
+
+============================================================================================================================================
+// TO fetch only one field from the df and showing the results
+
+df.select("name").show();
+
+
+============================================================================================================================================
+// Working with Parquet Files in Spark Core
+
+1. Load/Structure the Dataset
+1.	//SQL Context object creation in Spark SQL
+2.	
+3.	val sqlContext = new org.apache.spark.sql.SQLContext(sc);
+4.	
+5.	//File in args(0) is loaded in to Spark RDD using SparkContext object 'sc'
+6.	
+7.	val Car_Info = sc.textFile("/HDFSPath/ArisconnCars.txt");
+8.	
+9.	//First record in dataset is the list of column headers which need to be ignored while processing.
+10.	
+11.	val header = Car_Info.first() 
+2. Create a Case class to map the fields of the dataset
+1.	// Creating a case class mapping the fields in the dataset
+2.	
+3.	case class Cars(sensorid:String, carid:String, latitude:Double, longitude:Double, engine_speed:Int, accelerator_pedal_position:Int, vehicle_speed:Int, torque_at_transmission:Int, fuel_level:Int, TypeOfMessage:String, timestamp:Double) 
+ 
+3. Create a DataFrame and register as temporary table
+1.	// Creating a Spark SQL DataFrame by delimiting the fields and loading them as Case class properties. Note that, "toInt", "toDouble" are Scala methods for converting text fields in to numericals
+2.	
+3.	val DF = Car_Info.filter(c => c!=header).map(_.split(",")).map(c => Cars(c(0), c(1), c(2).toDouble, c(3).toDouble, c(4).toInt, c(5).toInt, c(6).toInt, c(7).toInt, c(8).toDouble, c(9), c(10).toDouble)).toDF();
+4.	
+5.	//Registering the DataFrame as a temporary table
+6.	
+7.	DF.registerTempTable("cars");
+8.	
+9.	// Write Spark SQL query to filter valid records
+10.	
+11.	//Spark SQL Query to fetch only valid records where sensorid starts with SEN and carid starts with CAR
+12.	
+13.	val valrecords= sqlContext.sql("SELECT sensorid,carid,latitude,longitude,vehicle_speed,TypeOfMessage FROM cars WHERE sensorid Like 'SEN_%' AND carid Like 'CAR_%'")
+14.	
+15.	 
+4. Store as Parquet
+1.	//Store the results of the DataFrame as a parquet file in an HDFS directory
+2.	
+3.	valrecords.write.parquet("/HDFSPath/CarsParquetData") 
+ 
+5. Create a DataFrame from parquet file and view
+1.	//read data from parquet file and create a DataFrame
+2.	
+3.	val CarsDF = sqlContext.read.parquet("/HDFSPath/CarsParquetData")
+4.	
+5.	//display the DataFrame content
+6.	
+7.	CarsDF.show()
+
+
+============================================================================================================================================
+
+// Working with JSON files in Spark Core
+// for JSON files schema will be inferred automatically based on sample values
+
+
+1.	//Creation of SQLContext
+2.	
+3.	object val sqlContext = new org.apache.spark.sql.SQLContext(sc);
+4.	
+5.	//Spark SQL provides read.json() method to load JSON files as DataFrames directly
+6.	
+7.	val cars = sqlContext.read.json("/HDFSPath/Cars.json");
+8.	
+9.	//Schema of JSON files shall be printed using printSchema() method
+10.	
+11.	cars.printSchema();
+12.	
+13.	//Creation of a temporary table
+14.	
+15.	cars.registerTempTable("carstable");
+16.	
+17.	//Spark SQL query against carstable
+18.	
+19.	val op = sqlContext.sql("SELECT * from carstable");
+20.	
+21.	//show() method to print output
+22.	
+23.	op.show(); 
+
+
+
+
+========================================================================================================================================================================================================================================================================================
+// Working with Avro file 
+
+1.	import com.databricks.spark.avro._
+2.	
+3.	//Creation of SQLContext object
+4.	
+5.	val sqlContext = new org.apache.spark.sql.SQLContext(sc);
+6.	
+7.	//Spark SQL provides read.avro() method to load Avro files as DataFrames directly
+8.	
+9.	val cars = sqlContext.read.avro("/HDFS/Cars.avro");
+10.	
+11.	//Schema of avro files shall be printed using printSchema() method
+12.	
+13.	cars.printSchema();
+14.	
+15.	//Creation of a temporary table
+16.	
+17.	cars.registerTempTable("carstable");
+18.	
+19.	//Spark SQL query against carstable
+20.	
+21.	val op = sqlContext.sql("SELECT * from carstable");
+22.	
+23.	//show() method to print output
+24.	
+25.	op.show();
+
+
+
+// Which of the below method is used to save a DataFrame "dfParquet" as a parquet file in HDFS?
+
+dfParquet.write.parquet("/HDFS destination folder path")
+
+// Which of the below method is used to read an AVRO file and create DataFrame?
+
+SQLContext.read.avro("HDFSPath")
+
+============================================================================================================================================
+// Spark - SQL for Hive tables
+
+/* Load Parquet File as DataFrame
+In this step, create a SQLContext object and use read.parquet() method to load the parquet file created in our earlier requirement */
+
+val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+
+val carsparq = sqlContext.read.parquet("/HDFS/CarsParq.parquet") 
+ 
+/* Save DataFrame into Hive Table
+In this step, 
+       write.option() is used to specify the Hive metastore directory for the Hive table. 
+       saveAsTable() is used to persist the DataFrame as a hive table.
+write.option method use to specify the path for the Hive table and saveAsTable method creates a Hive table in Hive metastore */
+	
+carsparq.write.option("path",'/HDFS/hive_tables_location/jaicarsparq').saveAsTable("SparkHiveCarsTable") 
+ 
+// 3. Spark SQL queries on Hive Table
+/* In this step :
+      HiveContext object is created and using which Spark SQL queries are written against the existing Hive tables.
+      HiveContext object provides an entry point for Spark to Hive.
+	Creation of HiveContext object for Spark to connect to Hive */
+	
+val hContext = new org.apache.spark.sql.hive.HiveContext(sc);
+	
+//Spark SQL query on a hive table to compute the top 10 vehicles which were running on maximum speed
+	
+val CarHiveData = hContext.sql("select carid,latitude,longitude,MAX(vehicle_speed) from SparkHiveCarsTable GROUP BY carid limit 10")
+	
+//Output of the query to be displayed
+	
+CarHiveData.show();
+
+
+
+//// TO see the hive table in hive concole
+
+hive > show tables 'SparkHiveCarsTable';
+
+// above code will give table if present. we can write direct hive queries on top of hive tables
+
+
+
+============================================================================================================================================
+
+
+============================================================================================================================================
+
+
+========================================================================================================================================================================================================================================================================================
+
+============================================================================================================================================
+
+============================================================================================================================================
+
+
+============================================================================================================================================
+
+
+========================================================================================================================================================================================================================================================================================
+
+============================================================================================================================================
+
+============================================================================================================================================
+
+
+============================================================================================================================================
+
+
+========================================================================================================================================================================================================================================================================================
+
+============================================================================================================================================
+
+============================================================================================================================================
+
+
+============================================================================================================================================
+
+
+========================================================================================================================================================================================================================================================================================
+
+============================================================================================================================================
+
+============================================================================================================================================
+
+
+============================================================================================================================================
+
+
+========================================================================================================================================================================================================================================================================================
+
+============================================================================================================================================
+
+
+============================================================================================================================================
+
+
+============================================================================================================================================
