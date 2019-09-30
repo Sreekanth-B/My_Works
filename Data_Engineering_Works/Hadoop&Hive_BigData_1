@@ -3,13 +3,19 @@
 
 /usr/bin/hive
 
+// hive query 
+
+select * from database.table limit 10;
+
+=====================================================================================================================================
+
 # Creation of Shell scripts in hive 
 
 /usr/bin/hive <<EOF
 
-println("LOG: OUTPUT TABLE ------spi_main_table-------")
+println("LOG: OUTPUT TABLE -------")
 
-println("LOG:failed_volume  :"+ select count(*)  from database.table where col IS NULL)
+println("LOG:col  :"+ select count(*)  from database.table where col IS NULL)
 
 EOF
 
@@ -19,10 +25,22 @@ if grep -l error *.log; then
         echo "THERE ARE ERRORS IN THE EXTRACT"
 fi
 
+=====================================================================================================================================
+
+To Run .hql files from hive ::(.hql files you can write sql commands)
+
+hive -f /home/<path to hive file>/filename.hql
+hive -f /home/<path to hive file>/filename.hql
+
+=====================================================================================================================================
+=====================================================================================================================================
+
 # Hadoop commands
 
 # == To list out the directories and files present in this path
 hadoop fs -ls adl://<azure data lake storge>/data/mo/qa
+
+=====================================================================================================================================
 
 # Moving the large datasets between two clueters in hadoop using distcp  
 #move current dbs to restore folder (with renaming)
@@ -31,6 +49,7 @@ hadoop fs -ls adl://<azure data lake storge>/data/mo/qa
 hadoop distcp $current_folder_path/quality_compute.db $restore_folder_path/quality_compute_old.db
 hadoop distcp $current_folder_path/quality_primary.db $restore_folder_path/quality_primary_old.db
 
+=====================================================================================================================================
 
 
 # Cleaning the current folder after moving
@@ -41,6 +60,7 @@ hadoop fs -rm -r $current_folder_path/quality_compute_old.db
 hadoop fs -rm -r $current_folder_path/quality_primary_old.db
 
 
+=====================================================================================================================================
 
 # For Schema check
 
@@ -50,6 +70,7 @@ describe tablename;
 
 describe databasename
 
+=====================================================================================================================================
 
 # Select funtion in hive 
 
@@ -58,6 +79,8 @@ select num,
 from
     ( SELECT num,id,collect_set(value) as values FROM tbl GROUP BY num,id ) as sub GROUP BY num
 
+=====================================================================================================================================
+// TO know the usage of keys in hive we can get description of keys as below
 
 $ /usr/bin/hive -H
 usage: hive
@@ -75,6 +98,7 @@ usage: hive
  -v,--verbose                     Verbose mode (echo executed SQL to the
                                   console)
                                   
+=====================================================================================================================================
                                 
 # TO DELETE ALL THE LINES IN SCRIPT :::	
 
@@ -87,3 +111,5 @@ where
 % means all the line
 d : delete
 On the command line,
+
+
