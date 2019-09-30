@@ -1,0 +1,2052 @@
+Scala Learning ::
+
+Creating variables 
+
+// Problem 1: Determine the sum of all even elements in an array
+ 
+object EvenSumScala {
+  def main(args: Array[String]): Unit = {
+    var sum: Int = 0
+    val numbers = Array[Int](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    for (num <- numbers) {
+      if (num % 2 == 0)
+        sum += num
+    }
+    println("Sum of even numbers: " + sum)
+  }
+}
+
+Function and Function calling simple example ::
+
+package Demo_1
+
+object check {
+  def max(s: Int, k: Int): Any = {
+    if(s>k){
+      s
+    }
+    else{
+      k
+    }
+  }
+  def main(args: Array[String]): Unit = {
+    val s:Int = 2
+    val k:Int =3
+    println(max(s,k))
+  }
+
+}
+
+================================================================================================
+Examples :;
+
+def main(args: Array[String]): Unit = {
+    var status: Boolean = _     // here underscore is used to assign a default value to the variable
+    val result=(3<6 && 10==10)
+    println(status||result) 
+}
+Ans :: True
+
+Choose from the below given code snippets that might result in an error? 
+
+i.  var num: Int = 10
+    num = "Ten"
+    println(num)
+	
+Ans :: (i) Will give compilation error as declared Integer variable is replaced with String value Ten. 
+
+Predict the output for the below given code?
+
+def main(args: Array[String]): Unit = {
+    val a: Null = null
+    println(a.getClass)
+  }
+  
+ Ans :: Null is also a referenced class in Scala. As we are assigning null value to variable it throws null pointer exception.
+ 
+ What will be the output of the following code?
+
+ def main(args: Array[String]): Unit = {
+    	val result = "99".isInstanceOf[String]!="99".isInstanceOf[Int]
+    	print(result + " " + result.getClass)
+}
+Ans :: True Boolean (instanceOf[String] method invoked on "99" will return string whereas instanceOf[Int] method will return Integer type. As we are using equality operator(!=) to check both it gives true, getClass( ) method returns the data type as boolean)
+
+What will be the output of the following code?
+
+def main(args: Array[String]): Unit = {
+    val name="true".toBoolean
+     println(name || false)
+   }
+Ans :: True 
+
+What will be the output of the following code? 
+
+def main(args: Array[String]): Unit = {
+      val empid = 123456
+      val name = "Jack"
+      val result: Int = empid + name
+      println(result.getClass())
+  }
+Ans :: As Scala is a statically typed language, it finds the type errors during compile time only. As data type of variable result is mentioned, interpreter takes + for addition operation. As name is string it will throw compilation error
+
+
+
+===========================================================================================================
+Arrays ::
+
+Scala arrays are mutable and provide a lot of useful methods. We can work with arrays in many ways:
+
+Arrays can be created newly and updated as below:
+
+var array= Array[String]("a","b","c","d","e")    // Creating array without new keyword
+var array = new Array[String](5)        // Creating an empty array of size 5 using new
+array(0) = "Hai"                        // array index starts from 0
+array(1) = "Hello"                      // Updating value at index 1
+println(array(1)                        // Accessing value at index 1
+var array=Array("a","b","c","d","e")    // type is inferred
+var array:Array[String]=Array("a","b","c","d","e") // if data type is specified during variable creation then we 
+                                                   // need not specify during Array creation again
+
+Arrays have a fixed size which is set at the time of their creation. If a dynamic sized array is required, ArrayBuffer can be used.
+
+var arrayBuf = new ArrayBuffer[Int]
+arrayBuf += 100                         // Appending element
+arrayBuf.append(101, 102, 103)          // Appending elements
+
+Similar syntax is used to create other collections such as lists, sets, etc. We will see them later.
+
+
+Examples ::
+
+
+object Check_2 {
+  def main(args: Array[String]): Unit = {
+    var s = "Hello World".split(" ")
+	println(s.toList)
+    for (i<- s){
+      println(i)
+    }
+  }
+}
+Ans :: 1)List(Hellow, world)1) Hellow , 2) World 
+
+
+
+val numbers = Array(1, 2, 3, 4)
+val first = numbers(0) // read the first element
+numbers(3) = 100 // replace the 4th array element with 100
+val biggerNumbers = numbers.map(_ * 2) // multiply all numbers by two
+
+val arr = Array(1, 2, 3)
+val arrReversed = arr.reverse
+val seqReversed : collection.Seq[Int] = arr.reverse
+println(arr)
+println(arrReversed)
+println(seqReversed)
+Ans :: List(1, 2, 3) , List(3, 2, 1) , List(3, 2, 1)
+
+
+Consider the following ArrayBuffer:
+
+val characters= ArrayBuffer("Jack","Tom")
+Which of the following are valid ways to add elements to the above ArrayBuffer?
+
+Ans ::  i.  characters.append("Jane","Emily") ,  ii.  characters++=Array("Jane","Emily") ,  iv.  characters+=("Jane","Emily")
+
+
+Consider the below ArrayBuffer:
+
+var a=ArrayBuffer('a','b','c','d','e')
+Which of the following lines will result in the deletion of b,d from the given ArrayBuffer ?
+Ans :: ii.	a--=Array('b','d') , iv.	a-=('b','d')
+
+Predict the output for the below given code:
+
+var a=ArrayBuffer('a','b','c','d','e')
+a.remove(1,3)
+println(a.size)
+
+Ans :: 2 (ArrayBuffer is a resizable array, remove() method helps to delete the array elements.. So remove(1, 3) will deleted 3 values starting from index 1. Hence the size of arraybuffer will be 2.)
+
+
+Predict the output for the below given code:
+
+var a=ArrayBuffer('a','b','c','d')
+a -= 'c'
+a++=Array('e','a','c')
+a.remove(3)
+for (i<-a) print(i)
+
+Ans :: a-='c' makes array as a,b,d then adding Array('e','a','c') becomes a,b,d,e,a,c. Now we are removing the 3rd index element by remove() method, so e will be removed. The final array value is a,b,d,a,c
+
+Which among the given codes are equivalent?
+
+i.  var a=Array(5,10,15,20,25)
+    val b=a.toBuffer
+    b.remove(4)
+    b.toArray
+    for (i<-b)
+       println(i)
+ii. var a=Array(5,10,15,20,25)
+    val b=a.take(4)
+    for (i<-b)
+        println(i)
+		
+Consider the below code snippet:
+
+def main(args: Array[String]): Unit = {
+   var a=Array(10,70,2,5,3)
+   a=a.take(2)
+   a=a:+a.sum
+   for (i<-a)
+       println(i)
+}
+Predict the output from the following:
+Ans : 10 ,  70 ,    80
+
+What will be the code at lines 2,3 such that the array 'arr' will have the elements (10,70,23,45,19)? 
+
+def main(args: Array[String]): Unit = {
+   var arr=Array(70,23,45)
+   //line 2
+   //line 3
+}
+Ans : i.   arr:+=19 ,  arr=10+:arr  // iv.  arr=arr:+19 ,    arr=Array(10)++arr
+
+
+Predict the value of 'a' in the below code?
+
+def main(args: Array[String]): Unit = {
+    val arry = Array(1,2,3,1,2,3,1,2,3,1,2,3)
+    val a = arry.lastIndexOf(1) + arry.length + arry.min + arry.max
+  }
+  
+Ans :: 25 (lastIndexOf() method will return the index of last occurrence of the repeated element in an array, here arr.lastIndexOf(1) will return 9 , length() method returns the length of an array as 12
+min() method returns the minimum element in array, here it is 1 , max() method will return the maximum element in array, here it is 3. Total 9+12+1+3=25)
+
+
+Predict the output of the below given code?
+
+[ascii values for a,b and c are 97,98,99 respectively]
+
+def main(args: Array[String]): Unit = {
+    val arr = Array(1,2,3)
+    val arr1 = Array('a','b','c')
+    println(arr1.charAt(0) + arr(2))
+  }
+Ans : 100 (Due to addition operation between arr and arr1, it takes ASCII value of 'a' which is 97 and integer value 3. So result will be 100)
+
+
+What will the value of 'b' in the below code?
+
+def main(args: Array[String]): Unit = {
+    val arr = Array('a','b','c','d')
+    val arr1 = arr.reverse
+    arr1.update(2,'g')
+    val b = arr1.apply(1)
+  }
+Ans :: c (Applied reverse method in the array and used update method to insert an element into it. Updated array "arr1" is d,c,g,a
+apply method returns the value of particular index, the value of variable b is 'c' as it is apply(1) that is index 1.)
+
+
+Consider the below code snippet:
+
+def main(args: Array[String]): Unit = {
+    val arr = Array('a','b','c','d','e','f','g','h','i','j')
+    val c = arr.charAt(3)
+    val d = arr.drop(3)
+    val e = arr.dropRight(4)
+    println(c)
+    println(d.charAt(2))
+    println(e.charAt(2))
+  }
+  
+Ans :: d, f , c  (charAt() method accepts index as parameter and return the value present at that index. drop() method will accept an integer(i.e number of elements to be deleted) as parameter and deletes from Scala collections. Here it's given as drop(3), so it will remove first three elements in array.
+dropRight() method is also same as drop but it will drop the values from the end of collection.)
+
+
+What will be the content of myArr after Line 2 below:
+
+val myArr = Array(2, 3, 4, 5, 6)
+myArr.update(2, 9)	                    // Line 2
+
+Ans :: (2,3,9,5,6)
+===========================================================================================================
+Scala Loop Controls-for loop ::
+
+In our example, the for-loop iterates over the array elements and determines the sum. This is the for-each style of the loop.
+
+// Problem 1: Determine the sum of all even elements in an array
+object EvenSumScala {
+  def main(args: Array[String]): Unit = {
+    var sum: Int = 0
+    val numbers = Array[Int](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    for (num <- numbers) {
+      if (num % 2 == 0)
+        sum += num
+    }
+    println("Sum of even numbers: " + sum)
+  }
+}
+The <- operator is called a generator. It generates individual values from a collection.
+
+Now let us look at some variations in loops for the above problem.
+
+// For problem 1: Determine the sum of all even elements in an array
+for (num <- numbers if num%2 == 0) sum += num        // Array elements are filtered based on the guard condition and then sum is calculated
+println("Sum of even numbers: " + sum)
+
+Yield in for loop:
+// For problem 1: Determine the sum of all even elements in an array
+val numList = for (num <- numbers if num%2 == 0) yield num
+for(x <- numList) sum += x
+println("Sum of even numbers: " + sum)
+
+yield generates a value which will be remembered. When the loop ends, a collection of all the yielded values is returned.
+The return type of the collection depends on the generating collection. 
+
+Predict the output for the below given code:
+
+val x=for {
+  i <- 1 until 10
+  if i > 3
+  if i < 7
+  if i % 2 == 0 && i%4==0
+} yield i*i
+println(x)
+
+Ans ::  Vector(16) (Method until() within a for-loop will produce numbers till the given value. Here it will produce 1 to 9. Since we are using guards they check the condition like i> 3 and i<7 so we will get the values 4,5,6 and for 3rd if condition with modulus. The condition is satisfied only with value 4, it will return the results i.e., 4*4. Hence it returns Vector(16))
+
+Predict the output for the below given code:
+
+var myArray : Array[String] = new Array[String](10)
+myArray(0)="Billy"
+myArray:+="Gary"
+myArray:+="karlos"
+for(value : String <- myArray
+    if value.endsWith("y")
+    if value.contains("ar"))
+ print(value+" ")
+ 
+Ans :: Gary 
+
+Which of the following codes are equivalent?
+
+1.	for (
+	  i <- 1 to 20 
+	  if i % 2 == 0 
+	  if i%3 ==0
+	) println(i);
+2.	val a = for { i <- 1 to 20 if(i%2==0 && i%3==0) } yield(i) 
+        for(value <- a) { println(value) }
+3.	for(i <- 1 to 20) {
+        if(i%2==0)
+        if(i%3==0) println(i)
+        }
+
+		
+For Loop Variations ::
+There are other variations of the for-loop along with the comparison to Java and C#. Try these out in REPL.
+
+1 ) For-loop using range: to and until creates a sequence of elements within a specified range.
+
+for (i <- 1 to 10)    // Range of numbers from 1 to 10
+    println(i)
+
+for (i <- 1 until 10)    // Range of numbers from 1 to 9
+    println(i)
+	
+2)  For-loop with a step:
+
+for (i <- 10 until 1 by -2)
+    print(i + " ")            // Output: 10 8 6 4 2
+
+3)  For-loop with multiple ranges: Behaves like nested loops (iterates through all possible combinations)
+
+for (x <- 1 to 3; y <- 1 to 3) {
+    println("Value of x: " + x)
+    println("Value of y: " + y)
+}
+ 
+Predict the output of the following:
+
+val pValues = Array(1, 2, 3)
+val qValues = Array(1, 2)
+val coordinates = for {
+  p <- pValues
+  q <- qValues} yield (p, q)
+println(coordinates(4))
+
+Ans :: (3,1)  (p and q value arrays are yielded as a collection (1,2,3)(1,2) where coordinates(0)->(1,1) coordinates(1)->(1,2) coordinates(2)->(2,1) coordinates(3)->(2,2)  coordinates(4)->(3,1) coordinates(5)->(3,2))
+
+while and do-while loops are the same as the ones in Java and C#.
+
+Complete this code to find out whether a given number is a prime number or not.
+You should break the loop as and when you find that the number is not prime.
+
+Note that Scala does not provide the 'break' or 'continue' statements. You may use the 'return' keyword in your logic.
+
+
+Predict the output of the following?
+
+var k=3
+var s=" "
+while(k>(-1)){
+  s=k+""+s
+  k=k-1
+}
+println(s)
+
+Ans :: 0123  (Return types of k and s is Int and String until the condition fails. The loop iterates for 4 times until k value is less than 0. Since s is string all the 'k' values are concatenated to 's'. So the output will be 0123.   )
+
+What will be the output of the following?
+
+var n = 5
+for (i <- 1 to 5) {
+  while (n != 0) {
+    n -= 1;
+    for (j <- 5 to 1 by -1) {
+      if (j + 5 == 9 && n - 3 == 1)
+        println(i, j, n)
+    }
+  }
+}
+Ans :: (1,4,4) 
+
+Which of the following code snippets output will be different from the other three?
+
+1.	var cnt = 1;
+	var num = 1;
+	while (cnt <= 20) {
+	    cnt += 1;
+	    num += 1;
+	}
+	println(num);
+	
+2.	var cnt = 0;
+	var num = 0;
+	while ( cnt <= 40 ) {
+	    cnt += 2;
+	    num += 1;
+	}
+        println(num);
+		
+3.	var cnt = 0;
+	var num = 0;
+	while (cnt <= 39) {
+	    cnt += 2;
+	    num += 1;
+	}
+	println(num);
+	
+4.	var cnt = 0
+	var num = 1;
+	while (cnt < 20) {
+	    cnt += 1;
+	    num += 1;
+	}
+	println(num);
+Ans :: 1,2,4 are same only 3 is different
+
+Consider the following code snippet using while loop:
+
+var cnt = 0;
+var sum = 0;
+while ( cnt < 10 ) {
+
+  sum += cnt;
+  cnt+=1;
+}
+Which of the following do-while loops does not produce the same value for sum?
+
+i) var cnt = 0;
+   var sum = 0;
+   do {
+     cnt+=1;
+     sum += cnt;
+   } while( cnt < 9 );
+
+ii) var cnt = 0;
+    var sum = 0;
+    do {
+      sum += cnt;
+      cnt+=1;
+    } while( cnt < 10 );
+
+iii) var cnt = 0;
+     var sum = 0;
+     do {
+       cnt+=1;
+       sum += cnt;
+     } while( cnt < 10 );
+
+iv) var cnt = 0;
+    var sum = 0;
+    do {
+      sum += cnt;
+      cnt+=1;
+    } while( cnt <= 9 );
+
+Ans :: 1,2,4 will give output as 45 where 3 gives output as 55
+
+Note :: A block in Scala will return the result of the last statement executed. If the last statement is not an expression, it will return '()' - which is an instance of Unit.
+The if-else may look syntactically the same as in other languages. But it returns the result of last statement executed.
+
+Examples:
+
+What will be the output of the following code?
+
+val a= 20
+val b= 100
+val c= 1000
+val d= 2000 
+if(a*b >=d && d/c >=a)
+    {
+  if(d>c)
+      if(d%c!=0) println(a) else println(b)
+    }
+else
+{
+    if(b/a >0)
+      if(d%c!=0) println(c) else println(d)
+}
+
+Ans :: 2000 (Since the first condition is fails it will go to else condition and check the if condition since it's true the d value will be printed as 2000.)
+
+
+What is the purpose of the following code? Assume that num1, num2, num3 store integers.
+
+var x = num1;
+if ( num2 < x ) x = num2;
+if ( num3 < x ) x = num3;
+print( x );
+
+Ans :: Outputs minimun value (Logic written here will give least number of three.)
+
+What will be the output of the following code?
+
+def f(y: Int) = y + 1
+val x = 0
+
+val result = {
+  val x = f(3)
+  x * x
+} + x
+
+
+println(result + " " + x)
+
+Ans :: 16, 0 (The 'result' function internally calls f(y). 'x' in result function is a local variable and its scope is only inside it. So the value will be 16 and as Scala allows type inference 'result' function will return Int value. 'x' value is 0.)
+
+What will be the output of the following code?
+
+val p=13
+var res={
+  if(p==12) println("x is 12")
+}
+println(res)
+
+Ans :: () (In the given code 'res' is representing a function with no return type which will be considered as Unit and it contains a singleton value (), it prints ())
+
+What will be the output of the following code?
+
+var x = 5
+var fact = 1
+var a = {
+    while(x>0) {
+        fact=fact*x
+        x=x-1
+    }
+}
+println(a)
+
+Ans :: () (In the given code 'a' is a function with no return type which is considered as Unit and it's contains a singleton value( ), so it prints ( ).)
+
+Note:: A program needs the main() function to become executable. Also, main() needs to be inside a construct called object. The keyword object creates a singleton (the only instance of a class). For every object in the code, an anonymous class will be created.
+
+
+Problem :: Write a program to make a user guess a generated random number between 1 and 10.
+Follow these steps:
+
+Generate a random number between 1 and 10, both inclusive
+
+Take user's guess as input
+
+If the guess is incorrect, provide hints if the guessed number is less than or greater than the chosen number, and ask to try again
+
+If the guess is correct, show a success message along with the number of attempts
+
+Ans ::
+object Check_2 {
+  def main(args: Array[String]): Unit = {
+    println("I have one number between 1- 10 values guess it ")
+    var n = 3
+    while (n > 0) {
+      println("Give the input number  : ")
+      val input = scala.io.StdIn.readLine()
+      println("Did you type this ? " + input)
+      val r = scala.util.Random.nextInt(10)
+      println(input, r)
+      if (r == input) {
+        println("Guess and value is equal")
+        val n = 0
+      }
+      else {
+        println("Not equal ")
+        n -= 1
+      }
+    }
+  }
+}
+
+So far what we have seen is the imperative way of programming in Scala. The solution for Problem 1 can be written in functional way as shown below.
+
+We will explore the functional benefits and features of Scala from Problem 7 onwards.
+
+Imperative
+
+// Problem 1: Determine the sum of all even elements in an array
+ 
+object EvenSumScala {
+  def main(args: Array[String]): Unit = {
+    var sum: Int = 0
+    val numbers = Array[Int](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    for (num <- numbers) {
+      if (num % 2 == 0)
+        sum += num
+    }
+    println("Sum of even numbers: " + sum)
+  }
+}
+
+Functional
+
+// Problem 1: Determine the sum of all even elements in an array
+ 
+object EvenSumScala {
+  def main(args: Array[String]): Unit = {
+    val numbers = Array[Int](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    val sum = numbers.filter(num => num % 2 == 0).sum
+    println("Sum of even numbers: " + sum)
+  }
+}
+
+==============================================================================
+
+String Operations ::
+
+Given a sentence, we have to reverse each word in it.
+Example: "Programming in Scala" should become "gnimmargorP ni alacS"
+
+This clearly requires string operations. Let us see how this can be done:
+
+// Problem 2: Reversing each word in a given sentence
+ 
+object StringSplit {
+  def main(args: Array[String]): Unit = {
+    var str = "Programming in Scala"
+    val strSplit = str.split(" ")                     // Splitting str using " " (space) as a separator
+    var strRev = Array[String]()
+    
+    for (word <- strSplit) {
+      strRev = strRev:+(word.reverse)                 // Reversing each word and storing in the array
+    }
+    println(strRev.mkString(" "))                     // Creating a string from the array elements using the given separator
+  }
+}
+
+Notice the usage of split() and reverse.
+
+As in Java and C#, strings in Scala are also immutable and work the same way as in Java. Moreover, Scala strings are wrapped in StringOps which provides support for sequence operations like reverse, map, drop, slice, etc. We will explore more on StringOps in the next tryout.
+
+Scala also allows string interpolation, which is a way of creating strings from existing data.
+Example:
+val name="Jack"
+println(s"The given name is: $name")    // Output: The given name is: Jack
+
+
+Example ::
+What will be the output of the following ?
+
+val j = 190
+val k = "roses"
+val x=s"${j -100} bouquets of $k"
+var p:Array[String]= new Array[String](10)
+p=x.split(" ")
+p.update(3,"velvets")
+for(ch<-p.reverse) print(ch+" ")
+
+Ans :: Scala string allows interpolation {j -100} gives 90 and the x value is string "90 bouquets of roses. As we use split function, string x is splitted into an array, 3rd index of an array p will be "roses" and is updated by "velvet" and the values are printed in reverse order. 
+So the output will be velvets of bouquets 90.
+
+
+Predict the output of the following?
+
+val firstName = "Chris"
+val lastName = null
+
+val x = if (firstName != null) {
+    if (lastName != null) {
+        firstName + " " + lastName
+    } else {
+        null
+    }
+    } else {
+        null
+    }
+
+println(x)
+
+Ans :: Null (In Scala, null is an instance of Null and x can return null also and it will not throw NullPonterException.)
+
+Consider the below code snippet:
+
+val str1="United states of America"
+val str2=Array('A','m','e','r','i','c','a')
+println(str1.slice(7,13).endsWith("s"))
+println(str2.size.>=(7))
+Predict the output from the following:
+
+Ans :: True, True (First print statement will return true as slice() method will take the substring till states and as it ends with S it is true.
+Second print statement is also true as the array size is equal to 7.)
+
+Consider the below code snippet:
+
+var st="I saw Jen in Pizza Hut yesterday"
+st.replace("saw Jen","met Bob")
+println(st)
+println(st.take(5)+st.drop(5))
+
+Ans :: i)   I saw Jen in Pizza Hut yesterday , I saw Jen in Pizza Hut yesterday
+(In Scala, Strings are immutable objects, so even if we apply replace/take and drop functions to the String variable st, its value will not change.)
+
+Which of the following lines might result in an error?
+
+i.   val s1 = "Holmes"
+ii.  val s2 = "Hol" + "mes"
+iii. val s3 = null
+iv.  s1 == s2
+v.   println(s3.toUpperCase)
+
+Ans :: UpperCase function can be applied on string but not for null value, so it will throw compilation error.
+
+What will be the output of the following?
+
+val a = """An apple a day
+  	keeps the doctor away"""
+println(a.split('\n').apply(0).charAt(0).toLower+1
+)
+
+Ans :: 98 (n Scala the split function will convert string into array of String, according to delimiter(here \n) the apply method will return an array. As we applied charAt(0) the value is a. But since it's added with 1 the ASCII value of a will be taken and added to 1. So answer is 98.)
+
+Pattern Matching ::
+
+In a retail application, when a customer selects an item, the category of the item has to be displayed.
+
+This can be done using Scala match, which is similar to switch statement in Java and C#.
+
+// Problem 3: Displaying category of selected item
+ 
+  val selection = "Trousers"
+ 
+  selection match {                                                                            // match keyword follows the variable
+    case "Trousers"       => println("You have selected a product from Apparels!")             // No need for break statements
+    case "DVD Player"     => println("You have selected a product from Electronic goods!")
+    case "Woodland shoes" => println("You have selected a product from Footwear!")
+    case _                => println("You have selected an Invalid product")                  // Becomes the default case
+  } 
+ 
+// Output: You have selected a product from Apparels!
+
+Consider the below snippet:
+
+  def main(args: Array[String]): Unit = {
+    println(generalSize("ABC"))
+    println(generalSize(Array(1, 2)))
+    println(generalSize(true))
+  }
+
+  def generalSize(x: Any) = x match {
+    case s: String   => s.length
+    case a: Array[_] => a.size
+    case _           => -1
+    case _           => 0
+  }
+Predict the output from the following:
+
+Ans :: 3, 2, -1 (Program execution starts with main method. Here generalSize() method is called thrice. First time it executes String case then Array case. Finally, it checks the case which is matched with true value. Underscore case acts as default, first underscore case will be executed. The output will be )
+
+==========================================================================================
+
+Collections :: Scala collections systematically distinguish between mutable and immutable collections.
+All collection classes are found in the package scala.collection or one of its sub-packages mutable, immutable, and generic. Most collection classes needed by client code exist in three variants, which are located in packages scala.collection, scala.collection.immutable, and scala.collection.mutable, respectively.
+Remove duplicate elements from a given collection to obtain a new collection. The given collection should not be modified.
+
+Can we use Arrays to hold collection of elements?
+
+Arrays in Scala are mutable and can be modified. In cases where mutability is not preferred, Scala provides a wide variety of immutable collections as part of its collections framework. 
+
+So let's take a simple collection – List. Lists are immutable and like arrays, provide a variety of operations for developers. Let's see how we can solve the problem now.
+
+// Problem 4: Removing duplicate elements in a list
+ 
+val inputList = List(101, 102, 109, 106, 102, 103, 109, 101)  
+val distinctList = inputList.distinct
+println(distinctList)
+
+Output:
+
+List(101, 102, 109, 106, 103)
+In the above code, inputList initially had duplicate entries. On using the inbuilt function distinct, we are able to remove the duplicates and produce a new list containing distinct elements. The original list is unchanged and remains the same.
+
+Working with Collections  ::
+
+As we have seen, Scala provides various syntactic sugars for easier programming. Here we'll look at some common collection operators:
+
+Syntax        Description
+
++= 			 Adds an element to a mutable collection
+
+-=			 Removes an element at its first occurrence from a mutable collection
+
+++			 Creates a new collection that contains elements from the left hand operand followed by those on the right hand operand. 
+				The type of the result is determined by the left operand
+
+++:			Same as ++ but the result type is determined by the right operand
+
++:			Creates a new collection with an element prepended
+
+:+			Creates a new collection with an element appended
+
+/:			Alternate syntax for foldLeft, i.e. x /: y is the same as y foldLeft x
+
+			Applies a binary operator to the given initial value and all the elements of the collection, going left to right
+
+:\			Alternate syntax for foldRight, i.e. x :\ y is the same as x foldLeft y
+
+			Applies a binary operator to all the elements of the collection and the given initial value, going right to left
+
+::			Cons: Adds an elements at the beginning of a list
+
+:::			New list is created by adding the elements of the given lists
+
+ 
+Examples ::
+
+What will be the output of the following code?
+
+def main(args: Array[String]): Unit = {
+
+val numbers: List[Int] = List(5, 4, 8, 6, 2)
+
+println(numbers.lastIndexWhere{ case x => x<10 && x>5 })
+
+}
+
+Ans :: 3 (It executes the given condition and finds the lastIndex where the condition is satisfied then as per the condition it checks for values <10 and > 5 so it will return 8 and 6, the index position of last one 6 is 3.)
+
+What will be the output of the following code?
+
+def main(args: Array[String]): Unit = {
+  var list1=List('a','b','c')
+  var list2=List(3,4,5)
+  var newList1=list1:+list2
+  var newList2=list1:::list2
+  var res= newList1.apply(3).equals(newList2.apply(3)) match {
+    case true => println("newList1 and newList2 are same")
+    case false => println("newList1 and newList2 are not same")
+    case _ => println("comparison failed")
+  }
+  }
+
+Ans :: newList1 and newList2 are not same 
+
+What will be the output of the following code?
+
+def main(args: Array[String]): Unit = {
+    val numbers: List[Int] = List(5, 4, 8, 6, 2)
+    println(numbers.foldLeft(List[Int]()) ( (z, i) =>
+      i::z
+    )
+    )
+  }
+ 
+Ans :: In Scala foldLeft method combines elements in the list from left, so the output is List(2, 6, 8, 4, 5)
+
+
+Predict the output of the following code:
+
+def main(args: Array[String]): Unit = {
+    val numbers = List(5, 4, 8, 6, 2)
+    println(numbers.foldRight(5) { (z, i) =>
+      z + i
+       }
+     )
+  }
+  
+Ans :: 30 (Method foldRight combines elements in the list according to the function given here, the value will become 30 since it's added with all elements in the list and result is added with 5.)
+
+What will be the output of the following code?
+
+def main(args: Array[String]): Unit = {
+    	val marks = List(79,89,65,98,59,89,90)
+    	if(marks.containsSlice(List(89,59))) {println(marks.head)}
+    	else{println(marks.min+marks.max/2)}
+  }
+  
+Ans :: 108 (In Scala containsSlice() method takes sublist as argument and checks whether the sublist is present in the list. 
+The min() and max() methods will return the minimum and maximum values in the list. Here it will go to else condition and calculate the value, Output will be 108.)
+
+
+Predict the output of the following code snippet and choose the right answer from below:
+
+object ListQuiz {
+  	def main(args: Array[String]): Unit = {
+    
+    	val x = List[Number](1, 2.0, 33d,-9)
+    	val fruit = "apples" :: ("oranges" :: ("pears" :: Nil))
+    	val f= fruit:::x
+        println(f.tail)
+     }
+}
+
+Ans == ( :: - Adds an element at the beginning of a list and returns a list.  Nil is just to say that e is end of list. So fruit=List("apples","oranges",pears).
+::: - Concatenates two lists and returns the concatenated list. Nil is not included, tail returns all elements in the list except the first element. So answer is List(oranges,pears,1,2.0,33.0,-9)
+
+
+Given val marks = List(79,89,65,98,59,89,79,65), what will 'marks.tail.distinct.reverse.lastIndexOf(65)' print in the output console?
+
+Ans :: 3  (In Scala tail returns a collection which contains all elements except the first one. Here it returns list.
+Method distinct will eliminate duplicates in the list.  reverse method helps to reverse the given list. IndexOf method gives the index of provided element in the list After applying all the methods, index value of 65 is 3.)
+
+What will be the output of the following code snippet?
+
+object ListDemo extends App {
+    val list1=List("soon","I","know")
+    val list2=List("that","I'll","be","99")
+    val present=list1.head
+    val future=list2.tail
+    val newList=future:+present
+    println(newList)
+}
+
+Ans :: List(i'ii,be,99,soon) (In Scala head will give the first element of the list whereas tail gives all the elements except first element. 
+So the newList will be List(I'll,be,99,soon))
+
+Predict the output of the following code snippet and choose the right answer from below:
+
+object ListQuiz {
+  def main(args: Array[String]): Unit = {
+   var xs = List.tabulate(5)(_ + 2)
+   var listFill = List.fill(3)(0)
+   var newListFill = xs(3)::listFill
+   newListFill = xs(4)::newListFill
+   println(newListFill)
+   }
+}
+
+Ans :: List(6,5,0,0,0) (In Scala tabulate method creates a new List whose elements are created according to the function we supply. So xs=List(2,3,4,5,6). 
+List.fill(m)(n) method is used to create m elements with n value. Here listFill is list with elements 0,0,0. Since its added 3rd and 4th indexes of xs, newList is List(6,5,0,0,0) )
+
+
+==========================================================================================
+
+Map :: Map is collection of key-Value pairs 
+
+We have names of employees working on project(s) stored in an array. The employees can work in multiple projects. Assuming all the employees have different names, we need to find out the number of projects each employee is working on. We also need the names of employees working on maximum and minimum number of projects.
+
+A better way to solve this would be to use a Map, which represents a collection that stores data in key-value pairs just like in Java and C#.
+Let us watch how we can work with Maps to solve this task.
+
+
+Example Problem :: getting employees who are working on max and min projects
+
+package Pract1
+object Pract_1 {
+  def main(args: Array[String]): Unit = {
+    val emp = Array("Sk","SR","Sp","Sk","SR","Ok","Sk")
+
+    // Home many projects each employees working
+    var empMap= scala.collection.mutable.Map[String,Int] ()
+    for(i <- emp){
+      if (empMap.contains(i)) {
+        empMap(i) = empMap(i)+1
+      }
+      else empMap(i) = 1
+      }
+    println(empMap.mkString(", "))
+    // Finding emp with max and min number of projects
+
+    val max = empMap.valuesIterator.max
+    val min = empMap.valuesIterator.min
+    val maxEmps = for((k,v) <- empMap if (v ==max)) yield k
+    val minEmps = for((k,v) <- empMap if (v ==min)) yield k
+
+    println("Employees with max num of projects :"+ maxEmps.mkString(", "))
+    println("Employees with min num of projects :"+ minEmps.mkString(", "))
+
+  }
+}
+
+Consider the code below:
+
+def main(args: Array[String]): Unit = {
+   val numbers = Map("One" -> 1,"Two" -> 2,"Three" -> 3,"Four" ->4,"Five"->5,"Six"->6)
+    println(numbers.empty+("Seven"->7,"Eight"->8)) 
+  }
+ Which of the following statements regarding the code given above is true?
+
+Ans :: itcreates new map object with only two elements("Seven"-> 7) and ("Eight"-> 8)
+(New map object will be created with only two elements ("Seven"->7) and ("Eight"->8) as empty method makes number map empty and adds two elements.)
+
+
+Consider the below code:
+
+def main(args: Array[String]): Unit = {
+    val map = Map("One" -> 1,"Two" -> 2,"Three" -> 3,"Four" ->4,"Five"->5,"Six"->6)
+    ----Line 3----
+    i) println(map.drop(2).dropRight(3))
+   ii) println(map.dropRight(4).drop(1))
+  iii) println(map.dropRight(5).drop(0))
+ Using one statement at a time, which of i,ii and iii will cause the code to return a map with a single element.
+ 
+ Ans :: All
+ 
+ Predict the output of the following code:
+
+def main(args: Array[String]): Unit = {
+    val items = Map('a'->45,'b'->68,'c'->10,'d'->11)
+    val quantity = Map('a'->45,'b'->68,'c'->10,'d'->10)
+    if(items equals quantity)
+        {
+          println(quantity.apply('a'))
+        }
+    else{
+      if(items.contains('e'))
+      {
+          println(quantity.apply('c'))
+      }
+
+      else
+        {
+          println(items.contains('z'))
+        }
+    }
+  }
+  
+ Ans :: false (It will enter into else condition, contains method will return false as key 'z' is not present in the map.)
+ 
+ 
+ Consider the below code snippet:
+
+val countries2 = Map(("UK", "United Kingdom"),("USA", "United states of America"))
+val nums: Map[Int, Int] = Map()
+println(countries2.keys)
+println(countries2.values)
+println(countries2.isEmpty)
+println(nums.isEmpty)
+Predict the output from the following:
+
+Ans :: i) Set(UK, USA) ,  MapLike(United Kingdom, United states of America) , false ,   true
+(Function keys will return set of keys present in a map, values will return Map class of all the values present in map.
+Method isEmpty returns boolean value true or false if the map contains any elements or not. Hence the output here will be Set(UK, USA) MapLike(United Kingdom, United states of America) false true.)
+  
+Predict the output of the following code snippet:
+
+val states1 = Map("TN" -> "TamilNadu", "TS" -> "Telangana", "KA" -> "Karnataka")
+val states2 = Map("KL" -> "Kerala", "KA" -> "Karnataka", "TS" -> "Telangana")
+var states = states1 ++ states2
+println( "result : " + states )
+
+Ans :: result : Map(TN -> TamilNadu, TS -> Telangana, KA -> Karnataka, KL -> Kerala)
+(Map that contains the concatenated states will be returned, and the duplicate will also be removed.)
+
+
+  Which of the following code snippets will not throw an error?
+
+i.   val x = Map(42 -> "forty two")
+     val y = x + (17 -> "seventeen")
+     println(y)
+
+ii.  val designation = Map("Jesse" -> "Manager", "John" -> "systems engineer")
+     println(designation("Jessi"))
+
+iii. val games = collection.mutable.Map("sania" -> "tennis")
+     games += ("saina" -> "badminton")
+     println(games)
+
+iv.  val animals = Map("tortoise" -> "slow")
+     animals += ("cheetah" -> "fast")
+     println(animals)
+	 
+Ans :: i , iii
+
+So far what we have seen is the imperative way of programming in Scala. The solution for Problem 2 can be written in functional way as shown below.
+
+We will explore the functional benefits and features of Scala from Problem 7 onwards.
+
+Imperative
+
+// Problem 2: Reversing each word in a given sentence
+ 
+object StringSplit {
+  def main(args: Array[String]): Unit = {
+    var str = "Programming in Scala"
+    val strSplit = str.split(" ")  
+    var strRev = Array[String]()
+    
+    for (word <- strSplit) {
+      strRev = strRev:+(word.reverse)  
+    }
+    println(strRev.mkString(" ")) 
+  }
+}
+
+Functional
+
+// Problem 2: Reversing each word in a given sentence
+ 
+object StringSplit {
+  def main(args: Array[String]): Unit = {
+    val str = "Programming in Scala"
+    val strRev = str.split(" ").map(word => word.reverse)
+    println(strRev.mkString(" "))
+  }
+}
+
+================================================================================
+Functions in Scala ::
+
+We have to write a logic to determine the sum of multiples of any given number in an array.
+
+In problem 1, we were finding the sum of multiples of 2 in an array. Can we generalize the logic to determine the sum of multiples of any given number in an array?
+
+In all our previous problems, code resided inside the main method. For example, determining sum of elements in an array, splitting and reversing strings, finding minimum and maximum elements in maps, etc. These had logic which might be reusable. They can be defined as separate components in our program which can be invoked whenever needed.
+
+This is where functions can be used to make a program more modular and increase abstraction.
+
+Syntax for defining a function in Scala:
+
+def <function name>([parameters]): [return type] = {
+	<function body>
+	[return expression]
+}
+
+In order to solve our problem, let us first create the required function:
+
+// Problem 6a: Calculate the sum of elements divisible by a given no. using functions
+ 
+def sumOfElements(numArray: Array[Int], divisor: Int): Int = {
+    var sum: Int = 0
+    for (num <- numArray) {
+      if (num % divisor == 0)
+        sum += num
+    }
+    return sum
+  }
+
+The above function accepts two parameters, the array of numbers and the divisor. The function determines the sum of all array elements divisible by the chosen divisor.
+
+Now our function can be used anywhere as follows:
+
+val numbers = Array[Int](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+println("Sum of multiples of 2 = " + sumOfElements(numbers, 2))
+println("Sum of multiples of 3 = " + sumOfElements(numbers, 3))
+
+ 
+
+Scala also provides us with named parameters. So the method defined above can also be invoked as below:
+
+println("Sum of multiples of 4 = " + sumOfElements(divisor=4, numArray=numbers))
+ 
+
+Suppose we have to determine the sum of all array elements divisible by multiple divisors. The below code will achieve our need.
+
+// Problem 6b: Calculate the sum of elements divisible by given no's. using functions
+ 
+ def main(args: Array[String]): Unit = {
+   def sumOfElements(numArray: Array[Int], divisor: Int*): Int = {
+      var sum: Int = 0
+      var flag = true
+      for (num <- numArray) {
+         flag = true
+         for(i<-divisor) {
+            if (num % i != 0)
+            flag = false
+         }
+         if(flag) sum += num
+      }
+      return sum
+   }
+ }
+
+Notice the star (*) with the last parameter. It indicates that the last parameter can accept zero or more values. This allows the number of divisors to vary in every invocation.
+
+println("Total sum = " + sumOfElements(Array(10,12,15,18,21,30), 3))
+println("Total sum = " + sumOfElements(Array(10,12,15,18,21,30), 3, 5))
+ 
+
+A few more facts about functions in Scala:
+
+The return statement is optional, in which case the last expression inside the function is automatically evaluated and its value is returned
+
+def addTwoNumbers(x: Int, y: Int) = {     // No return type specified
+    x + y                                 // return keyword not required
+}
+
+A function in Scala is a complete object and can be written anywhere in the source file (class, object, or another function)
+
+A function defined as part of a class is called a method
+
+
+Examples ::
+
+Given the below code snippet,
+
+def displayDetails(name:String, empId:Int, salary:Double):String={
+    "Name: "+name+"\t"+"Emp Id: "+empId+"\t"+"Salary: "+salary
+  }
+
+Which of the following are valid ways to invoke the function displayDetails?
+
+i.	displayDetails("Alex", 1001, 40000.0)
+iii.	displayDetails(empId=1001, salary=40000.0, name="Alex")
+iv.	displayDetails("Alex", salary=40000.0, empId=1001)
+
+
+ Identify the valid ways in which the function ComputeSum can be invoked in the main() method:
+
+def ComputeSum(nums: Double*):Double = {
+           var sum:Double = 0
+            for(x <- nums)
+            {
+                sum+= x
+            }
+           sum
+   }
+def main(args: Array[String]):Unit={
+//invoke ComputeSum function 
+}
+i.       println(ComputeSum())
+ii.	 println(ComputeSum(100))
+iii.     println(ComputeSum(2.5, 3.5, 1.5, 0.5))
+
+
+Predict the output of the following code snippet ?
+
+def main(args: Array[String]): Unit = {
+def test(num1:Int, num2:Int):Int={
+    	if (num1 > num2)
+        	return num1
+    	else if(num1 == num2)
+        	return 1
+    	else
+        	return num2
+    	}
+
+def result(x:Int, y:Int)=
+{
+    	if(test(x,y)==x)
+        	println("A")
+    	else if(test(x,y)==1)
+        	println("C")
+    	else
+        	print("B")
+}
+result(200, 500)
+}
+
+ANs :: B
+
+Which of the following is not the right way to define a function in Scala?
+
+i.   def hello = "Hello World!"
+ii.  def hello() String = {"Hello World"}
+iii. def hello() = "Hello World"
+iv.  def hello: String = "Hello World!"
+ v.  def hello(): String = {"Hello World"}
+vi.  def hello() = {return "Hello World"}
+
+Ans :: ii, vi
+
+So far what we have seen is the imperative way of programming in Scala. The solution for Problem 6 can be written in functional way as shown below.
+
+We will explore the functional benefits and features of Scala from Problem 7 onwards.
+
+Imperative
+
+/* Problem 6a: Calculate the sum of elements
+   divisible by a given no. using functions */
+ 
+def sumOfElements(numArray: Array[Int], divisor: Int): Int = {
+    var sum: Int = 0
+    for (num <- numArray) {
+      if (num % divisor == 0)
+        sum += num
+    }
+    return sum
+  }
+
+Functional
+
+/* Problem 6: Calculate the sum of elements
+   divisible by a given no. using functions */
+ 
+def sumOfElements(numArray: Array[Int], divisor: Int): Int = {
+  return numArray.filter(num => num % divisor==0).sum
+}
+
+
+
+===============================================================================================================
+ProblemStatement:
+
+We need to square all the elements in a list and then remove the elements greater than or equal to 100.
+
+Complete the code below to fulfill the requirement.
+
+Problem 7 can be solved in several ways:
+
+Solution 7a:
+
+// Problem 7a: Squaring and filtering elements in a list 
+ 
+var finalNumbers = new ArrayBuffer[Int]
+for(num <- numbers) {
+    var square = num * num
+    if (square < 100) finalNumbers += square
+}
+println("Final list: " + finalNumbers.mkString(", "))
+Solution 7b:
+
+// Problem 7b: Squaring and filtering elements in a list
+ 
+val squared = for(num <- numbers) yield num * num
+val finalNumbers = for(num <- squared if (num < 100)) yield num
+println("Final list: " + finalNumbers.mkString(", "))
+Solution 7c:
+
+// Problem 7c: Squaring and filtering elements in a list 
+ 
+val finalNumbers = numbers.map(num => num * num).filter(num => num < 100)
+	// map() accepts a function as argument and evaluates it on each element.
+	// filter() is then called on the resulting collection to filter it based on the given function.
+	
+println("Final list: " + finalNumbers.mkString(", "))
+From solution 7a to solution 7c we have moved from imperative style of coding to functional style. In functional style, the entire solution to the problem is broken in to small tasks and solved through functions.The built in functions map and filter are accepting anonymous functions as arguments. 'map' and 'filter' are Higher Order functions. Here functions are 'first class citizens'. We shall discuss about this paradigm later.
+
+You have already seen the usage of collection methods like filter, map, foreach, etc. And what we pass to these methods are anonymous functions. It is important to understand how these anonymous functions are used by the collection methods.
+
+Methods like filter() need a function which returns a boolean value for each item of the collection. Such a function which takes one or more parameters and returns a boolean value is called a predicate.
+
+def isLessThan100(num: Int): Boolean = if(num < 100) true else false
+This can now be used to filter a list like this:
+
+list.filter(isLessThan100)
+
+The next thing to realize is that filter must be applying this function to every element of the list. Thus, saving us the effort of writing loops like this:
+
+for(num <- list if num < 100) yield num
+This shows that the filter method itself uses a loop to apply our function to every element of the collection. filter and other such methods like foreach, map, reduceLeft, etc. have loops built into their algorithms. These methods are called implied loops / implicit loops.
+
+
+Function Examples::
+
+What will be the output of the following:
+
+val wordList = List("cat", "bat")
+
+println(wordList map getCombinationsOf2 flatten)
+
+def getCombinationsOf2(str: String) = {
+    str.combinations(2).toList
+}
+
+Ans :: List(ca, ct, at, ba, bt, at) (The given code prints all the possible combinations of 2 letter words from individual elements of list. )
+
+Predict the output of the following code snippet:
+
+val firstName = "Don"
+val lastName =  "Moen" 
+val fullName = firstName + lastName 
+
+var name = for (c <- fullName) yield c.toUpper
+var filteredName = name.filter(_!= 'N')
+println(filteredName)
+
+Ans :: DOMOE (As yield function is applied, name will give all the characters in uppercase and then filter is applied with condition not equal to N. So it will print DOMOE.)
+
+
+What will be the output of the following:
+
+val guestLists = List(
+        List("Mr. Sharma", "Mrs. Sharma"),
+        List("Mr. Kumar", "Mrs. Kumar"),
+        List("Mr. Roshan", "Mrs. Roshan")
+    )
+    
+println(guestLists.flatten.partition(x => x.contains("Mr."))._2)
+
+Ans :: List(Mrs. Sharma, Mrs. Kumar, Mrs. Roshan) (Method partition converts lists into sub lists according to the condition provided, after applying flatten and partition method the output is valid.)
+
+
+What will be the output of the following code:
+
+val itemPrice = Map("USB optical mouse" -> 250, "Laptop" -> 30550, "Flash Drive" -> 350, "External HD" -> 4500, "Keyboard" -> 900)
+
+var list = List[Any]()
+itemPrice.values.foreach(i => {
+        if (i > 500) {
+	    	list = itemPrice.find(_._2 == i).get._1 :: list
+        }
+    })
+println(list)
+
+
+Ans :: List(External HD, Laptop, Keyboard) (Given code will return the list which contains keys itemprice whose values are greater than 500 in reverse order.)
+
+
+What will be the output of the code below?
+
+var numbers = List(1, 2, 3, 4, 5, 6, 7, 8, 9)
+println(numbers filter numberFilter map factorial)
+
+def numberFilter(x: Int) = {
+	x%3==0 || x<7
+}
+
+def factorial(x: Int): Int = {
+	if(x == 0) return 1
+		return x * factorial(x-1)
+}
+
+
+Ans :: Given logic prints a list containing factorials of numbers that satisify the numfilter function condition. So result is List(1, 2, 6, 24, 120, 720, 362880)
+
+Consider the below list :
+
+var empNames=List("Mary","Harry","Melita")
+Which of the following statements using the filter function, will print the list element “Mary” as the output?
+
+Ans ::
+def f1(s: String) = s.startsWith("M")<br> &emsp;def f2(s: String) = s.endsWith("y")<br> &emsp;println(empNames.filter(f1).filter(f2))
+Explanation :: There are some other options also which will give the same result.
+
+println(empNames.filter( _.startsWith("M")).filter( _.endsWith("y")))
+Explanation :: 	There are some other options also which will give the same result.
+
+println(empNames.filter( name => (name.startsWith("M") && name.endsWith("y"))))
+Explanation :: 	There are some other options also which will give the same result.
+
+
+Consider the below lines of code: 
+
+1. val flowers=List("Roses","Jasmines","Daisies","Lilies")
+2. for(flower<-flowers) println(flower)
+Which of the following options are equivalent to the second line in the given code:
+
+Ans :: 
+flowers.foreach(println)
+Explanation :: 	There are some other options also which will give the same result.
+
+flowers.foreach(flower=>println(flower))
+Explanation :: 	There are some other options also which will give the same result.
+
+flowers.foreach((flower:String)=>println(flower))
+Explanation :: 	There are some other options also which will give the same result.
+
+flowers.foreach(println(_))
+Explanation :: 	There are some other options also which will give the same result.
+===============================================================================================================
+
+package Pract1
+
+object Pract_1 {
+  def main(args: Array[String]): Unit = {
+    val mainList = List(3, 2, 1)
+    val with4 =    4 :: mainList  // re-uses mainList, costs one :: instance
+    val with42 =   42 :: mainList // also re-uses mainList, cost one :: instance
+    val shorter =  mainList.tail  // costs nothing as it uses the same 2::1::Nil instances as mainList
+    println(with4)
+    println(with42)
+    println(shorter)
+  }
+}
+
+Ans ::
+List(4, 3, 2, 1)
+List(42, 3, 2, 1)
+List(2, 1)
+
+=========================================================================================================================
+
+Object Oriented Programming ::
+
+So this is our Product class in Scala:
+
+class Product {
+  var id: Int = 0
+  var name: String = ""
+  var price: Float = 0f
+}
+
+As you can see, the code is a lot more concise compared to the Java or C# code shown earlier.
+
+Now a product object can be created and its values can be set using the setter methods as follows:
+
+var prod = new Product()
+prod.id = 101
+prod.name = "T-Shirt"
+prod.price = 499
+
+Scala automatically creates the getters and setters. The fields themselves are private, but access can be controlled as follows:
+
+If the field is a var, both the getters and setters are generated
+
+If the field is a val, only the getter is generated (read-only property)
+
+If the field is explicitly made private, the getters and setters become private
+
+Constructors are used to assign values to variables of a class during instantiation.There are two types of constructors in Scala. Let's start with primary constructors.
+
+Primary Constructor: Every Scala class has a primary constructor, which is declared along with the class definition. The var and val parameters in the primary constructor become the fields of the class and can have default arguments as well.
+
+A primary constructor will also execute all the statements directly inside its class, i.e. these statements become part of the primary constructor.
+
+class Product (
+        var id: Int = 0,
+        var name: String = "",
+        var price: Float = 0f
+    )
+{
+    println("Product created!")
+}
+
+Now a product object can be created by passing its values to the primary constructor as follows:
+
+var prod = new Product(101, "T-Shirt", 499)
+Not always would we want to pass all the values to the primary constructor while creating the object. There might be a case where the exact price of a product is yet to be determined. This brings us to the second type of constructors called auxiliary constructors, which can be used to assign values to some of the fields.
+
+Auxiliary Constructor: There can be multiple auxiliary constructors which are called this. They must start with a call to the previously defined auxiliary constructor or to the primary constructor, using this().
+
+Here we have two auxiliary constructors, one which takes in the id and name, and the other which takes in all the values.
+
+class Product {
+  var id: Int = 0
+  var name: String = ""
+  var price: Float = 0f
+  
+  def this(id: Int, name: String) {
+    this()
+    this.id = id
+    this.name = name
+  }
+  
+  def this(id: Int, name: String, price: Float) {
+    this(id, name)
+    this.price = price
+  }
+}
+
+
+Examples ::
+
+Harry needs to create a class named 'Customer' which contains the attributes customerId of type int with default value as 1, customerName of type string with default value as "Jack" and customerAddress of type string with default value as “Delhi”.
+
+Harry also needs to create an auxiliary constructor which takes two parameters – customerId and customerName.
+
+Fill in the blank lines in the below code snippet and help Harry to create the Customer class.
+
+class Customer(//line1){
+  
+ //line 2 {
+    this()
+    this.customerId = id
+    this.customerName = name
+  }
+}
+ 
+ANs :: Line 1 - var customerId:Int=1,var customerName:String="Jack",var customerAddress:String="Delhi" Line 2 - def this(id: Int, name: String)
+
+
+Consider the below code snippet:
+
+object Constructors {
+  def main(args: Array[String]): Unit = {
+    val p1 = new Person("Allen", "Jones", 30)
+    println(p1.firstName + "\t" + p1.lastName + "\t" + p1.age)
+    val p2 = new Person("Mike")
+    println(p2.firstName + "\t" + p2.lastName + "\t" + p2.age)
+  }
+  
+  class Person(val firstName: String, val lastName: String, val age: Int) {
+    def this(firstName: String) {
+      this(firstName, "", 0);
+      println("\nNo last name or age given.")
+    }
+  }
+}
+
+Ans :: (First print statement will print the values Allen Jones 30 as directly we called constructor and assigned values. Second Object creation is done by calling auxiliary constructor which is defined with keyword this(). So it goes to constructor and prints string value and then other values.)
+iii) Allen    Jones    30
+    No last name or age given.
+    Mike        0
+	
+===========================================================================================
+	
+Problem :: Auto generate the product id ::
+== class name and companion object names must be same
+
+class New_22 {
+  var id:Int =0
+  var name:String = ""
+  var price: Float = 0f
+
+  def this( name:String, price:Float){
+    this()
+    this.id = New_22.generateProductId()
+    this.name=name
+    this.price = price
+
+    println("Product created "+this.id)
+  }
+}
+// Companion object creation
+// Companion object name should be same as class name
+object New_22{
+  var product_id =100
+  def generateProductId():Int={
+    product_id+=1
+    return product_id
+
+  }
+}
+
+object ProductIdGeneration{
+  def main(args: Array[String]): Unit = {
+    var prod1 = new New_22("Trousers",799)
+    var prod2 = new New_22("T-Shirt",699)
+
+
+  }
+}	
+
+What will be the output of the following code?
+
+class Employee {
+  import Employee.empid
+  private var empid: Int = 0
+  var empname: String = ""
+  def this(empid: Int, empname: String) {
+    this()
+    Employee.empid+=1
+    this.empid = empid
+    this.empname = empname
+    println("Employee has been created with the employee ID "+this.empid)
+  }
+}
+object Employee{
+  var empid = 100000
+  }
+object main{
+  def main(args: Array[String]): Unit = {
+    var emp = new Employee(799,"Rahul")
+  }
+}
+
+Ans :: Employee has been created with the employee ID 799
+
+What will be the output of the following code?
+
+class Employee {
+  import Employee.empid
+  private var empid: Int = 0
+  var empname: String = ""
+  def this(empid: Int, empname: String) {
+    this()
+    Employee.empid+=1
+    this.empid =Employee.empid
+    this.empname = empname
+    println("Employee has been created with the employee ID "+this.empid)
+  }
+}
+object Employee{
+  var empid = 100000
+  }
+object main{
+  def main(args: Array[String]): Unit = {
+    var emp = new Employee(799,"Rahul")
+  }
+}
+
+Ans :: Employee has been created with the employee ID 100001
+
+Note :: 1- An object cannot have multiple instances like class in Scala. 
+		2- A class defines a type in terms of methods and composition of other types
+		3- Scala objects cannot have constructor in it. So the given statement is false.
+		4- For every object in a scala code, an anonymous class is created.
+		
+ 
+=================================================================================================
+
+Inheritance ::
+The retail chain has a large customer base. As mentioned earlier, there are two types of customers: Privileged and Regular. Privileged customers are given a membership card using which they can redeem points.
+
+Now let us see how this scenario can be implemented using the concept of Inheritance in Scala.
+
+Since Customer will have specialized classes for the two types, it can be made an abstract class.
+
+abstract class Customer {
+  var id: Int = 0
+  var name: String = ""
+  var phone: String = ""
+ 
+  def orderProducts() = {
+    // Implementation 
+  }
+}
+
+ 
+
+And since such membership cards can be provided by several businesses to their customers, MembershipCardHolder can be a standard trait.
+
+trait MembershipCardHolder {
+  def redeemPoints()
+}
+
+A trait is like a Java or C# interface, having method declarations which have to be implemented by the extending classes.
+Like default methods in Java interfaces, traits can also have implemented methods.
+
+Note: If we don’t use the equals sign and the method body, the method implicitly becomes abstract.
+
+Now that we have partial representation of a customer in the form of an abstract class and a trait, we'll need to complete them.
+
+Classes and traits can be inherited using the extends keyword. The super keyword can be used to access the parent’s methods. While overriding, the override keyword can be used to check whether a method is actually being overridden or not. It is mandatory to use it while overriding non-abstract methods.
+
+So here's our regular customer:
+
+class RegularCustomer extends Customer {
+  // Extra methods
+}
+
+ 
+
+If a class extends multiple traits, or another class along with traits, it will have to extend the first trait (or class, or abstract class), and then use with for other traits.
+
+This will create our privileged customer:
+
+class PrivilegedCustomer extends Customer with MembershipCardHolder {
+  override def redeemPoints() = {
+    // Implementation
+  }
+ 
+  // Extra methods
+}
+
+This completes our class representation of customers.
+
+abstract class Customer {
+  var id: Int = 0
+  var name: String = ""
+  var phone: String = ""
+ 
+  def orderProducts() = {
+    // Implementation 
+  }
+}
+ 
+trait MembershipCardHolder {
+  def redeemPoints()
+}
+ 
+class RegularCustomer extends Customer {
+  // Extra methods
+}
+ 
+class PrivilegedCustomer extends Customer
+      with MembershipCardHolder {
+  override def redeemPoints() = {
+    // Implementation
+  }
+ 
+  // Extra methods
+}
+
+Traits may appear to be the same as interfaces, but they have some differences:
+
+They can have both abstract and concrete fields
+
+They can extend classes
+
+They can be limited to be used with specific classes
+
+They can be added to a particular instance of an object
+e.g. val shopper = new RelianceFreshShopper() with MembershipCardHolder
+ 
+
+Scala supports multiple inheritance with traits. This leads to the diamond problem.
+Find out how Scala deals with it.
+
+
+=================================================================================================================================
+
+As you have seen, the main() method can only be placed inside an object. An alternative to this is to have an object extend the App trait. It automatically puts everything inside its main() method, and makes our code executable.
+
+Our objects can now look like this:
+
+object Executable extends App {
+  println("No more def main(args: Array[String]): Unit = {}!")
+}
+
+
+============================  Akka framework 
+
+All of you would have tried playing some or the other online games. Some of the characteristics of these games are:
+
+Number of players might scale up drastically in a span of few seconds
+
+Players are distributed and are on different platforms
+
+These are fault tolerant and handle failure of nodes at individual players transparently.
+
+Consider a simple number passing game with multiple players in which a coordinator generates a random number and passes it on to the players. The player who receives the number decrements its value by 1 and passes on the number to the next player. Each player who receives the number repeats the process by decrementing its value by 1 and passing on the number to other players. This process keeps on repeating until the number reduces to zero (0). The player who receives zero will be eliminated from the game and the coordinator generates a new number to restart the game among the existing players.
+
+Let us now look at the code to simulate this game with 2 players using the Akka actor framework.
+
+
+
+The number passing game:
+
+// Problem 10: Number passing game
+ 
+import akka.actor.Actor
+import akka.actor.ActorRef
+import akka.actor.ActorSystem
+import akka.actor.Props
+ 
+case class Player1Message(n: Int)
+case class Player2Message(n: Int)
+case class StartGame(n: Int)
+ 
+class Player1(player2: ActorRef) extends Actor {
+  def receive = {
+    case StartGame(n) =>
+        println("Player1:"+n)
+        player2 ! Player1Message(n-1)
+    case Player2Message(n) =>
+          if(n == 0)
+          {
+            println("Player1:"+n)  
+            println("Player2 won the game")
+            context.stop(self)
+          }
+          else 
+          {
+            println("Player1:"+n) 
+            sender ! Player1Message(n-1)
+          }
+  }
+}
+ 
+class Player2 extends Actor {
+  def receive = {
+    case Player1Message(n) =>
+       if(n == 0)
+          {
+            println("Player2:"+n)
+            println("Player1 won the game")
+            context.stop(self)
+          }
+          else 
+          {
+            println("Player2:"+n)   
+            sender ! Player2Message(n-1)
+          }
+ 
+  }
+}
+ 
+object Game extends App {
+  val system = ActorSystem("NumberPassingGame")
+  val player2 = system.actorOf(Props(new Player2 ), name = "Player2")
+  val player1 = system.actorOf(Props(new Player1(player2)), name = "Player1")
+  // Start them going by generating a random number
+  var n = scala.util.Random.nextInt(10) + 40
+  player1 ! StartGame(n)
+}
+
+In the NumberPassingGame, two actors, Player1 and Player2 are created by extending Actor trait and implementing the receive method.
+
+An Actor is an object that takes messages and responds to them through actions.
+
+On receiving a message an actor can take one or more of the below actions
+
+Execute some operations itself
+
+Forward the message to another actor
+
+Create a new actor and forward the message to it.
+
+An Actor always exists in an Actor system. In the above example an actor system is created with the name 'NumberPassingGame'.
+
+val system = ActorSystem("NumberPassingGame")
+ 
+
+An Actor System is a logical organization of actors in to a hierarchical structure. It provides the infrastructure necessary for Actors to interact with each other. An instance of actor is created using actorOf method of ActorSystem. This method creates an instance of actor using Props and returns reference to ActorRef. Props is a configuration object which is used to create actors.
+
+In the above example, actors are created in the below lines of code. Actor Player2 is being passed as a parameter to Player1.
+
+val player2 = system.actorOf(Props(new Player2 ), name = "Player2")
+val player1 = system.actorOf(Props(new Player1(player2)), name = "Player1")
+
+
+Messages are sent to an actor using ActorRef. In the above example, a message is sent to Player1 with the random number as the parameter.
+
+player1 ! StartGame(n)
+Messages are sent to actors using the tell method (!)
+
+Player1 receives the message and decrements the number by 1. Then a message is sent from Player1 to Player2 with the decremented number as the parameter. Player2 receives the message and decrements the number by 1. This process is repeated until the number becomes zero. The player who receives zero will lose the game.
+
+Each actor has a mailbox to which the incoming messages are delivered. The default implementation for the mailbox is FIFO.
+
+Each instance of an actor runs in its own light weight thread and messages are processed one at a time from the queue. In this way, each actor’s state can be reliably maintained without explicit need for synchronization and handling of race conditions.
+
+We have seen how the Akka framework was used to create an online game with 2 players. If the same game is extended for 10000 players, we would have to create and manage 10000 actors.
+
+The Akka framework is capable of transparently managing the creation of actors and manage the communication between them.
+
+================================================================================
+========= Error Handling in scala
+Try[T] is like Option[T].
+It is a container. It helps in efficient error handling in a functional programming world.
+
+Options are also wrappers that are used for things that may or may not have a defined value. If a value is defined, option equals Some (value), and if it’s not defined, it equals None.
+Just like the Future, there are many connectors (map, flatMap,filter etc.) that are available for pipelining the result of the option. In addition, Options give a method 'getOrElse'. This method returns the value in the Some if the Option has a value, or returns a default value that is specified if it has None.
+
+None is an object in Scala that holds the value 'Nothing'. It allows pipelining methods to treat it differently.
+
+===================================================================================
+
+Assume
+
+1
+Observe the below code-
+
+trait Data
+abstract class Opr extends Data
+case class Number(num: Int) extends Data
+case class UnOp(operator: String, arg: Int) extends Opr
+case class BinOp(operator: String, left: Int, right: Int) extends Opr
+    
+def patternMatching(expression: _____) : String = //line1
+  expression match {
+    case Number(number) => "Number"
+    case UnOp(operator,arg) => "Unary"
+    case BinOp(operator,left,right) => "Binary"
+    case _ => "None"
+  }
+Which of the below can be placed at blank at line1 , so that the code does not result in an error?
+
+1.Data
+2.Opr
+3.Any
+
+2
+
+Consider the below code-
+
+val list1 = Future {
+    List(1, 2, 3, 4)
+  }
+
+val result = list1.map(x => x.equals(3))
+
+result.onSuccess {
+    case x: Any => println(x)
+}
+
+result.onFailure {
+    case x: Any => println(x)
+}
+Note:Assume that necessary imports have been done  
+
+What will be the output of the given code?
+
+3
+
+Consider the following code-
+
+val list = List("Hello","Hi","Bye")
+val result =  list.reduce((x,y) => x)
+val result1= list.fold(list)((x,y) => y :: Nil )
+println(result) //line1
+println(result1) //line2
+What will be the output of line1 and line2 respectively?
+
+4
+
+Consider the below code-
+
+object Demo extends App {
+
+  def operation(num1: Int, num2: Int) = {
+    if (num1 < num2)
+      Left("num1 less than num2")
+    else
+      Right(num1 / num2)
+  }
+
+  val str1 = operation(4, 0)
+  str1 match {
+    case Left(value)  => println("Left " + value)
+    case Right(value) => println("Right " + value)
+	case e: Exception => println("Exception Occurred")
+  }
+}
+What will be the result of the above code?
+
+
+5  -== doubt 
+
+Consider the below code-
+
+val f: Future[List[String]] = Future {
+    List("A B C", "D E F", "G H I")
+}
+
+//Line1
+
+val result = Await.result(f1,Duration("2 seconds"))
+
+println(result)
+Note: Assume all necessary imports have been made
+
+What should be the code at Line1 so that the output of the code is List(C, F, I)?
+
+val f1: Future[List[String]] = f.map(x => x.map(y => y.split(" ")(2)))
+val f1: Future[List[String]] = f.map(x => x.split(" ")(2))
+val f1: Future[List[String]] = f.map(x => x(2))
+val f1: Future[List[String]] = f.map(x => x.map(y => y.map(z => z.split(" ")(2))))
+
+6 
+
+Consider the below code-
+
+def fucntion1(f: Int => Int, list: List[Long]) = {
+  list.foldLeft(0)((acc,elem) => acc+f(elem.toInt))
+}
+println(fucntion1(___, List(1,2,3,4,5))) //line1
+What should be the code at blank in line1 so that the code prints the count of the odd numbers in a list?
+
+x => x%2
+x.toLong=>x%2
+x=>x%2L
+x.toLong=>x%2L
+
+Error:(6, 12) Cannot find an implicit ExecutionContext. You might pass
+an (implicit ec: ExecutionContext) parameter to your method
+or import scala.concurrent.ExecutionContext.Implicits.global.
+    Future {
+
+
