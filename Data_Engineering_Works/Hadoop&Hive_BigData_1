@@ -123,3 +123,21 @@ d : delete
 On the command line,
 
 
+
+====================== Creating table and storing it in specific path
+
+drop table databasename.tablename;
+CREATE TABLE databasename.tablename(
+`col_1` double,
+`col_2` string,
+`col_3` double,
+`col_4` double,
+`col_5` string,
+`col_6` TIMESTAMP,
+`col_7` string)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+location 'wasbs://quantumbrserver@quantumb.blob.core.windows.net/data/issue_driver/Univ_Contrib'
+
+tblproperties("skip.header.line.count"="1");
