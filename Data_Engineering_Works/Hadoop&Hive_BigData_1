@@ -32,6 +32,9 @@ To Run .hql files from hive ::(.hql files you can write sql commands)
 hive -f /home/<path to hive file>/filename.hql
 hive -f /home/<path to hive file>/filename.hql
 
+// hive command to remove table from database using shell scripting
+
+hive -e "drop table databasename.tablename"
 =====================================================================================================================================
 =====================================================================================================================================
 
@@ -40,14 +43,21 @@ hive -f /home/<path to hive file>/filename.hql
 # == To list out the directories and files present in this path
 hadoop fs -ls adl://<azure data lake storge>/data/mo/qa
 
+// removing the files present in hdfs path 
+
+hdfs dfs -rm -r /hive/warehouse/databasename.db/table_dir
 =====================================================================================================================================
 
 # Moving the large datasets between two clueters in hadoop using distcp  
 #move current dbs to restore folder (with renaming)
 #current DB -> Restore Folder 
 
-hadoop distcp $current_folder_path/quality_compute.db $restore_folder_path/quality_compute_old.db
-hadoop distcp $current_folder_path/quality_primary.db $restore_folder_path/quality_primary_old.db
+current_folder_path='<ADLS path link>'
+backup_folder_path='<ADLS path link>'
+restore_folder_path='<ADLS path link>'
+
+hadoop distcp $current_folder_path/quality_compute.db $restore_folder_path/databasename_1.db
+hadoop distcp $current_folder_path/quality_primary.db $restore_folder_path/databasename_2.db
 
 =====================================================================================================================================
 
@@ -56,8 +66,8 @@ hadoop distcp $current_folder_path/quality_primary.db $restore_folder_path/quali
 # clean up current folder
 #delete files from existing location
 
-hadoop fs -rm -r $current_folder_path/quality_compute_old.db
-hadoop fs -rm -r $current_folder_path/quality_primary_old.db
+hadoop fs -rm -r $current_folder_path/databasename_1.db
+hadoop fs -rm -r $current_folder_path/databasename_2.db
 
 
 =====================================================================================================================================
