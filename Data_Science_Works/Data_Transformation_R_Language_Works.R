@@ -17,7 +17,7 @@ date_part=gsub("[[:punct:]]","",Sys.Date())
 
 path_op="/data/data/sreekanth_b/Input/data_folder/"
 
-Input_L=read.csv(gsub(" ","",paste(path_op,"Input_",date_part,"_l_","File","_Data.csv")),stringsAsFactors=FALSE)
+o_output=read.csv(gsub(" ","",paste(path_op,"Input_",date_part,"_l_","File","_Data.csv")),stringsAsFactors=FALSE)
 
 # Writting the output into csv file
 
@@ -25,7 +25,7 @@ write.csv(Dataframe, file = "path/MyData.csv")
 
 # Schema Check 
 # Command gives the columns and their datatype description of dataframe
-sapply(om_output,typeof)
+sapply(o_output,typeof)
 
 # Packages loading
 library(ggplot2)
@@ -40,7 +40,7 @@ nrow(f1)
 
 # Filtering and aggregation opperations
 
-f1 = om_output[om_output$CALC_DATE == "2019-03-07",]
+f1 = o_output[o_output$CALC_DATE == "2019-03-07",]
 
 # Below command gives past 48 weeks of data for model
 
@@ -48,14 +48,14 @@ df1=df_output[as.Date(df_output$CALC_DATE)>= as.Date(max(df_output$CALC_DATE))-(
 
 # Sample aggregation functions
 
-df2=df1[df1$METRIC=='COUNT_1' & df1$ALGO=='MA_Ribbon',]
+df2=df1[df1$MET=='COUNT_1' & df1$COL_Alg=='MAR',]
 date1=unique((df2$CALC_ID))
-df3=aggregate(df2$col_NBR, by=list(Calc_id=df2$CALC_ID), FUN=sum) 
+df3=aggregate(df2$col_NR, by=list(Calc_id=df2$CALC_ID), FUN=sum) 
 df4=df3[df3$x>15,]
 length(df4$Calc_id)
 
-df1=df_output[df_output$ALGO=='TREND_without_BB',]
-df2=df1[order(df1$PRIORITY_SCORE,decreasing=TRUE),]
+df1=df_output[df_output$COL_A=='A_B',]
+df2=df1[order(df1$COL_P,decreasing=TRUE),]
 df3 = df2[0:5,] 
 
 
@@ -74,18 +74,18 @@ unique(df1$ENGINE_SERIES)
 sd <- sqldf('SELECT COUNT(*) FROM df1')
 print(sd)
 
-st = sqldf('SELECT ENGINE_SERIES,max(CALC_DATE) FROM df1 GROUP BY ENGINE_SERIES')
+st = sqldf('SELECT E_S,max(CALC_DATE) FROM df1 GROUP BY E_S')
 print(st)
 
-s1 = sqldf('SELECT DISTINCT(ENGINE_SERIES) FROM df1')
+s1 = sqldf('SELECT DISTINCT(E_S) FROM df1')
 print(s1)
 
-sq <- sqldf('SELECT CALC_ID,SUM(OM_NBR) FROM out GROUP BY CALC_ID having SUM(OM_NBR) >15')
+sq <- sqldf('SELECT CALC_ID,SUM(A_S) FROM out GROUP BY CALC_ID having SUM(VAL) >15')
 print(sq)
 
 
 library(sqldf)   -------- To write SQL quires
-sqldf(select om_output.calc_date from om_output limit 10)
+sqldf(select database.table from om_output limit 10)
 
 sqldf("SELECT COUNT(*) FROM df2 WHERE state = 'CA'")
 
@@ -98,26 +98,25 @@ library(DBI)
 library(dplyr)
 library(dbplyr)
 
-frst_s <- om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE) & OM_NBR>0.0005)
-scnd_s <- (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(OM_NBR)>5) %>% dplyr::group_by(CALC_ID)) 
-thrd_s <-  (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)>=15) %>% dplyr::group_by(CALC_ID) 
+frst_s <- o_output %>% dplyr::filter(E_S=="A" & A_S=="H" & CALC_DATE == max(CALC_DATE) & VAL>0.0005)
+scnd_s <- (o_output %>% dplyr::filter(E_S=="B" & A_S=="I" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(VAL)>5) %>% dplyr::group_by(CALC_ID)) 
+thrd_s <-  (o_output %>% dplyr::filter(E_S=="C" & A_S=="J" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(VAL)>=15) %>% dplyr::group_by(CALC_ID) 
 
-Censor.Shipments <- shipments.to.use %>% select(engine_serial_num,Expected.Miles) %>% dplyr::filter(engine_serial_num %in% ESNs2InclFromShipments)
+Censor.Shipments <- shipments.to.use %>% select(E_S_N,COl_2) %>% dplyr::filter(E_S_N %in% ESNs2InclFromShipments)
 Censor.IncidentTracker <- MCF.Set %>% dplyr::filter(is.na(Faults))
 Censor <- Censor %>% dplyr::filter(!ESN %in% Censor.ESNs)  ===== ESN not in Censor ESN's
 
-#if ((om_output %>% dplyr::(filter(ENGINE_SERIES=="X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE) & OM_NBR>0.0005) || (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(OM_NBR)>5) %>% dplyr::group_by(CALC_ID)) || (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)>=15) %>% dplyr::group_by(CALC_ID)))
+#if ((o_output %>% dplyr::(filter(E_S=="A" & A_S=="H" & CALC_DATE == max(CALC_DATE) & VAL>0.0005) || (o_output %>% dplyr::filter(E_S=="B" & A_S=="H" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(VAL)>5) %>% dplyr::group_by(CALC_ID)) || (o_output %>% dplyr::filter(E_S=="A" & A_S=="H" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(VAL)>=15) %>% dplyr::group_by(CALC_ID)))
      #print(pass)
 
-#frst_s <- om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE) & OM_NBR>0.0005)
      
-if (nrow(om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)<15))>100)
-    cat ("\n Test Case 13: Passed")
-    #else if (nrow(om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(OM_NBR)<=5))>100)
+if (nrow(o_output %>% dplyr::filter(E_S=="A" & A_S=="H" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(VAL)<15))>100)
+    cat ("\n Scenario Case 13: Passed")
+    #else if (nrow(om_output %>% dplyr::filter(E_S=="A" & A_S=="H" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(VAL)<=5))>100)
         #cat("y","\n")
     
-    #| (as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)>=15)) %>% dplyr::group_by(CALC_ID)
-#stg <- om_output %>% dplyr::filter(CALC_DATE == max(CALC_DATE))  %>%  dplyr::group_by(ENGINE_SERIES)
+    #| (as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(VAL)>=15)) %>% dplyr::group_by(CALC_ID)
+#stg <- o_output %>% dplyr::filter(CALC_DATE == max(CALC_DATE))  %>%  dplyr::group_by(ENGINE_SERIES)
 
 
 
