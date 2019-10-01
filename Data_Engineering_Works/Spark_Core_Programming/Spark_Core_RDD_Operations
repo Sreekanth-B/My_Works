@@ -1,0 +1,149 @@
+// RDD operations in Spark Core
+
+===========================================================================================================================
+// reading data into rdd
+val textFile = sc.textFile("hdfs://localhost: path")
+
+// mapping each row as cols seperated with tab
+val map_test = textFile.map(line => line.split("\t"))
+
+// printing the above rdd
+map_text.collect
+
+// selecting 2,3 col values
+val =map_text1 = map_text.map(line => (line(1),line(2)))
+ 
+
+// filtering wheather the col 3 having india as value
+
+val fil = map_text.filter(line => line(2).contains("india"))
+
+fil.collect
+
+===========================================================================================================================
+
+// getting count of medals own by each unique country
+
+val map_text2 = map_text.map(line =>line(2),line(9).toInt))
+
+map_text2.reduceByKey(_+_).collect
+ 
+
+// Here in this scenario, we have taken a pair of Country and total medals columns as key and value and we are performing reduceByKey operation on the RDD.
+
+// We have got the final result as country and the total number of medals won by each country in all the Olympic games.
+
+// count is used to return number of elements in the rdd
+
+// selecting first and third col values
+val map_text2 = map_text.map(line => line(0),line(2)))
+
+map_text2.count
+//you can see that there are 8618 records in the RDD map_test1.
+
+===========================================================================================================================
+
+// CountByValue: countByValue is used to count the number of occurrences of the elements in the RDD. Below is the sample demonstration of the above scenario.
+
+val map.text1 =map_text.map(line => line(2),line(5)))
+map_text1.countByValue
+
+// In the above scenario, we have taken a pair of Country and Sport. By performing countByValue action we have got the count of each country in a particular sport.
+===========================================================================================================================
+
+// Reduce: Below is the sample demonstration of the above scenario where we have taken the total number of medals column in the dataset and loaded into the RDD map_test1. On this RDD we are performing reduce operation. Finally, we have got that there is a total of 9529 medals declared as the winners in Olympic.
+
+val map_text3 = map_text.map(line => line(9).toInt))
+map_text3.reduce((a,b) => a+b)
+>> res: Int =9529
+
+===========================================================================================================================
+// Take: take will display the number of records we explicitly specify. Below is the sample demonstration of the above scenario.
+
+val map_text4 = map_text.map(line => line(2),line(9).toInt))
+map.text4.reduceByKey(_+_).collect
+// above command gives all the records in the rdd, to print only first 2 records we use below command
+map_text4.reduceByKey(_+_).take(2)
+
+===========================================================================================================================
+===========================================================================================================================
+
+// ========= Advance RDD Operations
+// Here, we have taken two datasets, dept and emp, 
+
+// RDD’s holding Objects: Here, by using the case class, we will declare one object and will pass this case class as parameter to the RDD. You can refer to the below screen shot for the same.
+
+val dpt = sc.textFile(“hdfs://local: path”)
+case class dept(id:String,name:String)
+val split_dpt = dpt.map(line=> line.split(“\t”)).map(line => (dept(line(0),line(1))))
+split_dpt.collect
+
+===========================================================================================================================
+
+// Foreach: The foreach operation is used to iterate every element in the spark RDD. You can refer to the below screen shot for the same.
+
+emp.collect.foreach(println)
+ 
+// you can see that every element in the spark RDD emp are printed in a separate line.
+
+// CountByKey: The CountByKEy operation returns the number of elements present for each key. You can refer to the below screenshot for the same.
+
+Val dpt = sc.textFile(“hdfs://local:path”)
+Val split_dpt =dpt.map(line => line.split(“\t”)).map(line => (line(0).toString, line(1).toString))
+Split_dpt.countByKey
+
+// Here, we have loaded the dataset and split the records by using tab as delimiter and created the pair as DeptNo and DeptName. Then, we have performed CountByKey operation and the result is as displayed.
+===========================================================================================================================
+
+// SaveAsTextFile: The SaveAsTExtFile operation stores the result of the RDD in a text File in the given output path. You can refer to the below screenshot for the same.
+
+split_dpt.saveAsTextFile(“hdfs://local: path”)
+
+// Keys: The Keys operation is used to print all the keys in the RDD pair. You can refer to the below screen shot for the same.
+
+Val emp = sc.textFile(“hdfs”://local)
+Import org.apache.spark.rdd.RDD
+Val pairs:RDD[String, Int)] = emp.map(line => line.split(“\t”)).map(line => (line(2).toString,line(0).toInt))
+pairs.keys.collect
+ 
+// Values: The Values operation is used to print all the values in the RDD pair. You can refer to the below screen shot for the same.
+
+Val pairs:RDD[String, Int)] = emp.map(line => line.split(“\t”)).map(line => (line(2).toString,line(0).toInt))
+pairs.values.collect
+ 
+===========================================================================================================================
+
+// SortByKey:The SortByKey operation returns the RDD that contains the key value pairs sorted by Keys. SortByKey accepts arguments true/false. ‘False’ will sort the keys in descending order and ‘True’ will sort the keys in ascending order. You can refer to the below screen shot for the same.l
+
+Val pairs:RDD[String, Int)] = emp.map(line => line.split(“\t”)).map(line => (line(2).toString,line(0).toInt))
+pairs.sortByKey(false).collect
+pairs.sortByKey(true).collect
+
+===========================================================================================================================
+
+// Union: The Union operation results in an RDD which contains the elements of both the RDD’s. You can refer to the below screen shot to see how the Union operation performs.
+
+val dpt = sc.textFile(“hdfs://local: path”)
+val emp = sc.textFile(“hdfs://local: path”)
+val test = dpt.union(emp)
+test.take(10).foreach(println)
+ 
+// Here, we have created two RDDs and loaded the two datasets into them. We have performed Union operation on them, and from the result, you can see that both the datasets are combined and have printed the first 10 records of the newly obtained spark RDD. Here the 10th record is the first record of the second dataset.
+
+// Intersection: Intersection returns the elements of both the RDD’s. Refer the below screen shot to know how to perform intersection.
+
+Val split_dpt = dpt.map(line => line.split(“\t”)).map(line =>line(0) )
+Val split_emp = emp.map(line => line.split(“\t”)).map(line =>line(6))
+
+val test = split_dpt.intersection(split_emp)
+test.collect
+// Here we have split the datasets by using tab delimiter and have extracted the 1st column from the first dataset and the 7th column from the second dataset. We have also performed intersection on the datasets and the result is as displayed.
+
+===========================================================================================================================
+
+// Cartesian: The Cartesian operation will return the RDD containing the Cartesian product of the elements contained in both the RDDs. You can refer to the below screen shot for the same.
+val test = split_dpt.cartesian(split_emp)
+test.collect
+ 
+// Here we have split the datasets by using tab delimiter and have extracted 1st column from the first dataset and 7th column from the second dataset. Then, we have performed the Cartesian operation on the RDDs and the results are displayed.
+
