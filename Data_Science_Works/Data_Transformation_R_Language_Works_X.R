@@ -2,25 +2,91 @@
 # File consists of usage of R language in different Data analysis conditions 
 
 
-============================================================= Using R on DSVM
->R
-
-> bld_file<-read.csv("WEIBULL_2019-04-18_b_BUILD_MONTH.csv",T)
-> colnames(bld_file)
->unique(bld_file$MESSAGE)
->min(bld_file$NUM_FAILURES)
 =====================================================================================================================================
 
+
+# Getting All the files from the path which are ending with .csv with complete file name
+
+files = list.files("/home/user/notebooks/model_output_X/", pattern="*.csv", full.names = T)
+
+# Appending all the above csv files into one single file
+
+X_input_file = do.call(rbind, lapply(files, fread))
+
+=====================================================================================================================================
+
+
+
+# Removing the previous files 
+rm(list = ls())
+
+# Using the Validation Scripts in different file in DSVM Path
+# Reading all the Validation functions to use in this file in below function calling
+
+source("/home/user/notebooks/Validation_testscript.R")
+
+# Reading the Data from the DSVM Paths
+
+output_path_1="/home/user/notebooks/model_output_1/"
+output_path_2="/home/user/notebooks/model_output_2/"
+
+# Reading the file into data frame
+
+output_file_1=read.csv(paste0(output_path_1,"MODEL_OUTPUT_1.csv"),sep="|",stringsAsFactors=FALSE)
+
+output_file_2=read.csv(paste0(output_path_2,"MODEL_OUTPUT_2.csv"),sep="|",stringsAsFactors=FALSE)
+
+=====================================================================================================================================
+
+######################################testscripts##################################
+
+## Functions calling from  source path 
+
+#1.Validation Scenario 1 on output file 1
+
+test_engine_type_output(output_file_1)
+
+#2.Validation Scenario 1 on output file 2
+
+test_engine_type(om_stats_file)
+
+#3.Validation Scenario 2 on output file 1
+test_date_count_data(X_input_file)
+
+#4.Validation Scenario 2 on output file 2
+test_date_count_data_B_E(E_input_file)
+=====================================================================================================================================
+
+============================================================ Using R on DSVM
+// opening the R concole
+>R
+
+// reading the csv file into R Data frame
+> ot_file<-read.csv("Model_output_1.csv",T)
+
+// getting the column names from dataframe 
+> colnames(ot_file)
+
+// printing the unique values from the column of the dataframe
+>unique(ot_file$col_1)
+
+// getting the minimun value of the column in the dataframe
+>min(ot_file$col_2)
+=====================================================================================================================================
 
 =====================================================================================================================================
 =================================== Some usefull work done using R Language
+# Readin the file into R Dataframe
+path_op= "C:/Users/Downloads/"
 
-path_op= "C:/Users/qx816/Downloads/"
+ot_out=read.csv(gsub(" ","",paste(path_op,"MODEL_OUTPUT_X.csv")),stringsAsFactors=FALSE,sep="|")
 
-om_out=read.csv(gsub(" ","",paste(path_op,"OM_MODEL_OUTPUT_2019-03-12.csv")),stringsAsFactors=FALSE,sep="|")
+sapply(ot_out,typeof)
+			
+nrow(AS)
+head(ot_output)
 
-sapply(om_out,typeof)
-
+# Installing the required packages for operations
 library(gsubfn)
 library(proto)
 library(RSQLite)
@@ -28,18 +94,81 @@ library(sqldf)
 library(DBI)
 library(dplyr)
 
+ # Write the results into a CSV file
+ write.csv(finalResults,"results.csv",row.names = FALSE)
 
-#if ((om_output %>% dplyr::(filter(ENGINE_SERIES=="X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE) & OM_NBR>0.0005) || (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(OM_NBR)>5) %>% dplyr::group_by(CALC_ID)) || (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)>=15) %>% dplyr::group_by(CALC_ID)))
+-====================== For loop in R
+
+for (unique.group in 1:length(unique(daysDiffData$main_group)))
+  {
+  }
+  
+
+===== reading excel with sheetwise ******
+
+install.packages('readxl')
+library(readxl)
+try_xl <- readxl::read_xlsx("C:/Users/Downloads/sample_out.xlsx",sheet = 1)
+=========================================================================================================================================================
+========== Importing all csv files from one location and binding into one dataframe
+files <- list.files(path = "C:/Users/ku906/Documents/insite_miles.csv", pattern = ".csv")
+files <- file.path("C:/Users/ku906/Documents/insite_miles.csv",files)
+myfiles <- lapply(files, read.csv, header=T, stringsAsFactors = F)
+insite.data <- do.call(what = rbind.data.frame,args = myfiles)
+insite.data$VALUE <- as.numeric(insite.data$VALUE)
+insite.data$DATES <- as.Date(insite.data$DATES)
+insite.data.rev <- insite.data %>% dplyr::distinct(.)
+insite.data.rev$ESN <- as.factor(insite.data.rev$ESN)
+
+========= OR
+# Get the files names
+files = list.files(pattern="*.csv")
+# First apply read.csv, then rbind
+myfiles = do.call(rbind, lapply(files, function(x) read.csv(x, stringsAsFactors = FALSE)))
+
+========================== To select Randomly From dataframe in R
+
+ok <- ot_output[sample(nrow(ot_output),1000),]
+				
+				
+====== rbinding of two dfs
+
+final <- rbind.data.frame(1st_dataset,2nd_dataset)
+
+=====================================================================================================================================
+# Rename columns in the "Fault Code Info" file
+  names(fcData)[1] <- paste("fault.code")
+  names(fcData)[2] <- paste("description")
+  
+# Covert type of the description field from factor to character
+  fcData$fault.code  <- as.character(fcData$fault.code)
+  fcData$description <- as.character(fcData$description)
+
+==============================================================================================
+library(gsubfn)
+library(proto)
+library(RSQLite)
+library(sqldf)
+
+# using the SQL commands directly on data in R
+sd <- sqldf('SELECT CALC_ID,sum(VAL) FROM df_1 GROUP BY CALC_ID having sum(VAL)<15')
+print(sd)
+
+=====================================================================================================================================
+
+# Performing the Data tranformation operations
+
+#if ((ot_out %>% dplyr::(filter(E_S=="X" & Met_a=="H" & CALC_DATE == max(CALC_DATE) & VAL>0.0005) || (ot_out %>% dplyr::filter(E_S=="X" & Met_a=="J" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(VAL)>5) %>% dplyr::group_by(CALC_ID)) || (ot_out %>% dplyr::filter(E_S=="X" & Met_a=="J" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(VAL)>=15) %>% dplyr::group_by(CALC_ID)))
 #print(pass)
-#frst_s <- om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE) & OM_NBR>0.0005)
+#frst_s <- ot_output %>% dplyr::filter(E_S=="X" & Met_a=="H" & CALC_DATE == max(CALC_DATE) & VAL>0.0005)
 e_s <-c("B","L")
-df_1 <- om_out %>% dplyr::filter(ENGINE_SERIES %in% e_s & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP)
+df_1 <- om_out %>% dplyr::filter(E_S %in% e_s & Met_a=="J" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP)
 
-df_2 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_1 GROUP BY CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP having sum(OM_NBR)<15')
+df_2 <- sqldf('SELECT CALC_ID,sum(VAL) FROM df_1 GROUP BY CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,E_S,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP having sum(VAL)<15')
 
-df_AA <-om_out %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CALC_ID)
+df_AA <-om_out %>% dplyr::filter(E_S=="X" & Met_a=="J" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CALC_ID)
 
-df_BB <- df_AA %>% dplyr ::filter(sum(OM_NBR)<15)%>% dplyr::select(CALC_ID,OM_NBR) %>% dplyr::group_by(CALC_ID,sum(OM_NBR))
+df_BB <- df_AA %>% dplyr ::filter(sum(VAL)<15)%>% dplyr::select(CALC_ID,VAL) %>% dplyr::group_by(CALC_ID,sum(VAL))
 
 for (i in 1:2)
 {
@@ -51,8 +180,8 @@ for (i in 1:2)
     c1 = c1+1
     
     df_3 <- df_1 %>% dplyr::filter(as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7)) %>% dplyr::group_by(CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP)
-    df_4 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_3 GROUP BY CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP having sum(OM_NBR)<=5 and CALC_ID in (select CALC_ID from df_2)')
-    #df_4 <- df_3 %>% dplyr ::filter(sum(OM_NBR)<=5) %>% dplyr::group_by(CALC_ID)
+    df_4 <- sqldf('SELECT CALC_ID,sum(VAL) FROM df_3 GROUP BY CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP having sum(VAL)<=5 and CALC_ID in (select CALC_ID from df_2)')
+    #df_4 <- df_3 %>% dplyr ::filter(sum(VAL)<=5) %>% dplyr::group_by(CALC_ID)
     if (nrow(df_4)>0)
     {
       c2 =c2+1
@@ -86,35 +215,25 @@ if(c3>=1)
   cat("\n No data present for df after 2nd scenario for 3rd scenario")
 }
 
-===================================
-library(gsubfn)
-library(proto)
-library(RSQLite)
-library(sqldf)
-
-sd <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_1 GROUP BY CALC_ID having sum(OM_NBR)<15')
-print(sd)
-
-
 #cat ("\n Test Case 13: Passed")
-#else if (nrow(om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(OM_NBR)<=5))>100)
+#else if (nrow(ot_output %>% dplyr::filter(ENGINE_SERIES=="X" & Met_a=="J" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(VAL)<=5))>100)
 #cat("y","\n")
 
-#| (as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)>=15)) %>% dplyr::group_by(CALC_ID)
-#stg <- om_output %>% dplyr::filter(CALC_DATE == max(CALC_DATE))  %>%  dplyr::group_by(ENGINE_SERIES)
+#| (as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(VAL)>=15)) %>% dplyr::group_by(CALC_ID)
+#stg <- ot_output %>% dplyr::filter(CALC_DATE == max(CALC_DATE))  %>%  dplyr::group_by(ENGINE_SERIES)
 
 ===================================================================
 
 path_op= "C:/Users/qx816/Downloads/"
 
-wb_fail_grp=read.csv(gsub(" ","",paste(path_op,"failmode_group_map_b.csv")),stringsAsFactors=FALSE,sep=",")
+fail_grp=read.csv(gsub(" ","",paste(path_op,"failmode_group_map_b.csv")),stringsAsFactors=FALSE,sep=",")
 
-dfrm <- as.data.frame(om_output)
+dfrm <- as.data.frame(ot_output)
 nrow(dfrm)
 
-AS <- om_output[om_output$CALC_DATE == '2017-03-07']
-sd <-as.Date(max(om_output$CALC_DATE))-48*7
-out <- om_output[as.Date(om_output$CALC_DATE) >= sd & om_output$OM_METRIC == "COUNT_NBR" & om_output$OM_ALGO =="MA_Ribbon",]
+AS <- ot_output[ot_output$CALC_DATE == '2017-03-07']
+sd <-as.Date(max(ot_output$CALC_DATE))-48*7
+out <- ot_output[as.Date(ot_output$CALC_DATE) >= sd & ot_output$Met_a == "J" & ot_output$ALG =="MA_R",]
 length(unique(out$CALC_ID))
 sapply(out,typeof)
 
@@ -123,34 +242,31 @@ library(proto)
 library(RSQLite)
 library(sqldf)
 
-sq <- sqldf('SELECT * FROM wb_fail_grp group by POPULATION,FAILMODE_GROUP ')
+sq <- sqldf('SELECT * FROM fail_grp group by POPULATION,FAILMODE_GROUP ')
 print(sq)
 length(unique(sq$CALC_ID))
 pop <- sqldf('SELECT FAILMODE_GROUP FROM sq')
-spq <- sqldf('SELECT * FROM wb_fail_grp where FAILMODE_GROUP not in pop')
+spq <- sqldf('SELECT * FROM fail_grp where FAILMODE_GROUP not in pop')
 
-mid <- sqldf('SELECT POPULATION from wb_fail_grp where FAILMODE_GROUP == "LOW" and FAILMODE_GROUP == "MEDIUM"')
+mid <- sqldf('SELECT POPULATION from fail_grp where FAILMODE_GROUP == "LOW" and FAILMODE_GROUP == "MEDIUM"')
 
 print(mid)
 
 ======================================================
 
 library(plyr)
-cnt <- count(om_output, c("CALC_ID"))
+cnt <- count(ot_output, c("CALC_ID"))
 cnt
-df1=om_output[om_output$OM_ALGO=="MA_Ribbon" & om_output$ENGINE_SERIES=="X" & om_output$OM_METRIC=="COST_NBR"  & as.Date(om_output$CALC_DATE)==as.Date(max(om_output$CALC_DATE)),]
-unique(om_output$OM_SCORE_REL_BUCKET)
-unique(om_output$OM_SCORE_REL_PREV_BUCKET)
-unique(om_output$OM_NBR_CUMUL_BUCKET)
-unique(om_output$OM_CRRT_PRIORITY_SCORE_BUCKET)
-unique(df1$OM_CRRT_PRIORITY_SCORE_BUCKET) 
+df1=ot_output[ot_output$ALG=="MA_R" & ot_output$E_S=="X" & ot_output$Met_a=="COST_NBR"  & as.Date(ot_output$CALC_DATE)==as.Date(max(ot_output$CALC_DATE)),]
+unique(ot_output$col_1)
+unique(ot_output$col_2)
+unique(ot_output$col_3)
+unique(ot_output$col_4)
+unique(df1$col_5) 
 
-
-nrow(AS)
-head(om_output)
 library(ggplot2)
 
-df1=om_output[om_output$OM_ALGO=='TREND_without_BB',]
+df1=ot_output[ot_output$OM_ALGO=='TREND_without_BB',]
 df2=df1[order(df1$OM_CRRT_PRIORITY_SCORE,decreasing=TRUE),]
 df3 = df2[0:5,] 
 
@@ -160,7 +276,7 @@ ggplot() +
   xlab('CODES') +
   ylab('Top Priority Scores')+geom_point()+geom_segment()
 
-unique(om_output$c)
+unique(ot_output$c)
 library(sqldf)
 library(gsubfn)
 library(proto)
@@ -170,22 +286,22 @@ require(sqldf)
 sq <- sqldf('SELECT COUNT(*) FROM out')
 print(sq)
 
-sd <-as.Date(max(om_output$CALC_DATE))
+sd <-as.Date(max(ot_output$CALC_DATE))
 sd
 st <- sd-48*7
 st
-class(om_output$OM_NBR)
-unique(om_output$OM_METRIC),
+class(ot_output$VAL)
+unique(ot_output$Met_a),
 
-df <- om_output[om_output$CALC_DATE == max(om_output$CALC_DATE) & om_output$OM_METRIC == "RPH" & om_output$OM_NBR>0.0005,]
-out <- om_output[as.Date(om_output$CALC_DATE) >= st,]
-unique(out$OM_METRIC)
+df <- ot_output[ot_output$CALC_DATE == max(ot_output$CALC_DATE) & ot_output$Met_a == "H" & ot_output$VAL>0.0005,]
+out <- ot_output[as.Date(ot_output$CALC_DATE) >= st,]
+unique(out$Met_a)
 write.csv(out, file = "path/MyData.csv")
 
 =========================================
 path_op= "C:/Users/qx816/Downloads/"
 
-om_out=read.csv(gsub(" ","",paste(path_op,"OM_MODEL_OUTPUT_2019-03-12.csv")),stringsAsFactors=FALSE,sep="|")
+om_out=read.csv(gsub(" ","",paste(path_op,"MODEL_OUTPUT_S.csv")),stringsAsFactors=FALSE,sep="|")
 
 sapply(om_out,typeof)
 
@@ -196,11 +312,11 @@ library(sqldf)
 library(DBI)
 library(dplyr)
 
-df_1 <- om_out %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CALC_ID)
+df_1 <- om_out %>% dplyr::filter(E_S=="X" & Met_a=="J" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CALC_ID)
 
-df_2 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_1 GROUP BY CALC_ID having sum(OM_NBR)<15')
+df_2 <- sqldf('SELECT CALC_ID,sum(VAL) FROM df_1 GROUP BY CALC_ID having sum(VAL)<15')
 
-#df_2 <- df_1 %>% dplyr ::filter(sum(OM_NBR)<15) %>% dplyr::group_by(CALC_ID,sum(OM_NBR))
+#df_2 <- df_1 %>% dplyr ::filter(sum(VAL)<15) %>% dplyr::group_by(CALC_ID,sum(VAL))
 
 for (i in 1:2)
 {
@@ -212,8 +328,8 @@ for (i in 1:2)
     c1 = c1+1
     clc_id <- (df_2$CALC_ID[i])
     df_3 <- df_1 %>% dplyr::filter(as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7)) %>% dplyr::group_by(CALC_ID)
-    df_4 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_3 GROUP BY CALC_ID having sum(OM_NBR)<=5 and CALC_ID in (select CALC_ID from df_2)')
-    #df_4 <- df_3 %>% dplyr ::filter(sum(OM_NBR)<=5) %>% dplyr::group_by(CALC_ID)
+    df_4 <- sqldf('SELECT CALC_ID,sum(VAL) FROM df_3 GROUP BY CALC_ID having sum(VAL)<=5 and CALC_ID in (select CALC_ID from df_2)')
+    #df_4 <- df_3 %>% dplyr ::filter(sum(VAL)<=5) %>% dplyr::group_by(CALC_ID)
     if (nrow(df_4)>0)
     {
       c2 =c2+1
@@ -250,11 +366,11 @@ if(c3>=1)
 
 
 e_s <-c("B","L")
-df_1 <- om_out %>% dplyr::filter(ENGINE_SERIES %in% e_s & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP)
+df_1 <- om_out %>% dplyr::filter(E_S %in% e_s & Met_a=="J" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP)
 
-df_2 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_1 GROUP BY CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP having sum(OM_NBR)<15')
+df_2 <- sqldf('SELECT CALC_ID,sum(VAL) FROM df_1 GROUP BY col_1,col_2,col_3,col_4,col_5,col_6 having sum(VAL)<15')
 
-#df_2 <- df_1 %>% dplyr ::filter(sum(OM_NBR)<15) %>% dplyr::group_by(CALC_ID,sum(OM_NBR))
+#df_2 <- df_1 %>% dplyr ::filter(sum(VAL)<15) %>% dplyr::group_by(CALC_ID,sum(VAL))
 
 for (i in 1:2)
 {
@@ -266,8 +382,8 @@ for (i in 1:2)
     c1 = c1+1
     clc_id <- (df_2$CALC_ID[i])
     df_3 <- df_1 %>% dplyr::filter(as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7)) %>% dplyr::group_by(CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP)
-    df_4 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_3 GROUP BY CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP having sum(OM_NBR)<=5 and CALC_ID in (select CALC_ID from df_2)')
-    #df_4 <- df_3 %>% dplyr ::filter(sum(OM_NBR)<=5) %>% dplyr::group_by(CALC_ID)
+    df_4 <- sqldf('SELECT CALC_ID,sum(VAL) FROM df_3 GROUP BY col_1,col_2,col_3,col_4,col_5,col_6 having sum(VAL)<=5 and CALC_ID in (select CALC_ID from df_2)')
+    #df_4 <- df_3 %>% dplyr ::filter(sum(VAL)<=5) %>% dplyr::group_by(CALC_ID)
     if (nrow(df_4)>0)
     {
       c2 =c2+1
@@ -346,9 +462,7 @@ interim_data <- left_join(interim_data,fail_data,by="Fail.Code")
 # Sort the above data in desc order of issue_count
 highest_incidents1 <- highest_incidents[order(-highest_incidents$issue_count),]
 =====================================================================================================================================
-========================== To select Randomly From dataframe in R
 
-ok <- om_output[sample(nrow(om_output),1000),]
 =====================================================================================================================================
 # Convert into %age terms and round it to two decimal points
 interim_data$pect_occr <- interim_data$pect_occr * 100
@@ -371,41 +485,6 @@ write.table(MyData, file = "MyData.csv",row.names=FALSE, na="",col.names=FALSE, 
   # Write the results into a CSV file
   write.csv(finalResults,"results.csv",row.names = FALSE)
   
--====================== For loop in R
-
-for (unique.group in 1:length(unique(daysDiffData$main_group)))
-  {
-  }
-  
-
-===== reading excel with sheetwise ******
-
-install.packages('readxl')
-library(readxl)
-try_xl <- readxl::read_xlsx("C:/Users/qx816/Downloads/options_df_fail_1_ref.csv.xlsx",sheet = 1)
-=========================================================================================================================================================
-========== Importing all csv files from one location and binding into one dataframe
-files <- list.files(path = "C:/Users/ku906/Documents/insite_miles.csv", pattern = ".csv")
-files <- file.path("C:/Users/ku906/Documents/insite_miles.csv",files)
-myfiles <- lapply(files, read.csv, header=T, stringsAsFactors = F)
-insite.data <- do.call(what = rbind.data.frame,args = myfiles)
-insite.data$VALUE <- as.numeric(insite.data$VALUE)
-insite.data$DATES <- as.Date(insite.data$DATES)
-insite.data.rev <- insite.data %>% dplyr::distinct(.)
-insite.data.rev$ESN <- as.factor(insite.data.rev$ESN)
-
-========= OR
-# Get the files names
-files = list.files(pattern="*.csv")
-# First apply read.csv, then rbind
-myfiles = do.call(rbind, lapply(files, function(x) read.csv(x, stringsAsFactors = FALSE)))
-
-====== rbinding of two dfs
-
-final <- rbind.data.frame(1st_dataset,2nd_dataset)
-
-
-
 =====================================================================================================================================
 library(changepoint)
 library(dplyr)
@@ -503,19 +582,6 @@ skim gives detailed summery of each columns present in dataset with histogram pl
 below code do create column Data if category column values is "R" it takes 1 as value and if it is "Y" the number will be 2,3
  
 RYG.Data <- RYG.Data %>% mutate(Cat = ifelse(Category == "R",1,ifelse(Category == "Y",2,3)))
-
-
-
-
-=====================================================================================================================================
-# Rename columns in the "Fault Code Info" file
-  names(fcData)[1] <- paste("fault.code")
-  names(fcData)[2] <- paste("description")
-  
-# Covert type of the description field from factor to character
-  fcData$fault.code  <- as.character(fcData$fault.code)
-  fcData$description <- as.character(fcData$description)
-
 
 
 =====================================================================================================================================
