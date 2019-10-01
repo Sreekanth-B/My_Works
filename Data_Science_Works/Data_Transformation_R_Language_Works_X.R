@@ -15,48 +15,6 @@ X_input_file = do.call(rbind, lapply(files, fread))
 
 =====================================================================================================================================
 
-
-
-# Removing the previous files 
-rm(list = ls())
-
-# Using the Validation Scripts in different file in DSVM Path
-# Reading all the Validation functions to use in this file in below function calling
-
-source("/home/user/notebooks/Validation_testscript.R")
-
-# Reading the Data from the DSVM Paths
-
-output_path_1="/home/user/notebooks/model_output_1/"
-output_path_2="/home/user/notebooks/model_output_2/"
-
-# Reading the file into data frame
-
-output_file_1=read.csv(paste0(output_path_1,"MODEL_OUTPUT_1.csv"),sep="|",stringsAsFactors=FALSE)
-
-output_file_2=read.csv(paste0(output_path_2,"MODEL_OUTPUT_2.csv"),sep="|",stringsAsFactors=FALSE)
-
-=====================================================================================================================================
-
-######################################testscripts##################################
-
-## Functions calling from  source path 
-
-#1.Validation Scenario 1 on output file 1
-
-test_engine_type_output(output_file_1)
-
-#2.Validation Scenario 1 on output file 2
-
-test_engine_type(om_stats_file)
-
-#3.Validation Scenario 2 on output file 1
-test_date_count_data(X_input_file)
-
-#4.Validation Scenario 2 on output file 2
-test_date_count_data_B_E(E_input_file)
-=====================================================================================================================================
-
 ============================================================ Using R on DSVM
 // opening the R concole
 >R
