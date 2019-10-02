@@ -1,0 +1,317 @@
+
+===============================================================================================================================
+// some times useful
+import spark.implicits._
+
+
+//===================== Spark_Play Ground Excerise Solutions == Self
+
+
+============================================================ RDD Excerise
+=======================================================
+====== Excerise-1 == // creating rdd using spark core API
+
+val rdd =sc.textFile("HDFS/ Path");
+
+===============================================================================================================================
+
+===============================
+====== Excerise-2 == // a)  selecting specif fields and saving the results into new file in hdfs
+
+val FieldsRDD = rdd.map(_.split(",")).map(r => (r(0),r(1),r(2),r(5))
+
+FieldsRDD.saveAsTextFile("HDFS path to save")
+
+// b) filtering the new ds with condition where column 3 is = Unmarried
+
+
+val fil = FieldsRDD.filter(r => r(2).contains("Unmarried"))
+
+fil.collect
+fil.collect.foreach(println)
+
+fil.take(10).foreach(println)
+
+===============================================================================================================================
+===============================
+====== Excerise-3 == // various paired rdd operations
+
+//a) number of ppl whose marital status is Unmarried
+val fil = FieldsRDD.filter(r => r(2).contains("Unmarried")).count()
+
+=================
+//b) total num of ppl with sal <=50k and >50k
+
+val FieldsRDD = rdd.map(_.split(",")).map(r => (r(0),r(1),r(2).toInt,r(5))
+val above_50k = FieldsRDD.filter(r => r(2) > 50000).count()
+val below_50k = FieldsRDD.filter(r => r(2) <= 50000).count()
+
+val tot_1 = above_50k+below_50k
+
+totl_1.collect
+
+
+=================
+
+//c) tot count of ppl living in each country  =here r1 is country and r6 is ppl living in that country
+
+val map_text2 = rdd.map(r =>r(1),r(6).toInt))
+
+val tot_2 = map_text2.reduceByKey(_+_).collect
+
+=================
+//d) tot count ppl per job type  =here r3 is job type and r6 is ppl for that
+
+val map_text3 = rdd.map(r =>r(3),r(6).toInt))
+
+val tot_2 = map_text2.reduceByKey(_+_).collect
+
+// if we have different countries and different sports and to find the counts we do as below
+
+val map.text1 =map_text.map(line => line(2),line(5)))
+map_text1.countByValue
+
+// In the above scenario, we have taken a pair of Country and Sport. By performing countByValue action we have got the count of each country in a particular sport.
+
+===============================================================================================================================
+===============================
+====== Excerise-4 == // Spark RDD Join operations
+
+a) join two rdds and save it in specified format
+
+// Case class representing RouterLocationInfo.tsv schema
+
+case class RouterLocation(rid:Int,name:String,location:String);
+
+// Case class representing RouterPurchaseInfo.tsv schema
+
+case class RouterPurchase(rid:Int,date:String,pmemory:Long,smemory:Long,cost:Float);
+
+// Step 2: Generate K,V pairs using case class object
+// In this step,datasets are loaded as RDDs
+// Paired RDDs  (K, V) are created where K = common column in both RDDs, V = Case class object.
+//Load RouterLocation dataset and generate Rid(common field),RouterLocation object
+
+val locRDD = sc.textFile(“RouterLocationInfo.tsv").map(_.split("\t")).map(r => (r(0), RouterLocation(r(0).toInt,r(1),r(2)))
+
+//Load RouterPurchase dataset and generate Rid(common field),RouterLocation object
+
+val purRDD = sc.textFile(“RouterPurchaseInfo.tsv").map(_.split("\t")).map(r => (r(0), RouterPurchase(r(0).toInt,r(1),r(2).toLong,r(3).toLong,r(4).toFloat))
+
+// Step 3: Apply join() function
+// In this step, Spark join is applied against the grouped fields of locRDD and purRDD from the previous step.
+//Join locRDD with purRDD using join()
+
+locRDD.join(purRDD).collect()
+
+////// saving the result join into new rdd and saving it in hdfs
+
+val join_rdd = locRDD.join(purRDD)
+
+// specifing the format for joind_rdd
+
+case class joined_rdd(col_1:Int, col_2:String,col_3:Int)
+
+val join_rdd = join_rdd.map(_.split("\t")).map(r => (joined_rdd(r(0).toInt,r(1),r(2))))
+
+FieldsRDD.saveAsTextFile("HDFS path to save")
+
+==========
+//b) filter the records where col_2 is >50k and print all filelds
+
+val join_rdd_2 = join_rdd.filter(_.col_2 > 50000)
+
+join_rdd_2.collect.foreach(println)
+
+
+===============================================================================================================================
+
+============================================================ Spark-SQL Excerise
+=======================================================
+
+====== Excerise-1 == // creating Dataframe using spark core API
+
+//Loading a text file in to an RDD
+val Car_Info = sc.textFile("hdfs://vimsmys-42:9000/user/jai_trng/jaihdfs/ArisconnCars.txt");
+
+// Creating a case class mapping the fields in the dataset
+case class Cars(sensorid:String, carid:String, latitude:Double, longitude:Double, engine_speed:Int, accelerator_pedal_position:Int, vehicle_speed:Int, torque_at_transmission:Int, fuel_level:Double, TypeOfMessage:String, timestamp:Double);
+val header = Car_Info.first();
+
+// Creating a Spark SQL DataFrame
+val DF = Car_Info.filter(c => c!=header).map(_.split(",")).map(c => Cars(c(0), c(1), c(2).toDouble, c(3).toDouble, c(4).toInt, c(5).toInt, c(6).toInt, c(7).toInt, c(8).toDouble, c(9), c(10).toDouble)).toDF();
+
+//Registering the DataFrame as a temporary table
+DF.registerTempTable("cars");
+
+train.registerAsTable('train_table')
+
+// A simple query to implement all 4 requirements of Arisconn cars
+val errors= sqlContext.sql("SELECT sensorid,carid,latitude,longitude,vehicle_speed,count(TypeOfMessage) FROM cars WHERE sensorID!='sensorID' AND carid!='?' AND TypeOfMessage Like 'ERR.*' group by carid");
+
+errors.show()
+
+//Creating a Dataset using toDS() method
+
+val DS = Cust_Info.map(_.split(",")).map(c => Customer(c(0),c(1),c(2),c(3).toInt,c(4)).toDS();
+
+
+=============== for Different files
+
+val sqlContext = new org.apache.spark.sql.SQLContext(sc);
+
+===================== Parquet
+
+//read data from parquet file and create a DataFrame
+
+val parquet_1 = sqlContext.read.parquet("/HDFSPath/CarsParquetData")
+
+parquet_1.printSchema()
+
+cars.registerTempTable("carstable");
+
+val op = sqlContext.sql("SELECT * from carstable");
+
+//Store the results of the DataFrame as a parquet file in an HDFS directory
+	
+parquet_1.write.parquet("/HDFSPath/CarsParquetData")
+
+===================== JSON
+
+//Spark SQL provides read.json() method to load JSON files as DataFrames directly
+	
+val cars = sqlContext.read.json("/HDFSPath/Cars.json");
+
+// writting the op into Json
+
+op.write.json("/HDFSPath/CarsParquetData") 
+
+===================== AVRO
+
+import com.databricks.spark.avro._
+
+//Spark SQL provides read.avro() method to load Avro files as DataFrames directly
+	
+val cars = sqlContext.read.avro("/HDFS/Cars.avro");
+
+// Wrriting into AVRO file
+op.write.avro("Path")
+
+
+
+=====================================================================================
+
+=======================================================
+
+====== Excerise-2 == // write SQL on Df use diff file formats
+
+//a) Write sQL for compute avg sales by each cust, store the output as parquet file
+
+val res_a = sqlContext.sql("Select cust,avg(sales) from file group by cust");
+
+res_a.write.parquet("hdfs<path>")
+
+//b) SQL for compute and find most sold product, store res in Json
+// we have product_id, quantity sold columns 
+
+
+select ProductID from file_tbl group by ProductId having sum(Quantity) = (select max(sum(Quantity)) from file_tbl group by ProductId order by sum(Quantity) desc);
+// or may be below
+
+select ProductID from file_tbl group by ProductId having sum(Quantity) = max(sum(Quantity));
+
+
+=======================================================
+
+====== Excerise-3 == // join operations
+
+//a) join two datasets compute number of transactions made by customers at Belleve location
+
+employeeDF.createOrReplaceTempView("employees")
+deptDF.createOrReplaceTempView("departments")
+
+val j_1 = sqlContext.sql("select * from employees JOIN departments on dept_no == id");
+j_1.registerAsTable("j_1")
+val res_1 = sqlContext.sql("select count(*) from j_1 where location == "Belleve"")
+
+//b) compute total revenue by each city
+
+val res_2 = sqlContext.sql("select sum(revenue),city from j_1 group by city")
+
+
+=======================================================
+
+====== Excerise-3 == // Spark SQL on Hive intergration
+
+//a) create Hive table and load .tsv file
+
+// now try to manually provide a schema
+import org.apache.spark.sql.types._
+
+val movieSchema = StructType(Array(StructField("actor_name", StringType, true),
+StructField("movie_title", StringType, true),StructField("produced_year", LongType, true)))
+
+// reading csv file 
+val movies3 = spark.read.option("header","true").schema(movieSchema).csv("<path>/book/chapter4/data/movies/movies.csv")
+movies3.printSchema
+
+//Reading a TSV File with the CSV Format
+val movies4 = spark.read.option("header","true").option("sep", "\t").schema(movieSchema).csv("<path>/book/chapter4/data/movies/movies.tsv")
+movies.printSchema
+
+// loading the data into hive table
+
+movies4.write.option("path",'/HDFS/hive_tables_location/jaicarsparq').saveAsTable("SparkHiveTable") 
+
+
+//b) Create Df from hive table, write SQL to cal number of transactions by each customer, 
+
+// save the result back to new hive table "new_hive_table"
+
+val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+
+val hContext = new org.apache.spark.sql.hive.HiveContext(sc);
+
+val re_hive = hContext.sql("select count(transactions),cust from SparkHiveTable GROUP BY cust")
+
+re_hive.write.option("path",'/HDFS/hive_tables_location/jaicarsparq').saveAsTable("new_hive_table") 
+
+===============================================================================================================================
+
+===============================================================================================================================
+
+===============================================================================================================================
+
+
+===============================================================================================================================
+
+===============================================================================================================================
+
+===============================================================================================================================
+
+===============================================================================================================================
+
+
+===============================================================================================================================
+
+===============================================================================================================================
+
+===============================================================================================================================
+
+===============================================================================================================================
+
+
+===============================================================================================================================
+
+===============================================================================================================================
+
+===============================================================================================================================
+
+===============================================================================================================================
+
+
+===============================================================================================================================
+
+===============================================================================================================================
+
+===============================================================================================================================
