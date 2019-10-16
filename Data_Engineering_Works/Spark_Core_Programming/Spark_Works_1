@@ -1,0 +1,146 @@
+============= Exrecise solutions
+
+
+To copy all files from local to hdfs::
+Hadoop fs -copyFromLocal /root/Desktop/user_repo/Datasets/* hdfs://localhost:9000/user/esadmin/
+
+Hadoop fs -copyToLocal hdfs://localhost:9000/user/esadmin/outs/part_file.csv /root/Desktop/user_repo/Datasets/outs/out1
+
+
+
+To change datatype in rdd
+After reading give map r=>r as below while splitting based on delimeter
+Val rdd2 = rdd1.map(_.split(“,”)).map(r=>r)
+Val rdd3 = rdd2.map(r => r(3).toString)
+Now we can filter based on condition
+
+Question 1 Answer:
+Create rdd using 
+Val rdd = sc.textFile(“hdfs:/file”)
+Val rdd2 =rdd.map(_.split(“,”))
+Val rdd3 = rdd2.filter(_.contains(“1995”)).count()
+rdd3 – gives class
+val out_1 = Array(rdd3)
+val ou_1 = sc.parallelize(out_1)
+ou_1.saveAsTextFile(“hdfs://localhost:/user/Output_1”)
+
+== copyting the file to local as out1
+Hadoop fs -copyToLocal hdfs://localhost:/user/Output_1/part-00000 /root/user/Outputs/out1
+It creates out1 file with contents from Output_1
+
+Question-2
+Val rdd = sc.textFile(“hdfs:/file”)
+Val rdd2 =rdd.map(_.split(“,”))
+Val action_c = rdd2.filter(_.contains(“Action”)).count()
+Val drama_c = rdd2.filter(_.contains(“Drama”)).count()
+Val thriller_c = rdd2.filter(_.contains(“Thriller”)).count()
+Val out_arr = Array(“ACTION:”+action_c,””DRAMA:”+drama_c,”THRILLER:”+thriller_c)
+val ou_1 = sc.parallelize(out_arr)
+ou_1.saveAsTextFile(“hdfs://localhost:/user/Output_1”)
+== copyting the file to local as out1
+Hadoop fs -copyToLocal hdfs://localhost:/user/Output_2/part-00000 /root/user/Outputs/out2
+
+Question -3
+import spark.implicits._
+import org.apache.spark.sql.types._
+
+////// create sqlCOntextapwrite
+val sqlContext = new org.apache.spark.sql.SQLContext(sc);
+
+import org.apache.spark.sql.types.{StructType, StructField, StringType, IntegerType}
+import org.apache.spark.sql.Row
+
+val customSchema = StructType(Array(
+  StructField("project", StringType, true),
+  StructField("article", StringType, true),
+  StructField("requests", IntegerType, true),
+  StructField("bytes_served", DoubleType, true))
+)
+
+==== reading csv file
+If header is true it will consider 1st row as columns names
+If false it wont take 1st row 
+val cinema_d = sqlContext.read.option("delimiter",",")  .option("header", "false")
+  .schema(schema_1).csv("hdfs://local/file.csv”)
+
+Or 
+val cinema_r = sqlContext.read.format(“csv”).option("delimiter",",")  .option("header", "true")
+  .schema(schema_2).load("hdfs://local/file.csv”)
+
+cinema_d.printSchema()
+cinema_r.printSchema()
+==== creating temp table for Spark-SQL
+cinema_d.registerTempTable(“c_d”);
+cinema_r.registerTempTable(“c_r”);
+
+
+df2.write.format("csv").save("/user/test/us")
+Question-3 answer:
+Val q_3 = sqlContext.sql(“select cinemaid,count(*) as numofpplwatched from rat_tbl where cinemaid not like ‘null’ group by cinemaid having count(*) == (select count(*) from rat_tbl where cinema_id not like ‘null’ group by cinemaid order by count(*) desc limit 1)”)
+
+Q-4 answer:
+Val q_4 = sqlContext.sql(“select cd.cinema_name, avg(cr.rating) as average from cinema_d cd join cinema_r cr on cr.cinema_id = cd.cinema_id where cd.genres Like ‘Action’ group by cd.cinema_name order by avg(cr.rating)  desc limit 1 ”)
+Q_5:
+
+Val q_5 = sqlContext.sql(“select cd.cinema_name, avg(cr.rating) as average from cinema_d cd join cinema_r cr on cr.cinema_id = cd.cinema_id group by cd.cinema_name order by avg(cr.rating)  asc, cd.cinema_name asc limit 10 ”)
+
+Using DataFrame.coalesce to reduce the number of output files
+df.coalesce(1).
+
+
+=======================================================================================================================================
+
+
+is there any function called loadFile, with load
+no
+
+
+which gets invocked 1st when spark job submitted
+sparksession or context or driver
+
+primary memory full and wants to store in disc
+persist.()
+
+df.chache() -- action or transformation nothing
+
+
+is there any function called groupByKey.reduce((a,b) =>a+b)
+
+
+
+feature in spark-sql not in hive
+
+catalyst query optimizor  -- spark
+optional metastore -- hive 
+support sql queries  --hive
+
+auto schema inference --spark
+schema inforance through DDL  
+
+
+support HQL queries --spark
+
+
+unlike lazy transformations in spark, rdd's dfs discover schema right after the statement for df creation is typed
+
+true
+
+
+=================================================================================================================================
+Hadoop Web UI : localhost:50070
+Driver runs on Master
+Driver will have Sparkcontext and Worker is having Executor
+
+
+===
+
+Rdd out of array == sc. parallelize(arrary)
+
+// Convert list to array. val result = colors.toArray
+
+GroupByKey on {(1, 2), (3, 4), (3, 6)}  == 
+
+rdd.groupByKey()	{(1, [2]), (3, [4, 6])}
+rdd.reduceByKey( (x, y) => x + y)	{(1, 2), (3, 10)}
+
+Cache() is an action
