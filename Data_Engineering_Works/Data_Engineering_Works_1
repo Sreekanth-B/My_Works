@@ -1,13 +1,33 @@
+
+
+To Run .hql files from hive ::(.hql files you can write sql commands)
+
+hive -f /home/<path to hive file>/filename.hql
+hive -f /home/<path to hive file>/filename.hql
+hive -f /home/<path to hive file>/filename.hql
+=====================================================================================================================================
+
+
+# Executing the .hql files in the unix environment
+
+# To Run .hql files from hive ::(.hql files you can write sql commands)
+
+hive -f /home/<File_path and name>.hql
+hive -f /home/<File_path and name>.hql
+
+
+======================================== ETL using SQL 
+
 SELECT 
       ROWID, OCCURRENCE_TIMESTAMP, PROCESS_TIMESTAMP, default.collect(name,value[0]) AS parameter_value_map 
-      FROM insite_raw.insite_master 
+      FROM database.table 
       WHERE ( array_contains(tags, "Header") OR ( (array_contains(tags,"root") OR array_contains(tags,"Root") ) AND ( array_contains(tags,"ECM_Application") OR  array_contains(tags,"OEM Information") OR array_contains(tags, "AFT DPF Ash Load") OR array_contains(tags, "Aggregate Engine Run Time") ) ) )
       GROUP BY ROWID, OCCURRENCE_TIMESTAMP, PROCESS_TIMESTAMP 
 SELECT 
 rowid,
 occurrence_timestamp,
 process_timestamp,tags[0] as Record_number,default.collect(name,value)  AS audit_value_map 
-from insite_raw.insite_master   
+from database.table2   
 where  array_contains(tags,"Audit Trail")
 group by rowid,occurrence_timestamp,process_timestamp,tags[0]) auditsectiontable
 LEFT OUTER JOIN 
@@ -27,8 +47,8 @@ auditsectiontable.occurrence_timestamp=commontable.occurrence_timestamp and
 auditsectiontable.process_timestamp=commontable.process_timestamp )unexplodedTable
 lateral view outer explode(audit_trail_codes)dummy as audit_trail_code
 
+============================================================= Table creation SQL
 
-# Table creation and 
 -- Create temp table
 CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:JOB_NAME}_temp ( 
   OCC_TIMESTAMP STRING,
@@ -60,6 +80,7 @@ ROW FORMAT DELIMITED
 STORED AS TEXTFILE 
 LOCATION '${hiveconf:HDFSLocation}_temp';
 
+=======================================================================
 -- Create Final external base table 
 CREATE EXTERNAL TABLE IF NOT EXISTS MDSG_INSITE_${hiveconf:JOB_NAME}_BASE_T ( 
   OCC_TIMESTAMP STRING,
@@ -91,6 +112,7 @@ ROW FORMAT DELIMITED
 STORED AS ORC 
 LOCATION '${hiveconf:HDFSLocation}';
 
+
 -- TODO : Replace INTO instead of OVERWRITE once the master table partition implemented
 -- Insert partition data into final base table
 INSERT OVERWRITE TABLE MDSG_INSITE_${hiveconf:JOB_NAME}_BASE_T PARTITION (OCC_DATE) SELECT OCC_TIMESTAMP,FILENAME,ESN,CALIBRATION_SOFTWARE_PHASE,ECM_CODE,ECM_NAME,ENGINE_MODEL,VIN,PCID,EVENT_ID,ECM_TIME,ECM_REAL_TIME,START_SOOT_FILL_MONITOR_STATUS,END_SOOT_FILL_MONITOR_STATUS,START_DOC_INLET_TEMPERATURE_UNIT,START_DOC_INLET_TEMPERATURE,MAXIMUM_DOC_OUT_TEMPERATURE_DURING_UNIT,MAXIMUM_DOC_OUT_TEMPERATURE_DURING,MAXIMUM_DPF_OUT_TEMPERATURE_DURING_UNIT,MAXIMUM_DPF_OUT_TEMPERATURE_DURING,MAXIMUM_DPF_DELTA_P_DURING_UNIT,MAXIMUM_DPF_DELTA_P_DURING,OCC_DATE FROM ${hiveconf:JOB_NAME}_TEMP DISTRIBUTE BY OCC_DATE SORT BY OCC_DATE;
@@ -100,3 +122,156 @@ CREATE VIEW IF NOT EXISTS MDSG_INSITE_${hiveconf:JOB_NAME}_V AS SELECT * FROM MD
 
 -- DROP tables
 DROP TABLE IF EXISTS ${hiveconf:JOB_NAME}_transient;
+
+
+
+=====================================================================================================================================
+
+======================================================= Using Scoop
+TIME_STAMP=`date +%Y-%m-%d-%H:%M:%S`
+mkdir MES_ASSEMBLY_TESTDB_$TIME_STAMP
+cd MES_ASSEMBLY_TESTDB_$TIME_STAMP
+
+sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc:oracle:thin:@jepxsspapp004.ced.corp.cummins.com:1521:MEST004 --username MCKINSEY --password READONLY --query "SELECT LS.ASMBLY_LOCATION, LS.ACTUAL_ARRIVAL, LS.ARRIVAL_DATETIME, LS.PRIOR_ARRIVAL, LS.PRIOR_ARRIVAL_DATETIME, LS.RSSQL_ID FROM ARCHIVE.T_EDP_LOC_STAT_HIST_ARC LS, ABAMS.T_WORKORDER_HIST WH WHERE LS.ACTUAL_ARRIVAL = WH.serial_no AND WH.config_no IN ('D103016BX03', 'D103012BX03') AND ARRIVAL_DATETIME >= '01-JAN-2013' AND  ARRIVAL_DATETIME < '14-FEB-2013' AND  ACTUAL_ARRIVAL like '79%' AND \$CONDITIONS" --hive-database quality_mes --hive-table DISCO_ASSEMBLY --hive-import --target-dir /hive/warehouse/quality_mes.db/DISCO_ASSEMBLY_T1 --hive-delims-replacement '-'  -m 1  >> extract_DISCO_Logs.log 
+
+sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc:oracle:thin:@jepxsspapp004.ced.corp.cummins.com:1521:MEST004 --username MCKINSEY --password READONLY --query "SELECT LS.ASMBLY_LOCATION, LS.ACTUAL_ARRIVAL, LS.ARRIVAL_DATETIME, LS.PRIOR_ARRIVAL, LS.PRIOR_ARRIVAL_DATETIME, LS.RSSQL_ID FROM ARCHIVE.T_EDP_LOC_STAT_HIST_ARC LS, ABAMS.T_WORKORDER_HIST WH WHERE LS.ACTUAL_ARRIVAL = WH.serial_no AND WH.config_no IN ('D103016BX03', 'D103012BX03') AND ARRIVAL_DATETIME >= '14-FEB-2013' AND  ARRIVAL_DATETIME < '01-APR-2013' AND  ACTUAL_ARRIVAL like '79%' AND \$CONDITIONS" --hive-database quality_mes --hive-table DISCO_ASSEMBLY --hive-import --target-dir /hive/warehouse/quality_mes.db/DISCO_ASSEMBLY_T1 --hive-delims-replacement '-'  -m 1  >> extract_DISCO_Logs.log 
+sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc:oracle:thin:@jepxsspapp004.ced.corp.cummins.com:1521:MEST004 --username MCKINSEY --password READONLY --query "SELECT LS.ASMBLY_LOCATION, LS.ACTUAL_ARRIVAL, LS.ARRIVAL_DATETIME, LS.PRIOR_ARRIVAL, LS.PRIOR_ARRIVAL_DATETIME, LS.RSSQL_ID FROM ARCHIVE.T_EDP_LOC_STAT_HIST_ARC LS, ABAMS.T_WORKORDER_HIST WH WHERE LS.ACTUAL_ARRIVAL = WH.serial_no AND WH.config_no IN ('D103016BX03', 'D103012BX03') AND ARRIVAL_DATETIME >= '01-APR-2013' AND  ARRIVAL_DATETIME < '15-MAY-2013' AND  ACTUAL_ARRIVAL like '79%' AND \$CONDITIONS" --hive-database quality_mes --hive-table DISCO_ASSEMBLY --hive-import --target-dir /hive/warehouse/quality_mes.db/DISCO_ASSEMBLY_T1 --hive-delims-replacement '-'  -m 1  >> extract_DISCO_Logs.log 
+
+
+
+sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc:oracle:thin:@143.222.192.142:1521:MESP3_LG --username MCKINSEY --password READONLY --query "SELECT NVL(vdpm.PART_DESC,'Unknown Desc') PART_DESC, vdda.DEV_ID, vdda.DEV_START_DATE, vdda.DEV_END_DATE, vdda.SERIAL_NO, vdda.DEV_CONTROL_NO, vdda.ABSN, vdda.OPTION_CODE, vdda.ADD_PART_NO, vdda.ADD_QTY, vdda.OMIT_PART_NO, vdda.OMIT_QTY, vdda.DEV_ACTION FROM V_DVTN_DEV_ALL vdda, V_DVTN_PART_MASTER vdpm, T_WORKORDER_HIST twh WHERE ( ( DECODE(vdda.ADD_PART_NO,NULL,vdda.OMIT_PART_NO,vdda.ADD_PART_NO) = LTRIM(SUBSTR(vdpm.PART_NO(+),1,7),'0')||RTRIM(SUBSTR(vdpm.PART_NO(+),8,2),'0') ) ) AND vdda.SERIAL_NO = twh.serial_no and twh.config_no IN ('D103016BX03', 'D103012BX03')  AND vdda.DEV_START_DATE >='01-JAN-2013' AND vdda.DEV_START_DATE <'01-JAN-2018' AND \$CONDITIONS" --hive-database quality_mes --hive-table DISCO_DEVIATION --hive-import  --target-dir /hive/warehouse/quality_mes.db/DISCO_DEVIATION --hive-delims-replacement '-' -m 1  >> extract_DISCO_DEVIATION_1-JAN-2013_1-JAN-2018.log
+
+sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc:oracle:thin:@143.222.192.142:1521:MESP3_LG --username MCKINSEY --password READONLY --query "SELECT NVL(vdpm.PART_DESC,'Unknown Desc') PART_DESC, vdda.DEV_ID, vdda.DEV_START_DATE, vdda.DEV_END_DATE, vdda.SERIAL_NO, vdda.DEV_CONTROL_NO, vdda.ABSN, vdda.OPTION_CODE, vdda.ADD_PART_NO, vdda.ADD_QTY, vdda.OMIT_PART_NO, vdda.OMIT_QTY, vdda.DEV_ACTION FROM V_DVTN_DEV_ALL vdda, V_DVTN_PART_MASTER vdpm, T_WORKORDER_HIST twh WHERE ( ( DECODE(vdda.ADD_PART_NO,NULL,vdda.OMIT_PART_NO,vdda.ADD_PART_NO) = LTRIM(SUBSTR(vdpm.PART_NO(+),1,7),'0')||RTRIM(SUBSTR(vdpm.PART_NO(+),8,2),'0') ) ) AND vdda.SERIAL_NO = twh.serial_no and twh.config_no IN ('D103016BX03', 'D103012BX03')  AND vdda.DEV_START_DATE >='01-JAN-2018' AND vdda.DEV_START_DATE <trunc(SYSDATE-7) AND \$CONDITIONS" --hive-database quality_mes --hive-table DISCO_DEVIATION --hive-import  --target-dir /hive/warehouse/quality_mes.db/DISCO_DEVIATION --hive-delims-replacement '-' -m 1  > extract_DISCO_DEVIATION_1-JAN-2018_SYSDATE-7.log
+
+=============================================##Run below commands for pushing data to sql server for reporting
+
+spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=overwrite source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=clus_concat_clusters_summary target_type=mssql target_db=quantumb target_schema=reports target_tablename=CLUS_CLUSTER_DETAILS_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400
+
+spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=overwrite source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=clus_concat_window_summary target_type=mssql target_db=quantumb target_schema=reports target_tablename=CLUS_WINDOW_DETAILS_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400
+
+### Issue driver reporting data push with append
+
+spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=incremental_append source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=ISSUE_DRIVER_ISSUE_DETAIL target_type=mssql target_db=quantumb target_schema=reports target_tablename=ISSUE_DRIVER_ISSUE_DETAIL_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400 update_col=run_analytics_date
+spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=incremental_append source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=ISSUE_DRIVER_UNIVERSAL_VIEW target_type=mssql target_db=quantumb target_schema=reports target_tablename=ISSUE_DRIVER_UNIVERSAL_VIEW_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400 update_col=run_analytics_date
+
+## OM reporting tables data push to sql server
+
+
+spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=overwrite source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=OM_ESN target_type=mssql target_db=quantumb target_schema=reports target_tablename=OM_ESN target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400
+
+spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=overwrite source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=OM_STAT target_type=mssql target_db=quantumb target_schema=reports target_tablename=OM_STAT_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400
+
+
+sqoop import -Dhive.metastore.uris=thrift://hn0-quantu.0per2bzuqjue5ob0duxtyijy4h.dx.internal.cloudapp.net:9083 --connect jdbc:oracle:thin:@acdcslpdb616.aciz.cummins.com:1527:ebup1 --username MSBI_RELIABILITY --password dkabc3!  --table RELDSS.RLD_CLAIM_DETAIL --hive-database quality_reliability --hive-table RLD_CLAIM_DETAIL --hive-import --split-by CLAIM_DETAIL_ID_SEQ --target-dir /hive/warehouse/quality_reliability.db/RLD_CLAIM_DETAIL --hive-delims-replacement '-' &> extract_RLD_CLAIM_DETAIL.log
+
+
+sqoop import -Dhive.metastore.uris=thrift://hn0-quantu.0per2bzuqjue5ob0duxtyijy4h.dx.internal.cloudapp.net:9083 --connect jdbc:oracle:thin:@acdcslpdb616.aciz.cummins.com:1527:ebup1 --username MSBI_RELIABILITY --password dkabc3!  --table RELDSS.RLD_ENGINE_CLAIM_DETAIL_MV --hive-database quality_reliability --hive-table RLD_ENGINE_CLAIM_DETAIL_MV --hive-import --split-by CLAIM_DETAIL_ID_SEQ --target-dir /hive/warehouse/quality_reliability.db/RLD_ENGINE_CLAIM_DETAIL_MV --hive-delims-replacement '-' &> extract_RLD_ENGINE_CLAIM_DETAIL_MV.log
+
+## Writing three table to sql server from Weibull model
+
+spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=overwrite source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=WEIBULL_CODE_PREDICTED_RPH target_type=mssql target_db=quantumb target_schema=reports target_tablename=WEIBULL_CODE_PREDICTED_RPH_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400
+
+spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=overwrite source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=WEIBULL_INSERVICE_DATE target_type=mssql target_db=quantumb target_schema=reports target_tablename=WEIBULL_INSERVICE_DATE_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400
+
+
+
+--DISCO_DEVIATION - Query 4
+--Weekly Job 
+SELECT NVL(vdpm.PART_DESC,'Unknown Desc') PART_DESC, vdda.DEV_ID, vdda.DEV_START_DATE, vdda.DEV_END_DATE, vdda.SERIAL_NO, vdda.DEV_CONTROL_NO, vdda.ABSN, vdda.OPTION_CODE, vdda.ADD_PART_NO, vdda.ADD_QTY, vdda.OMIT_PART_NO, vdda.OMIT_QTY, vdda.DEV_ACTION FROM V_DVTN_DEV_ALL vdda, V_DVTN_PART_MASTER vdpm  WHERE ( ( DECODE(vdda.ADD_PART_NO,NULL,vdda.OMIT_PART_NO,vdda.ADD_PART_NO) = LTRIM(SUBSTR(vdpm.PART_NO(+),1,7),'0')||RTRIM(SUBSTR(vdpm.PART_NO(+),8,2),'0') ) ) AND vdda.SERIAL_NO IN ('D103016BX03', 'D103012BX03')  AND vdda.DEV_START_DATE >=trunc(SYSDATE-7) AND vdda.DEV_START_DATE <trunc(SYSDATE)
+
+
+
+--Query#7 DISCO_REPAIRS 
+--Weekly  
+SELECT DEFECT_NO,SERIAL_NO,AUDIT_DATETIME,AUDIT_DATE,AUDIT_AREA,AUDIT_TYPE_CODE,AUDIT_USER_ID,FAILURE_CODE,FAILURE_DESC,FLT_PART_NO,FLT_PART_DESC,FLT_CAUSE_AREA,FLT_STATION_NAME,FLT_CELL_NAME,FLT_CLK_NO,FLT_COMMENTS,PREV_MISS_FLAG,REPAIR_AREA,REPAIR_USER_ID,REPAIR_DATETIME,REPAIR_CODE,REPAIR_DESC,REPAIR_PART_NO,REPAIR_PART_DESC,REPAIR_COMMENTS,FIXED_DEFECT_FLAG FROM V_EA_DEFECT_HIST  WHER
+
+
+--Query#8 DISCO_ASSEMBLY
+SELECT LS.ASMBLY_LOCATION, LS.ACTUAL_ARRIVAL, LS.ARRIVAL_DATETIME, LS.PRIOR_ARRIVAL, LS.PRIOR_ARRIVAL_DATETIME, LS.RSSQL_ID FROM ARCHIVE.T_EDP_LOC_STAT_HIST_ARC LS, ABAMS.T_WORKORDER_HIST WH WHERE LS.ACTUAL_ARRIVAL = WH.serial_no AND WH.config_no IN ('D103016BX03', 'D103012BX03') AND ARRIVAL_DATETIME >= trunc(SYSDATE-7) AND  ARRIVAL_DATETIME <  trunc(SYSDATE)  AND ( ACTUAL_ARRIVAL like '80%' OR ACTUAL_ARRIVAL like '79%' ) 
+
+--Query#14 
+SELECT * FROM ABAMS.T_STATUS_HIST WHERE CHG_DATE >= trunc(SYSDATE-7)  AND CHG_DATE < trunc(SYSDATE)
+
+
+
+sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username pt345 --P --table "RPS.T_PRODUCT_FAMILY" --hive-database quality_pps --hive-import --hive-table  T_PRODUCT_FAMILY    --target-dir /hive/warehouse/quality_pps.db/T_PRODUCT_FAMILY  --hive-delims-replacement '-' -m 1
+
+sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username pt345 --P --table "RPS.T_SOURCING_TEAM" --hive-database quality_pps --hive-import --hive-table  T_SOURCING_TEAM    --target-dir /hive/warehouse/quality_pps.db/T_SOURCING_TEAM  --hive-delims-replacement '-' -m 1
+-- PT related tables
+sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username na768 --P --query "select P.* from RPS.T_PT_SCHEDULE	 P,	RPS.T_RESP_PQC_ENTITY_MAP RPEM,  RPS.T_PT_HEADER PH  where RPEM.RESP_PQC_ID = PH.RESP_PQC_ID and ENTITY_CODE = 'EBU' and   PH.PROJECT_NUM =  A.PROJECT_NUM and \$CONDITIONS " --hive-database quality_pps --hive-import  --hive-table 	T_PT_SCHEDULE	 --target-dir /hive/warehouse/quality_pps.db/T_PT_SCHEDULE --hive-delims-replacement '-' -m 1
+
+sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username na768 --P --query "select PH.* from RPS.T_RESP_PQC_ENTITY_MAP RPEM,  RPS.T_PT_HEADER PH  where RPEM.RESP_PQC_ID = PH.RESP_PQC_ID and ENTITY_CODE = 'EBU'  and \$CONDITIONS " --hive-database quality_pps --hive-import  --hive-table 	T_PT_HEADER	 --target-dir /hive/warehouse/quality_pps.db/T_PT_HEADER --hive-delims-replacement '-' -m 1
+sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username na768 --P --query "select P.* from RPS.T_PT_STEP1	 P,	RPS.T_RESP_PQC_ENTITY_MAP RPEM,  RPS.T_PT_HEADER PH  where RPEM.RESP_PQC_ID = PH.RESP_PQC_ID and ENTITY_CODE = 'EBU' and   PH.PROJECT_NUM =  P.PROJECT_NUM and \$CONDITIONS " --hive-database quality_pps --hive-import  --hive-table 	T_PT_STEP1	 --target-dir /hive/warehouse/quality_pps.db/T_PT_STEP1 --map-column-java  TECH_DESC=String,TECH_DESC_ORG=String --hive-delims-replacement '-' -m 1
+
+-- PD related tables
+sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username na768 --P --query "SELECT P.* FROM RPS.T_PD_PROBLEM_STATEMENT P , RPS.T_RESP_PQC_ENTITY_MAP M, RPS.T_PD_PROJECT_OBJECTIVE PO WHERE  P.PROBLEM_NUM = PO.PROBLEM_NUM AND PO.RESP_PQC_ID = M.RESP_PQC_ID AND ENTITY_CODE = 'EBU'and \$CONDITIONS " --hive-database quality_pps --hive-import  --hive-table T_PD_PROBLEM_STATEMENT --map-column-java  TECH_DESC=String,TECH_DESC_ORG=String 	 --target-dir /hive/warehouse/quality_pps.db/T_PD_PROBLEM_STATEMENT	 --hive-delims-replacement '-' -m 1
+
+sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username na768 --P --query "select P.*  from RPS.T_PD_PROBLEM_DESCRIPTION P , RPS.T_RESP_PQC_ENTITY_MAP M, RPS.T_PD_PROJECT_OBJECTIVE PO WHERE  P.PROBLEM_NUM = PO.PROBLEM_NUM AND PO.RESP_PQC_ID = M.RESP_PQC_ID AND ENTITY_CODE = 'EBU'  and \$CONDITIONS " --hive-database quality_pps --hive-import  --hive-table   	T_PD_PROBLEM_DESCRIPTION	 --target-dir /hive/warehouse/quality_pps.db/T_PD_PROBLEM_DESCRIPTION	 --hive-delims-replacement '-' -m 1
+
+
+sqoop import -Dhive.metastore.uris=thrift://hn0-quantu.0per2bzuqjue5ob0duxtyijy4h.dx.internal.cloudapp.net:9083 --connect jdbc:oracle:thin:@143.222.192.142:1521:MESP3_LG --username MCKINSEY --password READONLY  --query "SELECT * FROM ABAMS.T_STATUS_HIST WHERE extract(year from CHG_DATE) = '2013'  AND \$CONDITIONS" --hive-database quality_mes --hive-table T_STATUS_HIST --hive-import  --target-dir /hive/warehouse/quality_mes.db/T_STATUS_HIST --hive-delims-replacement '-' -m 1  >> extract_T_STATUS_HIST.log
+
+============================== Config file creation
+
+// Feature - EPAT - EPAT Test Job Config 
+FET.EPAT.TEST.TN.PRI_TBL=EPAT_JOIN_REPORT
+FET.EPAT.TEST.TN.FET_TBL=EPAT_TEST_FEATURES
+
+// Feature - FIRG - FIRG Job Config  
+FET.FIRG.FIRG.TN.PRI_TBL=FIRG_PART_REPLACEMENT
+FET.FIRG.FIRG.TN.FET_TBL=FIRG_PART_REPLACEMENT
+// ModelOutput - OccurrenceMonitoring Job Config 
+MOP.MO.OM_MOP.TN.MOP_TBL=X15_OM_MODELOUTPUT
+
+// ModelOutput - Weibull Job Config 
+MOP.MO.WEIBULL.TN.WB_PREDICT_RPH=WEIBULL_PREDICTED_RPH
+MOP.MO.WEIBULL.TN.WB_PREDICT_RPH_HIST=WEIBULL_PREDICTED_RPH_HIST
+MOP.MO.WEIBULL.TN.WB_FLTCODE_PREDICT_RPH=WEIBULL_FAULTCODE_PREDICTED_RPH
+
+# FileSystem
+COMMON.FS.HDFS_PATH="wasbs://quantumbrserver@quantumb.blob.core.windows.net"
+
+# Database Detail for Development
+COMMON.DB.REF=quality_dev_reference
+COMMON.DB.RAW_INS=quality_dev_raw
+
+env=${?env}
+
+include "common/primary.conf"
+include "common/feature.conf"
+include "common/model-input.conf"
+include "common/model-output.conf"
+include "common/report.conf"
+
+# Reference Table
+COMMON.TN.REF_TBL=x15_esn_list
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+=====================================================================================================================================
+
+
+
+
