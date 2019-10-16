@@ -7,12 +7,12 @@ set hive.cli.print.header=true;
 
 CREATE VIEW IF NOT EXISTS <View_name> AS 
   SELECT 
-    commontable.process_timestamp AS Process_Timestamp,
-    commontable.rowid AS FileName,
-    commontable.common_value_map['_System_Serial_Number'] AS Engine_Serial_Number,
-    commontable.common_value_map['_Calibration_Version'] AS Calibration_Software_Phase,
-    commontable.common_value_map['_ECM_Code'] AS ECM_Code,
-	to_date(commontable.occurrence_timestamp) AS Occurrence_Date,
+    <Table_name>.process_timestamp AS Process_Timestamp,
+    <Table_name>.rowid AS FileName,
+    <Table_name>.common_value_map['_System_Serial_Number'] AS E_S_1,
+    <Table_name>.common_value_map['_Calibration_Version'] AS Calibration_Software_Phase,
+    <Table_name>.common_value_map['_ECM_Code'] AS ECM_Code,
+	to_date(<Table_name>.occurrence_timestamp) AS Occurrence_Date,
 	ath_sectiontable.parameter_value_map['_start_soot_fill_monitor_status'] AS Starting_Diesel_Particulate_Filter_Soot_Load,
     ath_sectiontable.parameter_value_map["_end_soot_fill_monitor_status"] AS Ending_Diesel_Particulate_Filter_Soot_Load,
 	FROM(
