@@ -196,7 +196,7 @@ Spark-SQL Code
 val sqlContext = new org.apache.spark.sql.SQLContext(sc);
 
 //Loading a text file in to an RDD
-val Car_Info = sc.textFile("hdfs://vimsmys-42:9000/user/jai_trng/jaihdfs/ArisconnCars.txt");
+val Car_Info = sc.textFile("hdfs:../user/jai_trng/jaihdfs/ArisconnCars.txt");
 
 // Creating a case class mapping the fields in the dataset
 case class Cars(sensorid:String, carid:String, latitude:Double, longitude:Double, engine_speed:Int, accelerator_pedal_position:Int, vehicle_speed:Int, torque_at_transmission:Int, fuel_level:Double, TypeOfMessage:String, timestamp:Double);
