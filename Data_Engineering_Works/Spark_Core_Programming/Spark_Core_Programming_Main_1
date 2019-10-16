@@ -1,5 +1,68 @@
 
 ======================================================================================================================================
+
+///// In this demo, Load the data as RDD, compute and find the number of unique occurrence of each record in the dataset
+// Type in spark-shell command to open the Spark scala shell.
+// Type in the below code line by line in the shell        
+
+ val lines = sc.textFile(“/hdfspath/routerLog.tsv ")
+ val pairs = lines.map(record => (record, 1))
+ val counts = pairs.reduceByKey((a, b) => a + b)
+ counts.collect.foreach(println)
+ counts.collect.saveAsTextFile(“/hdfspath/myuniquedirectory”)
+
+// You can find the output as (record, number of occurrences)
+
+
+Consider a banking scenario where credit card transaction logs need to be processed. Log contains CustomerID, CustomerName, CreditCard Number, TransactionAmount. Which of the below code snippet creates a paired RDD <CustomerID, TransactionAmount>?
+Ans :: val logsRDD = sc.textFile("/HDFSPath/Logs.txt"); val LogsPairedRDD = logsRDD.map(_.split(",")).map(r => (r(0),r(3).toInt))
+
+============================================================================================================================================
+============================================================================================================================================
+
+
+// joins in spark data frames
+
+// Implementation steps to join
+
+// Step 1: Create Case classes representing datasets
+// Create two case classes representing schema of each dataset.
+// Case class representing RouterLocationInfo.tsv schema
+
+case class RouterLocation(rid:Int,name:String,location:String);
+
+// Case class representing RouterPurchaseInfo.tsv schema
+
+case class RouterPurchase(rid:Int,date:String,pmemory:Long,smemory:Long,cost:Float);
+
+// Step 2: Generate K,V pairs using case class object
+// In this step,datasets are loaded as RDDs
+// Paired RDDs  (K, V) are created where K = common column in both RDDs, V = Case class object.
+//Load RouterLocation dataset and generate Rid(common field),RouterLocation object
+
+val locRDD = sc.textFile(“RouterLocationInfo.tsv").map(_.split("\t")).map(r => (r(0), RouterLocation(r(0).toInt,r(1),r(2)))
+
+//Load RouterPurchase dataset and generate Rid(common field),RouterLocation object
+
+val purRDD = sc.textFile(“RouterPurchaseInfo.tsv").map(_.split("\t")).map(r => (r(0), RouterPurchase(r(0).toInt,r(1),r(2).toLong,r(3).toLong,r(4).toFloat))
+
+// Step 3: Apply join() function
+// In this step, Spark join is applied against the grouped fields of locRDD and purRDD from the previous step.
+//Join locRDD with purRDD using join()
+
+locRDD.join(purRDD).collect()
+
+
+DEMO Steps:
+
+      scala>case class RouterLocation(rid:Int,name:String,location:String);
+       scala>case class RouterPurchase(rid:Int,date:String,pmemory:Long,smemory:Long,cost:Float);
+       scala>val locdata = sc.textFile(“RouterLocationInfo.tsv").map(_.split("\t"));
+       scala>val locRDD = locadata.map(r => (r(0), RouterLocation(r(0).toInt,r(1),r(2)));
+       scala>val purRDD = sc.textFile(“RouterPurchaseInfo.tsv").map(_.split("\t")).map(r => (r(0),   RouterPurchase(r(0).toInt, r(1), r(2).toLong, r(3).toLong, r(4).toFloat));
+       scala>locRDD.join(purRDD).collect()
+
+
 ======================================================================================================================================
 
 ===== RDD Operations in SPark 
@@ -46,75 +109,8 @@ outrdd.saveAsTextFile("HDFS path to save")
 //////////////// spliting the fields with "," and fetching only first 2 fields
 
 val FieldsRDD = logsRDD.map(_.split(",")).map(r => (r(0),r(1)))
-
-
 ============================================================================================================================================
 
-///// In this demo, Load the data as RDD, compute and find the number of unique occurrence of each record in the dataset
-// Type in spark-shell command to open the Spark scala shell.
-// Type in the below code line by line in the shell        
-
- val lines = sc.textFile(“/hdfspath/routerLog.tsv ")
- val pairs = lines.map(record => (record, 1))
- val counts = pairs.reduceByKey((a, b) => a + b)
- counts.collect.foreach(println)
- counts.collect.saveAsTextFile(“/hdfspath/myuniquedirectory”)
-
-// You can find the output as (record, number of occurrences)
-
-
-Consider a banking scenario where credit card transaction logs need to be processed. Log contains CustomerID, CustomerName, CreditCard Number, TransactionAmount. Which of the below code snippet creates a paired RDD <CustomerID, TransactionAmount>?
-Ans :: val logsRDD = sc.textFile("/HDFSPath/Logs.txt"); val LogsPairedRDD = logsRDD.map(_.split(",")).map(r => (r(0),r(3).toInt))
-
-============================================================================================================================================
-
-
-// joins in spark data frames
-
-// Implementation steps to join
-
-// Step 1: Create Case classes representing datasets
-// Create two case classes representing schema of each dataset.
-// Case class representing RouterLocationInfo.tsv schema
-
-case class RouterLocation(rid:Int,name:String,location:String);
-
-// Case class representing RouterPurchaseInfo.tsv schema
-
-case class RouterPurchase(rid:Int,date:String,pmemory:Long,smemory:Long,cost:Float);
-
-// Step 2: Generate K,V pairs using case class object
-// In this step,datasets are loaded as RDDs
-// Paired RDDs  (K, V) are created where K = common column in both RDDs, V = Case class object.
-//Load RouterLocation dataset and generate Rid(common field),RouterLocation object
-
-val locRDD = sc.textFile(“RouterLocationInfo.tsv").map(_.split("\t")).map(r => (r(0), RouterLocation(r(0).toInt,r(1),r(2)))
-
-//Load RouterPurchase dataset and generate Rid(common field),RouterLocation object
-
-val purRDD = sc.textFile(“RouterPurchaseInfo.tsv").map(_.split("\t")).map(r => (r(0), RouterPurchase(r(0).toInt,r(1),r(2).toLong,r(3).toLong,r(4).toFloat))
-
-// Step 3: Apply join() function
-// In this step, Spark join is applied against the grouped fields of locRDD and purRDD from the previous step.
-//Join locRDD with purRDD using join()
-
-locRDD.join(purRDD).collect()
-
-
-DEMO Steps:
-
-      scala>case class RouterLocation(rid:Int,name:String,location:String);
-       scala>case class RouterPurchase(rid:Int,date:String,pmemory:Long,smemory:Long,cost:Float);
-       scala>val locdata = sc.textFile(“RouterLocationInfo.tsv").map(_.split("\t"));
-       scala>val locRDD = locadata.map(r => (r(0), RouterLocation(r(0).toInt,r(1),r(2)));
-       scala>val purRDD = sc.textFile(“RouterPurchaseInfo.tsv").map(_.split("\t")).map(r => (r(0),   RouterPurchase(r(0).toInt, r(1), r(2).toLong, r(3).toLong, r(4).toFloat));
-       scala>locRDD.join(purRDD).collect()
-
-
-
-
-
-============================================================================================================================================
 
 ////// Example : Below code is used to identify and count empty lines in dataset using Accumulator.
 
