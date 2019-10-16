@@ -37,6 +37,8 @@ Val thriller_c = rdd2.filter(_.contains(“Thriller”)).count()
 Val out_arr = Array(“ACTION:”+action_c,””DRAMA:”+drama_c,”THRILLER:”+thriller_c)
 val ou_1 = sc.parallelize(out_arr)
 ou_1.saveAsTextFile(“hdfs://localhost:/user/Output_1”)
+
+
 == copyting the file to local as out1
 Hadoop fs -copyToLocal hdfs://localhost:/user/Output_2/part-00000 /root/user/Outputs/out2
 
@@ -75,17 +77,24 @@ cinema_r.registerTempTable(“c_r”);
 
 
 df2.write.format("csv").save("/user/test/us")
+
+
 Question-3 answer:
-Val q_3 = sqlContext.sql(“select cinemaid,count(*) as numofpplwatched from rat_tbl where cinemaid not like ‘null’ group by cinemaid having count(*) == (select count(*) from rat_tbl where cinema_id not like ‘null’ group by cinemaid order by count(*) desc limit 1)”)
+Val q_3 = sqlContext.sql(“select cinemaid,count(*) as numofpplwatched from rat_tbl 
+where cinemaid not like ‘null’ group by cinemaid having count(*) == (select count(*) from rat_tbl 
+where cinema_id not like ‘null’ group by cinemaid order by count(*) desc limit 1)”)
 
 Q-4 answer:
-Val q_4 = sqlContext.sql(“select cd.cinema_name, avg(cr.rating) as average from cinema_d cd join cinema_r cr on cr.cinema_id = cd.cinema_id where cd.genres Like ‘Action’ group by cd.cinema_name order by avg(cr.rating)  desc limit 1 ”)
+Val q_4 = sqlContext.sql(“select cd.cinema_name, avg(cr.rating) as average from cinema_d cd join cinema_r cr 
+on cr.cinema_id = cd.cinema_id where cd.genres Like ‘Action’ group by cd.cinema_name order by avg(cr.rating)  desc limit 1 ”)
 Q_5:
 
-Val q_5 = sqlContext.sql(“select cd.cinema_name, avg(cr.rating) as average from cinema_d cd join cinema_r cr on cr.cinema_id = cd.cinema_id group by cd.cinema_name order by avg(cr.rating)  asc, cd.cinema_name asc limit 10 ”)
+Val q_5 = sqlContext.sql(“select cd.cinema_name, avg(cr.rating) as average from cinema_d cd join cinema_r cr on 
+cr.cinema_id = cd.cinema_id group by cd.cinema_name order by avg(cr.rating)  asc, cd.cinema_name asc limit 10 ”)
 
 Using DataFrame.coalesce to reduce the number of output files
-df.coalesce(1).
+
+df2.write.coalesce(1).format("csv").save("/user/test/us")
 
 
 =======================================================================================================================================
