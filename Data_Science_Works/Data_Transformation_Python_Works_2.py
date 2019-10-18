@@ -27,7 +27,7 @@ def parquets_to_df(parquet_folders, col_names):
     return df
 
 # or
-data_dir = Path('/home/qx816/notebooks/ap_25/data/model_input/quality_b_features/')
+data_dir = Path('/home/notebooks/ap_25/data/model_input/quality_b_features/')
 full_df = pd.concat(1 b b                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     b
     pd.read_parquet(parquet_file)
     for parquet_file in data_dir.glob('*.parquet')
