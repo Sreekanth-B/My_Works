@@ -15,8 +15,8 @@ tempdf.to_parquet('final_Parquet_file.parquet')
 
 # for Excel files 
 
-path = '../../OneDrive - Cummins/Detect Use Case/06 Personal folders/Sreekanth_B/'
-Excel_df = pd.read_excel(path+'Infant Care Report_X.xlsm', sheet_name = 0)
+path = '... Personal folders/Sreekanth_B/'
+Excel_df = pd.read_excel(path+'I Report_X.xlsm', sheet_name = 0)
 
 pd.DataFrame().to_excel(writer, sheet_name=sheet_name, index=False)
 
@@ -31,7 +31,7 @@ env = 'UAT'
 
 # Downloading all files matching pattern into DSVM as csv
 
-downloadAsCsv("ADLS_path/pattern_*", '/home/qx816/notebooks/DSVM_Path/File_name', platform = env)
+downloadAsCsv("ADLS_path/pattern_*", '/home/notebooks/DSVM_Path/File_name', platform = env)
 
 # Downloading each file 
 
