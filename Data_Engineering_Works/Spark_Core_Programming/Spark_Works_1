@@ -76,11 +76,18 @@ Val rdd3 = rdd2.map(r => r(3).toString)
 Now we can filter based on condition
 
 Question 1 Answer:
-Create rdd using 
+
+// Create rdd using 
 Val rdd = sc.textFile(“hdfs:/file”)
+val res = rdd.map(_.contains("1995")).count()
+
+======== or 
+
 Val rdd2 =rdd.map(_.split(“,”))
 Val rdd3 = rdd2.filter(_.contains(“1995”)).count()
-rdd3 – gives class
+// rdd3 – gives class
+
+
 val out_1 = Array(rdd3)
 val ou_1 = sc.parallelize(out_1)
 ou_1.saveAsTextFile(“hdfs://localhost:/user/Output_1”)
@@ -92,9 +99,13 @@ It creates out1 file with contents from Output_1
 Question-2
 Val rdd = sc.textFile(“hdfs:/file”)
 Val rdd2 =rdd.map(_.split(“,”))
+
+
 Val action_c = rdd2.filter(_.contains(“Action”)).count()
 Val drama_c = rdd2.filter(_.contains(“Drama”)).count()
 Val thriller_c = rdd2.filter(_.contains(“Thriller”)).count()
+
+
 Val out_arr = Array(“ACTION:”+action_c,””DRAMA:”+drama_c,”THRILLER:”+thriller_c)
 val ou_1 = sc.parallelize(out_arr)
 ou_1.saveAsTextFile(“hdfs://localhost:/user/Output_1”)
@@ -123,7 +134,7 @@ val customSchema = StructType(Array(
 ==== reading csv file
 If header is true it will consider 1st row as columns names
 If false it wont take 1st row 
-val cinema_d = sqlContext.read.option("delimiter",",")  .option("header", "false")
+val cinema_d = sqlContext.read.option("delimiter",",") .option("header", "false")
   .schema(schema_1).csv("hdfs://local/file.csv”)
 
 Or 
