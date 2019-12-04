@@ -1,0 +1,113 @@
+
+# Reading the data
+=====   Pandas
+df  = pd.read_csv("path/file.csv")
+=====  Pyspark
+df =spark.read.options(header=True, inferSchema = True).csv("path/fle.csv")
+
+# View Dataframe
+=====   Pandas
+df, df.head(10)
+=====  Pyspark
+df.show(), df.show(10)
+
+# Renaming the columns
+=====   Pandas
+df.columns = ['a','b', 'c']
+df.rename(columns = {'old' : 'new'})
+=====  Pyspark
+df.toDF('a','b','c')
+df.withColumnRenamed('old','new')
+
+# Drop Column
+=====   Pandas
+df.drop('mpg', axis =1)
+=====  Pyspark
+df.drop('mpg')
+
+#Filtering
+=====   Pandas
+df[df.mpg <20]
+df[(df.mpg <20) & (df.cyl ==6)]
+=====  Pyspark
+df[df.mpg <20]
+df[(df.mpg <20) & (df.cyl ==6)]
+
+#Adding the column
+=====   Pandas
+df['gpm'] = 1/df.mpg
+=====  Pyspark
+df.withColumn('gpm', 1/df.mpg)
+
+# Fill Nulls
+=====   Pandas
+df.fillna(0)
+=====  Pyspark
+df.fillna(0)
+
+# Aggregation
+=====   Pandas
+df.groupby(['cyl', 'gear'])\
+  .agg({'mpg': 'mean', 'disp': 'min'})
+=====  Pyspark
+df.groupby(['cyl', 'gear'])\
+  .agg({'mpg': 'mean', 'disp': 'min'})
+
+==================== # Standard Transformations 
+=====   Pandas
+import numpy as np
+df['logdisp'] = np.log(df.disp)
+=====  Pyspark
+import pyspark.sql.functions as F
+df.withColumn('logdisp', F.log(df.disp))
+
+==================== # Row conditional statements
+=====   Pandas
+df['cond'] = df.apply(lambda r: 1 if r.mpg >20 else 2 if r.cyl == 6 else 3, axis=1)
+=====  Pyspark
+import pyspark.sql.functions as F
+df.withColumn('cond', \
+  F.when(df.mpg > 20 , 1)\
+    .when(df.cyl == 6, 2)\
+    .otherwise(3))
+    
+====================================================================================    
+# Creating UDF's in Pyspark for column aggregation tocreate new col 
+=====   Pandas
+df['disp1'] = df.disp.apply(lambda x:x+1)
+=====  Pyspark
+import pyspark.sql.functions as F
+from pyspark.sql.types import DoubleType
+fn = F.udf(lambda x:x+1, DoubleType())
+df.withColumn('disp1', fn(df.disp))
+
+# merge/Join Dataframes
+=====   Pandas
+left.merge(right , on = 'key')  ## if column names are same
+left.merge(right, left_on = 'a', right_on='b')  ## if column names are diff
+=====  Pyspark
+left.join(right, on='key')
+left.join(right, left.a== right.b)
+
+# Pivoting The table
+=====   Pandas
+pd.pivot_table(df, values = 'D', \
+  index = ['A','B'], columns = ['C'], \
+  aggfunc = np.sum)  
+=====  Pyspark
+df.groupBy("A","B").pivot("C").sum("D")
+
+# Summary statistics of dataframe
+=====   Pandas
+df.describe()
+=====  Pyspark
+df.describe().show()
+
+# SQL 
+=====   Pandas
+N/A
+=====  Pyspark
+df.createOrReplaceTempView('foo')
+df2 = spark.sql('select * from foo')
+=====   Pandas
+=====  Pyspark
