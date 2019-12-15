@@ -1,0 +1,261 @@
+﻿=====================================================================================================================================
+
+
+Sources ::::
+https://www.analyticsvidhya.com/blog/2016/10/spark-dataframe-and-operations/
+
+https://creativedata.atlassian.net/wiki/spaces/SAP/pages/31162397/Add+a+Python+job
+
+https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/Column.html
+
+--====================== TO OPEN THE SPARK CONSOLE AND SPARK SCRIPTING ===========================================================================================
+
+spark-shell --conf spark.ui.port=2021<<EOF
+
+println("LOG: OUTPUT TABLE ------om_output-------")
+
+val df = spark.read.option("header","true").option("delimiter","|").format("csv").load("adl://eaasedlstgadls.azuredatalakestore.net/data/mo/quality_engine/om_output/")
+
+df.groupBy("combinations","fail_code","engine_series").count.filter($"count">1).count
+
+EOF
+
+=========== Schema Check =============================================================================================
+
+df.printSchema  ======= in spark here df is table or data frame
+
+=================   logic TO eleminate header in Spark ==============================================================================================
+
+val df = spark.read.option("header","true").option("delimiter","|").format("csv").load("adl://eaasedlstgadls.azuredatalakestore.net/data/mo/quality_engine/spi_miles_bucket/")
+
+df.filter('ANALYTICS_RUN_DATE.isNull).count
+=====================================================================================================================================
+================================= Filtering in Spark and Pyspark
+df.filter('ANALYTICS_RUN_DATE.isNull).count
+
+df.filter('engine_ser,'hcasd,awddfjb).unique)
+
+df_st.select("cost_nbr_population").distinct.show(50,false)
+
+=========== TO CHECKS DUPLICATES =============================================================================================
+
+println("LOG: öm_output duplication OUTPUT TABLE  ::  " +df.groupBy("calc_date","om_key").count.filter($"count">1).count)
+
+println("LOG: öm_output duplication OUTPUT TABLE  ::  " +df.groupBy("calc_date","om_key").count.filter($"count">1).count)
+
+df.groupBy("combinations","fail_code","engine_series").count.filter($"count">1).count
+
+============================== Grouping by two columns ===========================================================================
+
+df.filter('engine_ser,'hcasd,awddfjb).unique)
+
+df.groupBy("x","y").count().filter("count >= 2").show() 
+
+======================================================================================================================================================
+----------- For min and amx
+om_output_df.groupBy("ENGINE_SERIES").agg(max("CALC_DATE"), min("CALC_DATE")).show()
+
+
+
+df.agg(min("A"), max("A")).show()
+
+--------------------------------------- TO getting Max values by grouping by other columns
+
+val windowSpec = df_ot.partitionBy(myDF("CALC_DATE")).orderBy(myDF("CALC_DATE").desc)
+
+myDF.withColumn("max_CALC_DATE", first(myDF("CALC_DATE")).over(windowSpec).as("max_CALC_DATE")).filter("CALC_DATE = max_CALC_DATE")
+
+--------------- for distinct values
+
+df_ot.select('REL_OEM_NORMALIZED_GROUP).distinct.show()
+
+----------- For max and Min dates 
+df.select(max("CALC_DATE")).show() 
+
+=====================================================================================================================================
+
+
+Collecting the unique values into the list in spark dataframe ::
+
+
+Pre_X_W_df.select('REL_CMP_ENGINE_NAME').distinct().rdd.map(lambda r: r[0]).collect()
+
+
+converting the column values into different datatypes :
+
+
+=====================================================================================================================================
+
+
+
+======================================================================================================================================================
+=====================================================================================================================================================
+================================== Jupyter Notebook Pyspark
+
+from pyspark.sql import SparkSession, HiveContext
+spark = SparkSession.builder.appName('Ops').getOrCreate()
+
+from pyspark.sql.types import StructType, StructField
+from pyspark.sql.types import DoubleType, IntegerType, StringType
+
+import pyspark
+import pandas as pd
+
+wb_out= spark.read.option("header","true").option("delimiter",",").option("inferSchema", "true").format("csv").load("/home/qx816/notebooks/Wb_may8/data/model_input/raw/weibull_b/build.csv")
+
+wb_out_1= spark.read.option("header","true").option("delimiter",",").option("inferSchema", "true").format("csv").load("/home/qx816/notebooks/Wb_may8/data/model_input/raw/weibull_b/claims.csv")
+
+failm_ou1.printSchema()
+failm_ou1.count()
+
+sqlContext.registerDataFrameAsTable(failm_ou1, "failm_ou1")
+sqlContext.registerDataFrameAsTable(fault_ou2, "fault_ou2")
+
+ck = sqlContext.sql("select max(BUILD_DATE) as Max, min(BUILD_DATE) as Min from failm_ou1")
+
+ck.show()
+
+co=sqlContext.sql("select OM_CRRT_PRIORITY_SCORE from om_out_df where om_algo == 'MA_Ribbon' and cast(OM_CRRT_PRIORITY_SCORE as int)<0 ")
+
+co.count()
+
+co=sqlContext.sql("select OM_SCORE_REL_BUCKET,count(CALC_ID) from om_out_df where calc_date == '2019-03-07' GROUP BY OM_SCORE_REL_BUCKET ")
+
+cd=sqlContext.sql("select distinct(REL_BUILD_DATE) from ff_csv_1")
+
+====================================== To save the results into csv (to_ press tab we will get options for file saving formates)
+cdf = cd.toPandas()
+
+cdf.to_csv('Wb_L_file_May_2_Gold.csv')
+
+=====================================================================================================================================
+
+===================== To print date which is 7 days past present date in scala
+
+spark-shell --conf spark.ui.port=2021<<EOF
+
+import java.util.{Date,Calendar}
+
+def getBeforeDate(maxDate: java.util.Date,days: Int): String = {
+    var maxcal: Calendar = Calendar.getInstance()
+    maxcal.setTime(maxDate)
+    maxcal.add(Calendar.DATE, - days)
+    val dateStringBefore48Weeks_X = maxcal.get(Calendar.YEAR)  + "-" + ( maxcal.get(Calendar.MONTH) +1) + "-" + maxcal.get(Calendar.DATE)
+    dateStringBefore48Weeks_X
+  }
+
+
+val date= new Date
+
+getBeforeDate(date,7)
+
+=====================================================================================================================================
+
+
+===================== Note starts ======
+./bin/pyspark --packages com.databricks:spark-csv_2.10:1.3.0
+=== Reading csv files
+
+train = sqlContext.load(source="com.databricks.spark.csv", path = 'PATH/train.csv', header = True,inferSchema = True)
+test = sqlContext.load(source="com.databricks.spark.csv", path = 'PATH/test-comb.csv', header = True,inferSchema = True)
+
+-=================to see datatype of columns
+train.printSchema()
+-================ to Show first n observation
+train.head(5)
+==================To see the result in more interactive manner (rows under the columns)
+train.show(2,truncate= True)
+====================  to Count the number of rows in DataFrame
+train.count(),test.count()
+=================How many columns do we have in train and test files along with their names
+len(train.columns), train.columns
+len(test.columns), test.columns
+
+-============== How to get the summary statistics (mean, standard deviance, min ,max , count) of numerical columns in a DataFrame
+train.describe().show()
+
+============= column wise
+train.describe('Product_ID').show()
+
+=============== How to select column(s) from the DataFrame
+train.select('User_ID','Age').show(5)
+
+-============== How to find the number of distinct product in train and test files
+train.select('Product_ID').distinct().count()
+test.select('Product_ID').distinct().count()
+-=======================
+Let us check what are the categories for Product_ID, which are in test file but not in train file by applying subtract operation.We can do the same for all categorical features.
+
+diff_cat_in_train_test=test.select('Product_ID').subtract(train.select('Product_ID'))
+diff_cat_in_train_test.distinct().count()
+
+-============= What if I want to calculate pair wise frequency of categorical columns
+We can use crosstab operation on DataFrame to calculate the pair wise frequency of columns. Let’s apply crosstab operation on ‘Age’ and ‘Gender’ columns of train DataFrame
+train.crosstab('Age', 'Gender').show()
+------===== What If I want to get the DataFrame which won’t have duplicate rows of given DataFrame
+train.select('Age','Gender').dropDuplicates().show()
+--=========== What if I want to drop the all rows with null value
+The dropna operation can be use here. To drop row from the DataFrame it consider three options.
+
+how– ‘any’ or ‘all’. If ‘any’, drop a row if it contains any nulls. If ‘all’, drop a row only if all its values are null.
+thresh – int, default None If specified, drop rows that have less than thresh non-null values. This overwrites the how parameter.
+subset – optional list of column names to consider.
+train.dropna().count()
+
+----== What if I want to fill the null values in DataFrame with constant number
+Use fillna operation here. The fillna will take two parameters to fill the null values.
+
+value:
+ It will take a dictionary to specify which column will replace with which value.
+ A value (int , float, string) for all columns.
+subset: Specify some selected columns.
+Let’s fill ‘-1’ inplace of null values in train DataFrame.
+train.fillna(-1).show(2)
+-----=========== If I want to filter the rows in train which has Purchase more than 15000
+
+
+-----==============How to Apply SQL Queries on DataFrame
+
+train.registerAsTable('train_table')
+
+sqlContext.sql('select Product_ID from train_table').show(5)
+sqlContext.sql('select Age, max(Purchase) from train_table group by Age').show()
+
+
+
+=====================================================================================================================================
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+
+=====================================================================================================================================
+
+
+

@@ -1,0 +1,602 @@
+
+
+=============================================================================================================
+ ======= Data bricks Sample works
+ 
+# TO run another notebook in another notebook
+
+%run /Shared/common/config_ADLS  
+
+# To config the ADLS to read the data directly == the above config file will have below code
+
+#Connecting to ADLS Cluster
+
+spark.conf.set("dfs.adls.oauth2.access.token.provider.type", "ClientCredential")
+spark.conf.set("dfs.adls.oauth2.client.id", dbutils.secrets.get(scope = "eaasedl", key = "appid"))
+spark.conf.set("dfs.adls.oauth2.credential", dbutils.secrets.get(scope = "eaasedl", key = "appkey"))
+spark.conf.set("dfs.adls.oauth2.refresh.url", "https://login.microsoftonline.com/b31a5d86-6dda-4457-85e5-c55bbc07923d/oauth2/token")
+
+
+# Executing the notebook by passing the required parametres in another notebook
+
+%python
+
+try:
+# call pre_X
+  dbutils.notebook.run("/Shared/psbu_qa_mining/jobs/QSK_Master/libraries/om_pre_qsk_v1.0", 0,{ "configFilePath": "/dbfs/FileStore/tables/", "outputPath":"adl://eaasedldevadls.azuredatalakestore.net/data/mo/quality_mining/", "engine":"QSK", "program":"WARRANTY"})
+except Exception as e:
+  print ("Error importing or preprocessing data QSK data.")
+  dbutils.notebook.run("/Shared/psbu_qa_mining_staging/jobs/ErrorHandlingNotebook", 0)
+  dbutils.notebook.exit(str("Error"))
+  
+  
+======== 
+
+val result = dbutils.notebook.run("DE_AMS_VALIDATION_TESTSCRIPT", 0, Map("configFileName" -> "CBDS_QA_Validation_AMS_Master.yml","datasource" -> "AMS","targetdbname" -> "AMS_FEATURES","env" -> "DEV","rawDirList" -> "","testid" -> "DE_FEATURES_AMS"))
+print("result is - " +result)
+
+//Check if the result is success or fail - throw exception if fail
+
+if(result == "fail")
+  throw new Exception()
+else if (result == "success")
+  println("Notebook is successful")
+
+
+
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=================================================================================================================
+
+Some imp Commands to use in Data bricks
+
+== import spark
+%python
+spark
+
+=== install sparkR
+%r
+# Queries to test connections and intial plots and counts
+install.packages("SparkR")
+
+==== use sparkR
+%r
+library(SparkR)
+
+==== Run other notebooks in another notbook
+%run /Shared/psbu_qa_mining/common/config_ADLS
+
+===== SQL in databricks
+%sql
+select * from purduemobility_static.vehiclelocationtp limit 10
+
+
+========= SQL query as variable
+
+#createOrReplaceTempView(df, "some_metrics")
+query <- paste0("SELECT * from purduemobility_static.vehiclelocationtp")
+vehiclelocationtp <- sql(query)
+#display(vehiclelocationtp)
+dim(vehiclelocationtp)
+
+
+============== Writing the output df into DBFS
+
+SparkR::write.df(repartition(vehiclelocationtp,1),path="dbfs:/FileStore/tables/qa_mining/output/csv/final_output_AK_05312019", source="csv", header=TRUE)
+
+write.df(output, output_path, mode= "overwrite")
+
+
+============ checking the DBFS file system
+
+%fs ls dbfs:/FileStore/tables/qa_mining/output/csv/final_output_AK_05312019_1
+
+========= to suppress the run
+suppressMessages(library(SparkR))
+
+====== TO Exit from the notbook
+dbutils.notebook.exit("success")
+================================================================================================================
+
+============================ Reading th efile 
+
+
+file_location = "dbfs:/qa_mining/DSVM_Sample_files/""Input data""/B_EMISSIONS.parquet"
+data = sqlContext.read.parquet(file_location)
+data.columns
+data.count()
+
+============
+file_location = "dbfs:/qa_mining/DSVM_Sample_files/""output data""/OM_STATS.csv"
+df = spark.read.format("csv").option("inferSchema", "true").option("header", True).load(file_location)
+data.columns
+#data.count()
+
+
+================ avg of col by Group by one col 
+
+mining2015_agg = mining2015.groupBy("BUILD").mean("WAIT_TIME").orderBy(desc("avg(WAIT_TIME)"))
+display(mining2015_agg)
+
+mining2015.createOrReplaceTempView("df")
+mining2015_med = sqlContext.sql("select BUILD, percentile_approx(WAIT_TIME, 0.5) as MEDIAN from df group by BUILD")
+display(mining2015_med)
+
+=========== Using jpg in databricks
+
+%md
+# Cost Model
+![cost_model_ml_canvas](files/images/prefx/cost_model_ml_canvas.jpg "Cost Model ML Canvas")
+
+
+
+================================================================================================================
+============= using dbutils.widgets
+
+dbutils.widgets.removeAll()
+dbutils.widgets.text('method','MA_Ribbon')
+dbutils.widgets.text("input_path", "/user/cj612/data/ds/om_temp/ma_ribbon_test_data") 
+dbutils.widgets.text("output_path","/user/qw702/data/ds/om_temp/ma_ribbon_test_output")
+dbutils.widgets.text("output_path","/user/qw702/data/ds/om_temp/ma_ribbon_test_output")
+dbutils.widgets.text("config_path","/dbfs/user/qw702/data/ds/om_temp/config_adl.yml") 
+
+
+method <- dbutils.widgets.get('method')
+output_path <- dbutils.widgets.get('output_path')
+
+config_path <- dbutils.widgets.get('config_path')
+# CA: suggestion don't assign just call dbutils.widgets.get('widget_name') to track dependencies 
+
+
+====== Config file 
+
+dbutils.widgets.text("configPath","/dbfs/FileStore/tables/")
+configPath = dbutils.widgets.get("configPath")
+configPath = paste0(configPath,'/config_om.yml')
+dbutils.widgets.dropdown("engine", engineOptions[[3]], engineOptions)
+dbutils.widgets.dropdown("program", programOptions[[1]], programOptions)
+engine = dbutils.widgets.get("engine")
+program = dbutils.widgets.get("program")
+
+
+=== loading the config file parameters
+
+# Loading the Config File Parameters 
+method = config[[engine]]$Algo
+metric_col_names_list = config[[engine]]$Metrics 
+metric_col = config[[engine]]$Metrics
+tau_short = config[[engine]]$Algo_Parameters$MA_Ribbon$tau_short
+tau_long = config[[engine]]$Algo_Parameters$MA_Ribbon$tau_long
+tau_exp_max = config[[engine]]$Algo_Parameters$MA_Ribbon$tau_exp_max
+counts_long_thresh = config[[engine]]$Algo_Parameters$MA_Ribbon$counts_long_thresh
+input_pre = config[[engine]]$Paths[[program]]$pre_path #experiment
+algo_path = config[[engine]]$Paths[[program]]$algo_path #experiment
+
+output_col_names = config$output_schema
+output_col_names = output_col_names[!output_col_names %in% c("METRIC_VALUE_PREV","DELTA")]  #How I am hiding METRIC VALUE_PREV & DELTA 
+
+
+======================================== Reading the variable from config file placed in ADLS
+========================================
+
+programOptions = ["WARRANTY", "EMISSIONS", "WARRANTY_EMISSIONS"] 
+engineOptions = ["BL"] 
+modelOptions = ["MA_RIBBON","TREND"] 
+dbutils.widgets.removeAll()
+dbutils.widgets.dropdown("program", programOptions[0], programOptions)
+dbutils.widgets.text("configFilePath", "/dbfs/qa_mining/configfiles")
+dbutils.widgets.text("outputPath", "/qa_mining/Databricks_files/preprocessing")
+dbutils.widgets.text("inputPath", "/qa_mining/DSVM_Sample_files/Input_data")
+dbutils.widgets.dropdown("engine", engineOptions[0], engineOptions)
+dbutils.widgets.dropdown("method", modelOptions[0], modelOptions)
+
+program = dbutils.widgets.get("program")
+method = dbutils.widgets.get("method")
+inputPath = dbutils.widgets.get("inputPath")
+engine =  dbutils.widgets.get("engine")
+configFilePath = dbutils.widgets.get("configFilePath")
+outputPath = dbutils.widgets.get("outputPath")
+granularityLevel = 2
+# note: os.path.join does not work here for some reason
+modelConfigPath = configFilePath + '/config_model.yml'
+subpopConfigPath = configFilePath + '/config_subpops.yml'
+outputPath =  outputPath + "/preprocessed_data_" + engine.lower() + "_" + program.lower()
+
+def readConfig(path):
+  with open(path, 'r') as f:
+    return yaml.load(f, Loader=yaml.FullLoader)
+
+ADLConfigPath = configFilePath + '/config_adl.yml'
+ADLConfig = readConfig(ADLConfigPath)
+
+metricsOptions = [ADLConfig["metric_col_names_list"]["COST"], ADLConfig["metric_col_names_list"]["COUNT"] , ADLConfig["metric_col_names_list"]["CPE"], ADLConfig["metric_col_names_list"]["RPH"], ADLConfig["metric_col_names_list"]["WCPE"]] 
+dbutils.widgets.dropdown("metric", metricsOptions[0], metricsOptions)
+
+methodOptions = ADLConfig["algo_method_list"][engine.upper() + "_" + program.upper()]
+dbutils.widgets.dropdown("Method", methodOptions[0], methodOptions)
+
+metric= dbutils.widgets.get("metric")
+Method= dbutils.widgets.get("Method")
+
+subpopConfig = readConfig(subpopConfigPath)
+modelConfig = readConfig(modelConfigPath)
+subpopFactors = subpopConfig["subpopulations"][granularityLevel]
+tau_short = modelConfig['ma_ribbon']['tau_short']
+========================================
+========================================
+
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+
+=================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+=================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+=================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+=================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+================================================================================================================
+
+
+
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+
+=============================================================================================================
+
+# Erro handling note book
+
+# This notebok will have some instruction on handling critcal errors in running notebooks:
+  # Types of instructions are:
+    # - Capturing the last state of the error
+    # - Notifying by sending emails with logs of erros
+    # - Running other notebooks ..
+
+# -===cell -2
+
+from datetime import datetime
+timenow=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+SparkUI="https://eastus2.azuredatabricks.net/?o=4456149102914091#job/13109"
+
+# === cell-3
+
+#!/usr/bin/python
+
+import smtplib
+from smtplib import SMTPException
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+message = """From: Occurence Monitoring PSBU QA Mining
+To: Occurence Monitoring team
+MIME-Version: 1.0
+Content-type: text/html
+Subject: Error Notification - PSBU QA Mining
+This is an e-mail notification sent from PSBU QA Mining, There is an error on runing OM with the following detail:
+
+<pre>
+<h3>Status: Error in OM Spark</h3>
+<b>Link to log file: https://eastus2.azuredatabricks.net/?o=4456149102914091#job/13109 </b>
+</pre>
+<b>{timenow}</b>
+"""
+# build a instance of MIMEText from your content string
+#message = MIMEText(message)
+
+sender="qq834@cummins.com"
+receivers="qq834@cummins.com"
+
+
+# === cell -4
+
+try:
+  smtpObj = smtplib.SMTP('mailrelay.cummins.com')
+  smtpObj.sendmail(sender, receivers, message)         
+  print ("Successfully sent email")
+except SMTPException:
+   print ("Error: unable to send email")
+   
+   
+   
+=============================================================================================================
+
+# To exit the notebook after the run ===
+
+dbutils.notebook.exit(str("Successful"))
+
+
+# passing the config parameters exspicially in the notebook
+
+configFilePath = "/dbfs/FileStore/tables/"
+configFileName= "QA_Validation_06.yml"
+
+#Generating Run ID
+
+%scala
+// Get the run id in Scala and pass it in via the temp table:
+val runId = dbutils.notebook.getContext .currentRunId .getOrElse(System.currentTimeMillis() / 1000L) .toString
+Seq(runId).toDF("run_id").createOrReplaceTempView("run_id")
+
+#Get the Cluster Name and Cluster ID 
+
+myclusterId= spark.conf.get("spark.databricks.clusterUsageTags.clusterId")
+print(myclusterId)
+myclusterName= spark.conf.get("spark.databricks.clusterUsageTags.clusterName")
+print(myclusterName)
+myrunId = spark.table("run_id").head()["run_id"]
+
+# Reading YAML config file
+
+def readConfig(path):
+  with open(path, 'r') as f:
+    return yaml.load(f, Loader=yaml.FullLoader)
+
+dbutils.widgets.text("configFilePath",configFilePath)
+configPath = dbutils.widgets.get("configFilePath")
+configPath = configPath + configFileName
+print(configPath)
+#read in config file 
+configFile = readConfig(configPath)
+
+
+=============================================================================================================
+# Connecting to SQL server database
+
+%scala
+Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver") 
+
+# Connecting to SQL server database continue...
+
+jdbcURL = configFile["Environment"][env]["SQLServerConnString"]+configFile["Environment"][env]["SQLServerDBName"]
+
+connProperties = {
+  "user" : configFile["Environment"][env]["SQLServerUserName"],
+  "password" : configFile["Environment"][env]["SQLServerPassword"]
+}
+
+Testscript table
+
+CriticalTable = {"DE_SQL_"+datasource+"_TC001": 'Critical', "DE_SQL_"+datasource+"_TC002": 'Critical', "DE_SQL_"+datasource+"_TC003": 'Critical'}
+print(CriticalTable)
+
+=============================================================================================================
+=============================================================================================================
+=============== Useful functions for Databricks *****************************
+
+=== to convert timestamp col values to desired format values
+
+def dateColFormat(df, colsKeep=[]):
+  """
+  Takes in a dataframe with formats timestamp columns to date columns
+  :param df: DataFrame
+  :param colsKeep: a list of columns to keep as timestamp column
+  :return: df with datecolumns in correct format
+  """
+
+  for x, t in df.dtypes:
+    if t=="timestamp":
+      if x not in colsKeep:
+        df = df.withColumn(x, to_date(col(x),"yyyy-MM-dd"))
+  return df  
+  
+  
+========================= Appending two files into one 
+
+def readBuildVolume():
+  volumeB = spark.read.table('quality_b_mi.om_build_volume')
+  volumeL = spark.read.table('quality_l_mi.om_build_volume')
+  return volumeB.union(volumeL)
+  
+buildVolume = readBuildVolume()
+
+display(buildVolume)
+  
+=========== Reading diff files by filtering  and performing some transformations
+
+
+def readModelInput(program):
+  ## Validation
+  abbr = {"WARRANTY": "WARRANTY", "EMISSIONS": "EMISSIONS", "WARRANTY_EMISSIONS": "WARRANTY_EMISSIONS"}[program]
+  inputB =  spark.read.parquet(inputPath+"/B_" + abbr +".parquet")
+  inputL = spark.read.parquet(inputPath+"/L_" + abbr +".parquet")
+  return inputB.union(inputL).na.fill(0)\
+    .filter(col("REL_USER_APPL_DESC") != "NO WARRANTY")\
+    .filter(col("CODE").isin("UMSA", "XMFT") == False)\
+    .withColumn("REL_MONTH_BUILD_DATE", to_date(col("REL_MONTH_BUILD_DATE")))\
+    .withColumn("BUILD_YEAR", col("REL_MONTH_BUILD_DATE").substr(0, 4))\
+    .withColumn("PROGRAM_GROUP_NAME", lit(program))
+	
+	
+========================== Reading the config file 
+
+def readConfig(path):
+  with open(path, 'r') as f:
+    return yaml.load(f, Loader=yaml.FullLoader)
+	
+subpopConfig = readConfig(subpopConfigPath)
+modelConfig = readConfig(modelConfigPath)
+
+=== using config file variables
+subpopFactors = subpopConfig["subpopulations"][granularityLevel]
+
+=============================================================================================================
+============= Executing the notebook by passing different parametrs in loop
+
+%scala
+// must return "FAIR"
+spark.conf.get("spark.scheduler.mode")
+
+
+// define some way to generate a sequence of workloads to run
+ 
+val jobArguments_1 = Map("inputPath" -> "/qa_mining/DSVM_Sample_files/Input_data", "configFilePath" -> "/dbfs/qa_mining/configfiles", "outputPath" ->"adl://eaasedldevadls.azuredatalakestore.net/data/mo/quality_mining/preprocessing_bl_w", "engine" -> "BL", "program" -> "WARRANTY")
+val jobArguments_2 = Map("inputPath" -> "/qa_mining/DSVM_Sample_files/Input_data", "configFilePath" -> "/dbfs/qa_mining/configfiles", "outputPath" ->"adl://eaasedldevadls.azuredatalakestore.net/data/mo/quality_mining/preprocessing_bl_e", "engine" -> "BL", "program" -> "EMISSIONS")
+val jobArguments_3 = Map("inputPath" -> "/qa_mining/DSVM_Sample_files/Input_data", "configFilePath" -> "/dbfs/qa_mining/configfiles", "outputPath" ->"adl://eaasedldevadls.azuredatalakestore.net/data/mo/quality_mining/preprocessing_bl_w_e", "engine" -> "BL", "program" -> "WARRANTY_EMISSIONS")
+
+val jobArguments = Array(jobArguments_1, jobArguments_2, jobArguments_3)
+
+// define the name of the Azure Databricks notebook to run
+val notebookToRun = "/Shared/psbu_qa_mining/libraries/om_library_preprocessing_bl"
+
+
+//jobArguments
+
+// look up required context for parallel run calls
+val context = dbutils.notebook.getContext()
+
+jobArguments.par.foreach(args => {
+  // ensure thread knows about databricks context
+  dbutils.notebook.setContext(context)
+  // start the job
+  dbutils.notebook.run(notebookToRun, timeoutSeconds = 0, args)
+})
+
+
+===== here notebookToRun will be executed 3 times by passing jobArguments 1,2,3 
+
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+
+
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================

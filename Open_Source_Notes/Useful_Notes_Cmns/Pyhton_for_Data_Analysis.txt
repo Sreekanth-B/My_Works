@@ -1,0 +1,1164 @@
+
+======================================================================================================================================================================
+
+# Python for Data Analysis
+
+======================================================================================================================================================================
+
+-====== Numpy operations
+
+np.array() function which takes 2 arguments, the input list, and the corresponding data type (dtype).
+
+
+''' Creation of an array with step size 1.33 between 0 - 10 '''
+
+print(np.arange(0, 10, 1.33, dtype = np.float64))
+# [ 0.    1.33  2.66  3.99  5.32  6.65  7.98  9.31]
+
+
+# arange() gives uncertain number of values based on steps
+# Hence, we use linspace, which asks for total number of values 
+
+
+''' Creation of an array with total 5 values between 0 - 160 '''
+
+print(np.linspace(0, 160, 5, dtype = np.float64))
+# [   0.   40.   80.  120.  160.] 
+
+
+=============================================================================
+
+
+' Method I: Using array and reshape to convert array into matrix '''
+print(np.array([5,6,8,45,12,52]).reshape(2,3))
+# [[ 5  6  8]
+#  [45 12 52]]
+''' Method II: Using matrix function '''
+print(np.matrix([[1,2],
+                [3,4]]))
+# [[1 2]
+#  [3 4]]
+''' Method III: Using misc. functions '''
+print(np.eye(3)) # Identity matrix
+# [[ 1.  0.  0.]
+#  [ 0.  1.  0.]
+#  [ 0.  0.  1.]]
+print( np.zeros( (4,3) ) )
+# [[ 0.  0.  0.]
+#  [ 0.  0.  0.]
+#  [ 0.  0.  0.]
+#  [ 0.  0.  0.]]
+print(np.ones( (3,3), dtype = np.float64 ))
+# [[ 1.  1.  1.]
+#  [ 1.  1.  1.]
+#  [ 1.  1.  1.]]
+
+
+
+=============================================================================
+
+
+Vectorized operations:
+
+Suppose we're given a literacy rate data sample of State X and State Y for two consecutive years measured quarterly on a scale of 0-10. Let us try to arrive at the following outcomes:
+
+Quarterly difference between each state's literacy rate per year.
+
+Quarters having a literacy rate less than 2.
+
+Quarters having a literacy rate with the cumulative sum of more than or equal to 8 per year.
+
+Mean of each year's literacy rate of State X and mean of each quarterly's literacy rate of State Y.
+
+The data for each state is given below:
+
+==============
+ 
+S_X = np.array([[2, 5, 6, 5],
+               [4, 8, 6, 5]])
+print(S_X)
+# [[2 5 6 5]
+#  [4 8 6 5]]
+S_Y = np.array([[6, 7, 5, 9],
+               [7, 5, 6, 4]])
+print(S_Y)
+# [[6 7 5 9]
+#  [7 5 6 4]] 
+ 
+
+1. Quarterly difference between each state's literacy rate per year
+To arrive at the following outcome, we use NumPy's feature of generating difference element-wise.
+
+ 
+print(S_Y - S_X)
+# [[ 4  2 -1  4]
+#  [ 3 -3  0 -1]] 
+ 
+
+From the above result, we can state that for first quarter of first-year State Y has 4 times more literacy rate than State X and so on for other quarters.
+
+2. Quarters having a literacy rate less than 2.
+We can check which quarter has a literacy rate less than 2 in two ways:
+
+ 
+ ''' Method 1 '''
+print(S_X < 2)
+# [[False False False False]
+#  [False False False False]]
+''' Method 2 '''
+twos_mat = np.ones((2, 4)) * 2
+print(np.less(S_Y, twos_mat))
+# [[False False False False]
+#  [False False False False]] 
+ 
+
+The first method for S_X uses a comparison operator (<) whereas the second method uses a NumPy comparison operator which requires consideration of a new matrix such that each element from S_Y can be compared with the same index element of twos_mat.
+
+=============================================================================
+
+3. Quarters having a literacy rate with cumulative sum of more than or equal to 8 per year.
+To find such quarters, we have to understand the significance of axis parameter. An axis parameter if equated to 0 implies that a function needs to be deployed across rows i.e. vertically. If in case axis parameter is equated to 1 then operation applies to columns.
+
+ 
+X_cumsum = np.cumsum(S_X, axis = 1)
+print(X_cumsum)
+# [[ 2  7 13 18]
+#  [ 4 12 18 23]]
+print( X_cumsum >= 8)
+# [[False False  True  True]
+#  [False  True  True  True]]
+Y_cumsum = np.cumsum(S_Y, axis = 1)
+print(Y_cumsum)
+# [[ 6 13 18 27]
+#  [ 7 12 18 22]]
+print( Y_cumsum >= 8)
+# [[False  True  True  True]
+#  [False  True  True  True]] 
+ 
+
+4. Mean of each year's literacy rate of State X and mean of each quarterly's literacy rate of State Y.
+A concept much similar to the above, here we need to calculate mean of all quarters per year for State X. To achieve this, we find mean with axis = 1.
+
+ 
+print(np.mean(S_X, axis = 1))
+# [ 4.5   5.75]
+ 
+
+To find mean of quarterly literacy rate for State Y, we find mean with axis = 0.
+
+ 
+print(np.mean(S_Y, axis = 0))
+# [ 6.5  6.   5.5  6.5]
+
+=============================================================================
+
+
+============ Image as NumPy matrix
+
+Let us consider a binary image named checker bilevel (PNG format) from scikit-image library available within Anaconda. An image having values either 0 for black and 255/1 for white is termed as a binary image. We'd like to perform following tasks:
+
+Retrieve common attributes like shape, number of dimension(s), size, etc.
+
+Deploy frequent methods like transpose, reshape, sort and compression.
+
+To start with let's import and save the image in a variable named img.
+
+ 
+import os.path
+from skimage.io import imread
+from skimage import data_dir
+img = imread(os.path.join(data_dir, 'checker_bilevel.png'))
+
+
+1. Attributes: Since we're all set with our image, now we can observe commonly used NumPy object's attributes:
+
+ 
+''' Image stored as numpy object (2D Matrix) '''
+print(type(img))        # <class 'numpy.ndarray'>
+''' Number of image dimensions '''
+print(img.ndim)         # 2
+''' Shape of the image (rows, columns) '''
+print(img.shape)        # (10, 10)
+''' Number of total elements in the image '''
+print(img.size)         # 100 
+''' Size of per element (in bytes) '''
+print(img.itemsize)     # 1
+''' Size of complete image (in bytes) '''
+print(img.nbytes)       # 100
+ 
+ 
+
+ 
+2. Methods: We can perform listed operations using a direct NumPy matrix attribute and method(s) as listed:
+
+Transpose: matrix_name.T
+
+Sort: matrix_name.sort()
+
+Reshape: matrix_name.reshape(nrow, ncolumn)
+
+Compression: matrix_name.compress( [bool_lst] ). Here, bool_lst refers to the boolean value passed corresponding to each row/column.
+
+Let us code for each case scenario -
+
+ 
+''' assuming you have read the image in variable img '''
+# Transpose
+img_t = img.T
+# Reshape
+img_reshape = img.reshape(5, 20)
+# Sort
+img_srt = img.copy()
+img_srt.sort(axis = 0) 
+# Compression
+img_cmp = img.copy()
+img_cmp = img_cmp.compress([True,False,True,0,1,1,1,0,0,1],axis = 0)
+print(img_cmp.shape)
+ 
+
+ 
+
+The images can be visualized using following code snippet -
+
+ 
+import matplotlib.pyplot as plt
+plt.imshow(img, cmap = 'Greys') # Pass above used image names in place of 'img' to visualize
+
+=============================================================================
+
+================= Indexing and selection
+
+We have been able to perform basic operations on NumPy matrix so far. Now, let us work with image selection. Following are the topics we're going to cover:
+
+Cut an image slice (the rocket) out of the original image (the astronaut).
+
+On the Red component of the rocket, all values falling in the range of [100, 150] must be equated to 0.
+
+Fix the new rocket image back to its place in the original image.
+
+To start with indexing, let's import and store astronaut image (PNG format, RGB) available under scikit-image data module.
+
+ 
+import os.path
+from skimage.io import imread
+from skimage import data_dir
+img = imread(os.path.join(data_dir, 'astronaut.png')) 
+ 
+
+ 
+
+To visualize the image, use Matplotlib imshow() function available under pyplot.
+
+ 
+import matplotlib.pyplot as plt
+plt.imshow(img)
+ 
+
+1. Cut an image slice (the rocket) out of the original image (the astronaut)
+To select an image slice, we use a similar notation as Python's list indexing as shown:
+
+ 
+img_slice = img.copy()
+img_slice = img_slice[0:300,360:480]
+# plt.figure()
+# plt.imshow(img_slice)
+ 
+
+2. On the Red component of the rocket, all values falling in the range of [100, 150] must be equated to 0
+After selecting a particular area from the matrix a.k.a image we can even perform some operations like changing the value (index unknown) particular to some condition. For instance, as asked, let's change the color of the particular slice named img_slice. For all the values between 100 and 150, the new values have to be equal to 0. Here, we're comparing only Red component value and hence, equating selected value to white color.
+
+ 
+img_slice[np.greater_equal(img_slice[:,:,0],100) & np.less_equal(img_slice[:,:,0],150)] = 0
+# plt.figure()
+# plt.imshow(img_slice)
+ 
+
+3. Fix the new rocket image back to its place in the original image.
+So far we're able to slice a particular region out of a NumPy matrix using indexing & transformed element values in the selected slice. Now we can merge the data (slice) to the original image to visualize the original image.
+
+ 
+img[0:300,360:480,:] = img_slice
+# plt.imshow(img)
+
+=============================================================================
+=============== Linear algebra
+So far we have learned the basic operations on Numpy using Image as a base for matrices. Next, we're going to work with the linear algebra computations like solving system of linear equations, calculations based upon matrix inverse, determinants, eigenvalues, eigenvectors, norms etc.
+
+Numpy offers a separate module for linear algebra named linalg. To start using linalg, let's try to calculate a dot product of multiple matrices simultaneously.
+
+ 
+mat1 = np.arange(4).reshape(2,2)
+mat2 = (np.arange(4)*2).reshape(2,2)
+mat3 = (np.arange(4)*3).reshape(2,2)
+''' Performing multiple dot product in one go '''
+print(np.linalg.multi_dot( [mat1, mat2, mat3] ))
+# [[ 36  66]
+#  [132 234]] 
+ 
+
+As we see from above, calculating multiple dot product can be done just by passing the matrices as list into multi_dot function. This depicts the ease of use of linalg module. Let's proceed ahead with some more examples.
+
+Consider a system of linear equations given below:
+
+3x+y = 9
+x+2y = 8
+
+Now, let us try to verify if given system has unique solutions. In case, if solutions exist, we find inverse and rank of the matrix so formed.
+
+ 
+import numpy as np
+a = np.array([[3, 1],[1, 2]])
+b = np.array([9, 8])
+''' Checking if system of equation has unique solution '''
+print(np.linalg.det(a)) 
+# 5.0
+''' Since det = 5 which is non-zero. Hence, we have unique solutions
+ Finding unique solution '''
+print(np.linalg.solve(a, b))
+# [ 2.  3.]
+''' Calculating Inverse: Since, determinant is non-zero 
+ hence, matrix is invertible '''
+print(np.linalg.inv(a))
+# [[ 0.4 -0.2]
+#  [-0.2  0.6]]
+''' Calculating Rank of the matrix '''
+print(np.linalg.matrix_rank(a))
+# 2 
+
+
+
+======================================================================================================================================================================
+=============== Pandas for Data Analysis
+
+========= Analyze one of our own WhatsApp group chat to arrive at following outcomes:
+
+Top 3 frequent words used by each person in the group.
+
+Busiest chatting hour(s) of the group.
+
+To arrive at these outcomes, we'd require a platform through which we can perform importing of the dataset, handling the heterogeneous dataset, and performing various operations like the handling of missing data, reshaping, slicing etc and hence need of Pandas.
+
+Pandas is a data analysis library which provides object like DataFrame to load and perform operations on tabular data. It offers features most of which are listed above including but not limited to a grouping of data along with time-series functionality. Python with Pandas is widely used in both academic and commercial domains.
+
+To use Pandas functions we import Pandas as shown:
+
+import pandas as pd
+
+
+======================================================================================================================================================================
+Scenario: WhatsApp group chat analysis
+To start with the analysis, you can work with the given dummy dataset or import your own group data. Before importing data in the Sypder, let us understand the heterogeneous entity provided by Pandas named as DataFrame.
+
+Dataframe is a heterogeneous object and hence are able to store different datatypes together. It is built upon the numpy module, therefore, most of the numpy concepts remain the same.
+
+The simplest dataframe can be created in various ways as illustrated below:
+
+import pandas as pd
+# 1. Using list of dictionary
+lst = [{"C1": 1, "C2": 2},
+        {"C1": 5, "C2": 10, "C3": 20}]
+# Observe NaN       
+print(pd.DataFrame(lst, index = ["R1", "R2"]))
+#     C1  C2    C3
+# R1   1   2   NaN
+# R2   5  10  20.0
+# 2. Using dictionary
+dc = {"C1": ["1", "3"],
+        "C2": ["2","4"]}
+print( pd.DataFrame(dc, index = ["R1", "R2"]) )
+#    C1 C2
+# R1  1  2
+# R2  3  4
+# 3. Using list
+lst = [[52,32],[45,85]]
+print(pd.DataFrame(lst, index = list('pq'), columns = list('ab')))
+#     a   b
+# p  52  32
+# q  45  85
+  
+              
+We can also have a heterogeneous dataframe in which different columns have different datatypes:
+
+df = pd.DataFrame({'A': [10., 20.],
+                    'B': "text",
+                    'C': [2,60],
+                    'D': 3+9j})
+print(df)
+#       A     B   C       D
+# 0  10.0  text   2  (3+9j)
+# 1  20.0  text  60  (3+9j)
+print(df.dtypes)
+# A       float64
+# B        object
+# C         int64
+# D    complex128
+# dtype: object 
+              
+To reveal complete information about a given dataframe we use DataFrameName.info() command:
+
+print(df.info())
+# < class 'pandas.core.frame.DataFrame' >
+# RangeIndex: 2 entries, 0 to 1
+# Data columns (total 4 columns):
+# A    2 non-null float64
+# B    2 non-null object
+# C    2 non-null int64
+# D    2 non-null complex128
+# dtypes: complex128(1), float64(1), int64(1), object(1)
+# memory usage: 160.0+ bytes 
+              
+Next, we retrieve values of dataframe without labels and also try to retrieve the names of rows and columns individually:
+
+print((df.index))   #index of rows
+# RangeIndex(start=0, stop=2, step=1)
+print(df.columns)   # index of columns
+# Index(['A', 'B', 'C', 'D'], dtype='object')
+print(df.values)    # display values of df
+# [[10.0 'text' 2 (3+9j)]
+#  [20.0 'text' 60 (3+9j)]]
+
+
+
+=============================================================================
+======================== Pandas Operations
+
+Pandas can read and write a dataset in various formats like .xlsx, .csv, .html etc. A sample of reading and writing a dataframe is illustrated below:
+
+import pandas as pd
+df = pd.DataFrame([[11, 202],
+                    [33, 44]],
+                    index = list('AB'),
+                    columns = list('CD'))
+''' Writing to excel file '''
+df.to_excel('test_file.xlsx', sheet_name = 'Sheet1')
+''' Reading from excel file '''
+print(pd.read_excel('test_file.xlsx', 'Sheet1')) 
+              
+To read our WhatsApp group chat dataset chat.txt, we use read_table() command.
+
+import numpy as np
+import pandas as pd
+df = pd.read_table('chat.txt') 
+          
+Let us view the starting samples of the dataset:
+
+print(df.head(5)) 
+
+Pandas automatically take values for the index as left extreme integers 0, 1, 2, 3, 4, ... and column as the topmost row because 
+we have not explicitly assigned header while importing.
+
+=============================================================================
+
+Selection Methods
+Once we have our data in a dataframe, next, our task is to concatenate consecutive chats from the same person in one row. Here, is a sample input and expected output:
+
+''' Input '''
+0  26/08/17, 12:36:23 PM: Friend1: *Richard M. St...                                        
+1         *discovered the malfunction the hard way.*                                        
+2                                        #Incredible                                        
+''' Expected Output '''
+0 26/08/17, 12:36:23 PM: Friend1: *Richard M. Stallman, a staff ... hard way.* #Incredible 
+              
+To arrive at the following outcome, we have to understand the working of selection inside a dataframe.
+
+Selection types
+We can select part of dataframe through various methods like:
+
+1. Selection by Position
+The .loc attribute is the governing parameter to select data by a label. Slicing is performed based on the label of the index.
+
+import pandas as pd
+df = pd.DataFrame([[15, 12],
+                    [33, 54],
+                    [10, 32]], 
+                    index = list('ABC'),
+                    columns = list('DE'))
+print(df)
+#     D   E
+# A  15  12
+# B  33  54
+# C  10  32
+print(df.loc[['A','C'],:])
+#     D   E
+# A  15  12
+# C  10  32
+print(df.loc[:,'E'])
+# A    12
+# B    54
+# C    32
+# Name: E, dtype: int64
+print(df.loc['B', 'D'])
+# 33 
+              
+2. Selection by Position
+Here, the .iloc attribute is the governing parameter to select data and slicing is performed based on the position.
+
+import pandas as pd
+df = pd.DataFrame([[15, 12],
+                    [33, 54],
+                    [10, 32]])
+print(df)
+#     0   1
+# 0  15  12
+# 1  33  54
+# 2  10  32
+print(df.iloc[0:2,:]) 
+#     0   1
+# 0  15  12
+# 1  33  54
+print(df.iloc[:,0:1])
+#     0
+# 0  15
+# 1  33
+# 2  10
+print(df.iloc[:,:])
+#     0   1
+# 0  15  12
+# 1  33  54
+# 2  10  32 
+              
+3. Selection Using Regular Expression
+Regex expression comes handy to select a particular data (row/column) using filter () function.
+
+import pandas as pd
+df = pd.DataFrame([[15, 12],
+                    [33, 54],
+                    [10, 32]], 
+                    index = ['one','two','three'],
+                    columns = ['col1', 'col2'])
+print(df)
+#        col1  col2
+# one      15    12
+# two      33    54
+# three    10    32
+print(df.filter(regex = 'e$', axis = 0))      # row name ending with 'e'
+#        col1  col2
+# one      15    12
+# three    10    32
+print(df.filter(regex = '^c', axis = 1))      # column name starting with 'c'
+#        col1  col2
+# one      15    12
+# two      33    54
+# three    10    32 
+              
+4. Boolean Indexing
+We can also derive condition based selection which returns the True elements and NaN for False elements i.e. where condition became results into False.
+
+import pandas as pd
+df = pd.DataFrame([[15, 12],
+                    [33, 54],
+                    [10, 32]])
+print(df[df >= 15])
+#       0     1
+# 0  15.0   NaN
+# 1  33.0  54.0
+# 2   NaN  32.0 
+              
+Selection in WhatsApp Chat
+Now, we can implement the selection on our dataset and arrive at the desired outcome.
+
+''' Generating a boolean sequence which results True if it contains Timestamp '''
+bools = df.iloc[:len(df),0].str.contains(r'^\d+\/\d+\/\d+, \d+:\d+:\d+ .M:')
+
+
+''' Concatenating '''
+
+i = len(df) - 1
+while (i >= 0):
+    if bools[i] == False:
+        df.iloc[i - 1, 0] += ' ' + df.iloc[i, 0]
+    i -= 1
+	
+	
+''' Dropping rows whose data is appended to source row '''
+df = df[bools]  
+''' Reformatting index '''
+df = df.reset_index(drop = True)    
+print(df.head(5))
+
+
+#   26/08/17, 12:28:58 PM: ‎Messages to this group are now secured with end-to-end encryption.
+# 0  26/08/17, 12:36:23 PM: Friend1: *Richard M. St...                                        
+# 1  26/08/17, 12:36:37 PM: ?+91 12345 45555: <‎ima...                                        
+# 2  26/08/17, 12:36:54 PM: +91 12345 45555: <‎imag...                                        
+# 3             26/08/17, 12:37:08 PM: Friend3: ????????????                                        
+# 4  26/08/17, 12:37:33 PM: +91 12345 45555: <‎GIF ... 
+
+
+
+=============================================================================
+
+Data Cleaning and Feature Engineering
+Data Cleaning
+To reach the objective of our given scenario, we now have to perform following tasks:
+
+1. Split timestamp and chat in different columns
+To do so, we split each row by keeping the breaking point at M: and save the timestamp into a new dataframe ts. Next, we split our original dataframe df into two columns each for Name [ Name] and respective Conversation [ Convo].
+
+df = df.iloc[:,0].str.split('M:', 1, expand=True)
+ts = df.iloc[:,0].copy()
+ts = ts.reset_index(drop = True)
+ts.columns = ['Timestamp']
+df = df.iloc[:,1].str.split(':', 1, expand=True)
+df = df.reset_index(drop = True)
+df.columns = ['Name','Convo'] 
+              
+2. Map phone numbers to their person name
+Sometimes there are people whose names are not saved in our contact directory and therefore we see their phone numbers during the chat. If needed we can provide them their names in this optional step.
+
+''' for unicode use -> r'12345\xa045555' '''
+df['Name'][df['Name'].str.contains(r'12345 45555')] = ' Friend8'
+df['Name'][df['Name'].str.contains(r'98765 12222')] = ' Friend9' 
+              
+3. Remove instances where someone changes their number
+It happens most of the time that we come across the following message:
+
+Dean number was changed from +91 55555 55555 to +91 22222 22222. ‎Tap to add.
+
+To remove such instances which are not needed for current analysis, we can use regular expressions and remove any instance(s) which has 2 digits followed by 5 digits and again 5 digits. Of course, you can develop this approach to a next level if any conflict arises with your analysis.
+
+df = df[df['Name'].str.contains(r'\d{2} \d{5} \d{5}') == False] 
+              
+4. Remove either of the instance: <image omitted>, <GIF omitted> and <video omitted>
+Since our current motive is to work with text, therefore, we can neglect rows which contained either image, gif or a video.
+
+df = df[df['Convo'].str.contains(r'image omitted') == False]
+df = df[df['Convo'].str.contains(r'video omitted') == False]
+df = df[df['Convo'].str.contains(r'GIF omitted') == False]
+df = df.reset_index(drop = True) 
+              
+Handling Redundancy
+We can now arrive at our first outcome of retrieving the topmost 3 words used by every friend from the group. To do so, we first have to select all the unique names from the Name column. This can be done by creating a list of unique names using drop_duplicates() function. Before we proceed with our outcome here is a sample program on drop_duplicates() function.
+
+import numpy as np
+import pandas as pd
+df = pd.DataFrame([[15, 12, np.nan],
+                    [33, np.nan, 54],
+                    [10, 32, 96],
+                    [np.nan, np.nan, np.nan],
+                    [10, 32, 96]])
+print(df.drop_duplicates())
+#       0     1     2
+# 0  15.0  12.0   NaN
+# 1  33.0   NaN  54.0
+# 2  10.0  32.0  96.0
+# 3   NaN   NaN   NaN 
+              
+Since we now know how to unique values, let's find the top 3 words used by each friend. We start by initializing an empty nested list named all_chat_list and use drop_duplicates() to fetch all unique names. Next, we iterate over all rows and for every individual, we concatenate all of the ones text into a single list and append into all_chat_list.
+
+all_chat_list = []
+for i in range(len(df['Name'].drop_duplicates())):
+    temp = df['Convo'][df['Name'] == df['Name'].drop_duplicates().reset_index(drop = True)[i]]
+    temp = temp.reset_index(drop = True)
+    for j in range(1,len(temp)):
+        temp[0] += ' ' + temp[j]
+    all_chat_list.append(temp[0])
+    del temp 
+              
+We can check our result under all_chat_list by visualizing all the chats of Friend7 as shown.
+
+''' Unique Names in order of their appearance in group '''
+print(df['Name'].drop_duplicates().reset_index(drop = True))
+# 0     Friend1
+# 1     Friend3
+# 2     Friend8
+# 3     Friend2
+# 4     Friend9
+# 5     Friend5
+# 6     Friend6
+# 7     Friend7
+# 8     Friend4
+# Name: Name, dtype: object
+''' All chats of Friend7 '''
+print(list(all_chat_list)[6])   # Friend7
+#             gn gn gn gm gm bye  
+ 
+              
+To find the frequency of the highest words used by any of a friend we can just simply pass itemfreq from scipy.stats and return N (here 3) numbers of top most used. Given under are 3 topmost words used by Friend2 and Friend3.
+
+from scipy.stats import itemfreq
+''' Friend1 Top 3 words '''
+fg = itemfreq(list(all_chat_list)[0].split(' '))
+fg = fg[fg[:,1].astype(float).argsort()][::-1]
+print(fg[1:4])
+# [['abroad' '4']
+# ['the' '3']
+#  ['home' '3']]
+''' Friend3 Top 3 words '''
+fg = itemfreq(list(all_chat_list)[2].split(' '))
+fg = fg[fg[:,1].astype(float).argsort()][::-1]
+print(fg[1:4])
+# [['company' '3']
+#  ["it's" '2']
+#  ['hmm' '1']]
+ 
+              
+For advanced text analysis, there is a need of removing stopwords, punctuations etc. which can be done mostly using NLTK* in python.
+
+* For more information on NLTK refer nltk.org
+
+Datettime
+Our next task is to find the busiest chatting hour of the group. To do so, we rely on python's datetime library. Let us look at our timestamp dataframe ts.
+
+print(ts.head(5))
+# 0    26/08/17, 12:36:23 P
+# 1    26/08/17, 12:36:37 P
+# 2    26/08/17, 12:36:54 P
+# 3    26/08/17, 12:37:08 P
+# 4    26/08/17, 12:37:33 P
+# Name: 0, dtype: object 
+              
+As we can observe letter ' M' is missing in the end which is needed to convert the given hour format (12 hours) into 24 hours format. Before, we proceed with appending let us check for any missing value in given dataframe ts.
+
+''' Check which row has missing value '''
+print(ts.isnull())
+# 0      False
+# 1      False
+# 2      False
+# 3      False
+# 4      False
+# 5      False
+# .       .
+# .       .
+''' Check total number of non-missing values '''
+print(ts.count())
+# 122 
+              
+This verifies that none of the rows contains any missing value, in case if it did then we could have filled the missing value using fillna() function or if needed drop it using dropna(). Next, we can append missing letter ' M' and convert the 12-hour format into 24 hours retaining only hours (excluding minutes and seconds).
+
+import datetime
+splitted_ts= ts.str.split(', ')
+for i in range(len(ts)):
+    splitted_ts[i][1] += 'M'
+    temp = datetime.datetime.strptime(splitted_ts[i][1], '%I:%M:%S %p')
+    splitted_ts[i][1] = datetime.datetime.strftime(temp, '%H')
+ 
+              
+To find the frequency of busiest hour we convert splitted_ts Pandas sequence into a list and pass it into the itemfreq function. Afterwards, we can plot a graph of the hour and its corresponding frequency.
+
+hrs = [ splitted_ts[i][1] for i in range(len(splitted_ts)) ]
+hrfreq = itemfreq(hrs)
+occ = [float(hrfreq[i][1]) for i in range(len(hrfreq))]
+hr = [float(hrfreq[i][0]) for i in range(len(hrfreq))]
+plt.plot(hr, occ)
+plt.grid('on')
+plt.xlabel('24 Hours')
+plt.ylabel('Frequency')
+plt.title('Frequent chat timings')
+
+# Above gives line graph 
+#It's clear from the graph that busiest hours of the dummy dataset exist between 10:00 to 13:00 and 20:00 to 22:00.
+
+=============================================================================
+
+There are few more commonly used methods involved in Pandas as listed:
+
+Merging
+
+Reshaping
+
+Pivot Tables
+
+Grouping
+
+=======================================================
+
+Merging :
+
+Let us understand their importance by some illustrations starting with merging of datasets.
+
+Given two datasets from a conducted experiment with each dataset having its own feature. Our task is to form a single dataset combining all the features particular to each observation. To do so we can take help of concat() function.
+
+import pandas as pd
+data1 = pd.DataFrame([[15, 12, -3],
+                    [33, 54, 21],
+                    [10, 32, 22]],
+                    columns = list('ABC'))
+data2 = pd.DataFrame([[10, 1, 3],
+                    [33, -54, 2],
+                    [10, 0.32, 2]],
+                    columns = list('DEF'))
+print(data1)
+#     A   B   C
+# 0  15  12  -3
+# 1  33  54  21
+# 2  10  32  22
+print(data2)
+#     D      E  F
+# 0  10   1.00  3
+# 1  33 -54.00  2
+# 2  10   0.32  2
+print(pd.concat( [data1,data2], axis = 1 ))
+#     A   B   C   D      E  F
+# 0  15  12  -3  10   1.00  3
+# 1  33  54  21  33 -54.00  2
+# 2  10  32  22  10   0.32  2
+ 
+              
+Suppose an individual took observation of 3 different features in two instances. Next, she wants to combine all these samples to form a single dataset. We can achieve this task using the same concat() function, but this time with the change of axis.
+
+import numpy as np
+import pandas as pd
+data1 = pd.DataFrame(np.random.randn(9).reshape(3,3),
+                   columns = list('ABC'))
+data2 = pd.DataFrame(np.arange(9).reshape(3,3),
+                   columns = list('ABC'))
+print(data1)     # Random values
+#           A         B         C
+# 0  1.957218  0.433266  1.214950
+# 1 -0.143500 -0.092030 -0.823898
+# 2  0.481486 -0.024111 -0.769195
+print(data2)
+#    A  B  C
+# 0  0  1  2
+# 1  3  4  5
+# 2  6  7  8
+print(pd.concat( [data1,data2], axis = 0 ))
+#           A         B         C
+# 0  1.957218  0.433266  1.214950
+# 1 -0.143500 -0.092030 -0.823898
+# 2  0.481486 -0.024111 -0.769195
+# 0  0.000000  1.000000  2.000000
+# 1  3.000000  4.000000  5.000000
+# 2  6.000000  7.000000  8.000000 
+
+
+
+
+=============================================================================
+
+Reshaping:
+
+Let us consider that we have been given a dataset which defines the percentage of improvement achieved by India and USA in 2 Olympic games say, Game1 and Game2 for two consecutive Olympic games held in Year1 and Year2. The dataset can be visualized after executing below code:
+
+import numpy as np
+import pandas as pd
+multi_ind = pd.MultiIndex.from_tuples(
+                                      [('IND','Game1'),
+                                       ('IND','Game2'),
+                                       ('US','Game1'),
+                                       ('US','Game2')],
+                                       names = [
+                                                'Country',
+                                                'Game'])
+df = pd.DataFrame(np.random.randn(4,2),     # some random values
+                  index = multi_ind,
+                  columns = ['Year1', 'Year2'])
+print(df) 
+#                   Year1     Year2
+# Country Game                     
+# IND     Game1 -2.263939 -0.793986
+#         Game2 -0.390861  0.728531
+# US      Game1 -0.944708  0.352151
+#         Game2 -0.232056  0.452532 
+
+It can be seen clearly that we have received multiple index (Game1 and Game2) for a single index (IND/USA). What if we want a less complex visualization of this particular dataset? Is it possible?
+
+Well, to resolve this complexity, pandas provide 2 suitable functions something called as stack() and unstack(). By using these functions we can retain all the information but with more clarity.
+
+''' Increase in length '''
+print(df.stack())   
+# Country  Game        
+# IND      Game1  Year1   -2.263939
+#                 Year2   -0.793986
+#          Game2  Year1   -0.390861
+#                 Year2    0.728531
+# US       Game1  Year1   -0.944708
+#                 Year2    0.352151
+#          Game2  Year1   -0.232056
+#                 Year2    0.452532
+# dtype: float64
+''' Increase in width '''
+print(df.unstack()) 
+#             Year1               Year2          
+# Game        Game1     Game2     Game1     Game2
+# Country                                        
+# IND     -2.263939 -0.390861 -0.793986  0.728531
+# US      -0.944708 -0.232056  0.352151  0.452532 
+
+
+=============================================================================
+
+Pivot Tables
+Reshaping a dataset is a perfect seed for quick text visualization. However, similar to reshaping we have another term named as pivot tables which are more efficient in delivering a better visualization.
+
+To understand pivot tables we take the same last dataframe except adding a new feature 'score'.
+
+import pandas as pd
+df = pd.DataFrame([
+            ['IND', 'Gold', 'Game1', '9.9'],
+            ['IND', 'Bronze', 'Game2', '8'],
+            ['USA', 'Silver', 'Game1', '9.5'],
+            ['USA', 'Gold', 'Game2', '8.6'],
+            ], columns = ['Country', 'Medal', 
+                'Game', 'Score'],
+                index = ['Year1', 'Year2','Year1', 'Year2'])
+                  
+print(df)  
+#       Country   Medal   Game Score
+# Year1     IND    Gold  Game1   9.9
+# Year2     IND  Bronze  Game2     8
+# Year1     USA  Silver  Game1   9.5
+# Year2     USA    Gold  Game2   8.6 
+
+Pivot tables come handy when we have to break down a large dataset (in terms of features) into fewer features for quick visualization. For example, finding which medal is common to both IND and USA, listing game(s) in which India won Silver, etc.
+
+We implement pivot table on the given dataset:
+
+# Listing all the features
+print(df.pivot(index = 'Country', columns = 'Medal'))
+#           Game                Score            
+# Medal   Bronze   Gold Silver Bronze Gold Silver
+# Country                                        
+# IND      Game2  Game1   None      8  9.9   None
+# USA       None  Game2  Game1   None  8.6    9.5
+# Listing only Score feature
+print(df.pivot(index = 'Country', columns = 'Medal',
+               values = 'Score')) 
+# Medal   Bronze Gold Silver
+# Country                   
+# IND          8  9.9   None
+# USA       None  8.6    9.5 
+
+Pivot table limitations
+The previous dataset doesn't include any redundant sample, for instance, let's say 2 people win gold as well as silver medals in Year1 of Game1 from India. In that case, the above function named pivot() breaks due to ambiguity in Game column. Therefore, to overcome this limitation, we have another function named as pivot_table() which requires an argument named as aggfun through which we can clear the ambiguity. Let's understand it through an example.
+
+import numpy as np
+import pandas as pd
+df = pd.DataFrame([
+            ['IND', 'Gold', 'Game1', '9.9'],
+            ['IND', 'Silver', 'Game1', '9.5'],
+            ['IND', 'Bronze', 'Game2', '8'],
+            ['USA', 'Bronze', 'Game1', '9.0'],
+            ['USA', 'Silver', 'Game2', '8.6'],
+            ], columns = ['Country', 'Medal', 
+                'Game', 'Score'],
+                index = ['Year1', 'Year1', 'Year2','Year1', 'Year2'])
+                  
+print(df)
+#       Country   Medal   Game Score
+# Year1     IND    Gold  Game1   9.9
+# Year1     IND  Silver  Game1   9.5
+# Year2     IND  Bronze  Game2     8
+# Year1     USA  Bronze  Game1   9.0
+# Year2     USA  Silver  Game2   8.6
+print(df.pivot_table(index = 'Country', 
+                     columns = 'Game',
+                     values = 'Score',
+                     aggfunc = np.max))   
+# Game    Game1 Game2
+# Country            
+# IND       9.9     8
+# USA       9.0   8.6 
+
+
+=============================================================================
+
+
+Grouping
+To understand grouping, a concept similar to databases, let us consider that we have been given a dataset for the sales of laptop and desktop systems. The observations for a particular type can be repeated for the different sales price. In this case, if we need to calculate the total sales of each category then we can group similar data and apply a certain function.
+
+To do so we create a sample dummy dataset and sum up the total sales particular to each category.
+
+import pandas as pd
+df = pd.DataFrame([["Laptop", 1000],
+                   ["Laptop", 2520],
+                   ["Desktop", 3000],
+                   ["Desktop", 400]], columns = ['Category','Sales'])
+print(df)
+#   Category  Sales
+# 0   Laptop   1000
+# 1   Laptop   2520
+# 2  Desktop   3000
+# 3  Desktop    400
+print(df.groupby(['Category'], sort = False).sum())
+#           Sales
+# Category       
+# Laptop     3520
+# Desktop    3400 
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+=============================================================================
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+=============================================================================
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+=============================================================================
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+=============================================================================
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+=============================================================================
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+=============================================================================
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+=============================================================================
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+=============================================================================
+

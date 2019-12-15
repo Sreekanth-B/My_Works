@@ -1,0 +1,263 @@
+================================= Check URL for all pandas Dataframe Operations
+
+https://pandas.pydata.org/pandas-docs/stable/reference/frame.html
+
+https://www.shanelynn.ie/using-pandas-dataframe-creating-editing-viewing-data-in-python/
+
+https://www.geeksforgeeks.org/dealing-with-rows-and-columns-in-pandas-dataframe/
+
+
+************ To check column having all integers 
+
+https://stackoverflow.com/questions/49249860/how-to-check-if-float-pandas-column-contains-only-integer-numbers
+=====================================================================================================================================
+
+
+
+
+==============================================================================================
+========== Python Code
+Best Source to refer 
+=  https://pandas.pydata.org/pandas-docs/stable/reference/frame.html
+
+https://www.geeksforgeeks.org/how-to-select-multiple-columns-in-a-pandas-dataframe/
+
+https://cmdlinetips.com/2018/02/how-to-subset-pandas-dataframe-based-on-values-of-a-column/
+
+
+
+
+=============================
+import pandas as pd
+import numpy as np
+import os
+import matplotlib.pyplot as plt
+import re  
+from sklearn.metrics import confusion_matrix
+from sklearn.cross_validation import train_test_split
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.cross_validation import KFold
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve, auc
+
+
+master_file['issue_dummy'] = np.where(master_file['Issue Number']=='Not_Issue',0,1)
+
+master_file = master_file.loc[master_file['Incident Source']=="EDS"]
+
+master_file.reset_index(inplace=True,drop=True)
+
+master_file['Green Wrench'].fillna('', inplace = True)
+
+master_file['Green Wrench']=master_file['Green Wrench'].apply(lambda x: ' '.join(re.findall("K[0-9]+", x)))
+
+master_file['FAULT COMBINATION'] = master_file['FAULT COMBINATION'].str.lower()
+
+master_file['FAULT COMBINATION'] = master_file['FAULT COMBINATION'].str.replace(r'fault codes ([0-9]+)','fc\\1')
+
+
+master_file = master_file.loc[master_file['Mileage'].apply(str) != 'nan', :]
+
+# Add Mileage column to data and drop rows which having missing values in Mileage column
+data = pd.concat([data, master_file[['Mileage']]], axis = 1)
+bool = list(data.Mileage.isnull())
+data = data.loc[np.logical_not(bool)]
+data.reset_index(inplace = True, drop = True)
+
+
+# Split data into train (80%) and test (20%)
+X_train, X_validation, y_train, y_validation = train_test_split(final_features, data.issue_dummy, train_size = 0.80, random_state = 42)
+
+# Use grid search to get optimal value of parameters using 5 fold cross validation on the train data only, leave validation data unseen
+
+# A larger set of parameters may be used for tuning by grid search based on computer RAM and runtime
+
+
+param = {'learning_rate':[.03], 'n_estimators':[300, 500], 'max_depth':[3, 4], 'subsample':[.9], 'max_features':[.8, .9]}
+grid_search_obj = GridSearchCV(GradientBoostingClassifier(), param, cv = 5)
+grid_search_obj.fit(X_train, y_train)
+print(grid_search_obj.best_estimator_)
+print(grid_search_obj.best_score_)
+
+# Apply model on best parameters
+best_model = grid_search_obj.best_estimator_
+best_model.fit(X_train, y_train)
+pred_gb_tst = best_model.predict(X_validation)
+print(confusion_matrix(y_validation, pred_gb_tst))
+
+features_imp_data.sort_values(by = ['score'], ascending = True, inplace = True)
+
+# Plot top 20 features
+feature_imps_top_20 = features_imp_data.iloc[(features_imp_data.shape[0]-20):,:]
+feature_imps_top_20.plot(kind = 'barh', x = 'feature', y = 'score', legend = False, figsize = (6, 10))
+plt.title('Gradient Boosting: Top 20 Features\' Importance')
+plt.xlabel('Importance')
+plt.show()
+
+===================================================================================================================================
+===================== Usage of pyplot in == Python 3
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+plt.style.use('bmh')
+plt.rcParams['figure.figsize'] = (8.0, 6.0)
+
+# Reading from onedrive directly
+
+issue_tracker_df = pd.read_excel(path+'Infant Care Report_X.xlsm', sheet_name = 'Issue_Details')
+
+
+path = '../../OneDrive - Cummins/Detect Use Case/06 Personal folders/Hitesh/'
+incidents_tracker_df = pd.read_excel(path+'Infant Care Report_X.xlsm', sheet_name = 0)
+
+incidents_tracker_df.head()
+
+# Gives number of columns and Rows
+incidents_tracker_df.shape
+incidents_tracker_df.count()
+
+# TO get unique values of engine and their counts respectively  *************
+
+
+# GIves Duplicate count
+incidents_tracker_df['ESN'].nunique()
+
+
+# To write Query directly
+
+incident_num_df.query('Incident_Num > 1')
+
+# Average of column
+incident_num_df.query('Incident_Num > 1')['Incident_Num'].sum() - incident_num_df.query('Incident_Num > 1').shape[0]
+
+
+# Reading Only filtered data into new df
+
+incidents_tracker_df_filtered = \
+    incidents_tracker_df_filtered.loc[~incidents_tracker_df_filtered['Incident Source'].isnull(),:]
+	
+# Ploting histogram for values < 500 
+
+incidents_tracker_df_filtered.query('Dayes_Investigating < 500')['Dayes_Investigating'].hist(bins = 100)
+plt.show()
+
+
+# Filling NA values  with 'Unknown'
+
+incidents_tracker_df_filtered_final['Fail Code'].fillna('Unknown', inplace = True)
+
+======================== From here the Data Frame is Pandas df
+# Count of ESN unique values
+incident_tracker_df.ESN.nunique()
+# Condition
+incident_tracker_df.loc[(incident_tracker_df.ESN != incident_tracker_df.REL_ESN), :]
+
+----------------------------------
+incident_tracker_df.groupby('BUILD_YEAR').count()['ESN'].reset_index().\
+ merge(incident_tracker_df.groupby('BUILD_YEAR').ESN.nunique().reset_index(), 
+       on = 'BUILD_YEAR')
+# Gives 
+
+BUILD_YEAR	ESN_x	ESN_y
+0	2011	1	1
+1	2012	1354	489
+2	2013	55421	24791
+3	2014	42734	25059
+4	2015	24797	17023
+5	2016	5745	4649
+6	2017	1069	970
+
+----------------------------------
+Ploting Bar graph ===
+
+plt.bar(y_pos, test_rate.rate, align='center', alpha=0.5) 
+plt.xticks(y_pos, test_rate.calibration) 
+plt.title('fault rate by calibration number') 
+plt.ylabel('Fault rate') 
+
+plt.show()
+
+y_pos = y_pos = np.arange(len(test_rate.calibration))
+test_rate.rate == is data from rate column
+------------------------------
+numpy.arange function returns a ndarray object containing evenly spaced values within the given range
+np.arange(1,21,3)
+array([1,4,7,10,13,16,19])
+==========================================================================================
+
+To merge two dataframs
+
+tmp_df = tmp_df2.merge(tmp_df3, on = [test])
+
+In [11]: df1 = pd.DataFrame([[1, 3], [2, 4]], columns=["X", "A"])
+
+In [12]: df2 = pd.DataFrame([[1, 5], [2, 6]], columns=["Z", "B"])
+
+In [13]: df1.merge(df2, left_on=["X"], right_on=["Z"])
+Out[13]:
+   X  A  Z  B
+0  1  3  1  5
+1  2  4  2  6
+----------------------------
+
+
+below created column Incidents_Per_ESN with values of operation 
+
+tmp_df['Incidents_Per_ESN'] = tmp_df.Number_of_Incidents / tmp_df.Number_of_ESNs
+
+
+=====================================================================================================================================
+
+LEARNINGS WHILE CREATING VALIDATION FRAME WORK::
+
+How to get current date 
+
+import time
+strings = time.strftime("%Y,%m,%d,%H,%M,%S")
+t = strings.split(',')
+numbers = [ int(x) for x in t ]
+print numbers
+
+
+import datetime
+now = datetime.datetime.now()
+print(now.year, now.month, now.day, now.hour, now.minute, now.second)  
+
+
+==============================================================================================
+
+=====================================================================================================================================
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+
+=====================================================================================================================================
+
+
+
+
+
+=====================================================================================================================================
+

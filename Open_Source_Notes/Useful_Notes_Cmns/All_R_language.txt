@@ -1,0 +1,1109 @@
+﻿=====================================================================================
+
+=============================================  R Language
+
+========== Sources 
+
+https://homerhanumat.github.io/tigerstats/histogram.html == Plotes
+
+Sample grpahs ::
+http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html		   
+		   
+For Line graphs::
+
+http://www.sthda.com/english/wiki/ggplot2-line-plot-quick-start-guide-r-software-and-data-visualization
+
+https://www.r-graph-gallery.com/all-graphs/
+
+https://mathinsight.org/plotting_line_graphs_in_r
+
+
+
+========================= Loading csv Data into R dataframe
+
+date_part=gsub("[[:punct:]]","",Sys.Date())
+
+source("/home/qx816/notebooks/qx816_Weibull/ds/Weibull/weibull_testscripts_L.R")
+path_op="/data/data/weibull/model_output/weibull_l/upload_folder/"
+
+output_failcode_month_L=read.csv(gsub(" ","",paste(path_op,"WEIBULL_",date_part,"_l_","finaloutput","_BUILD_MONTH.csv")),stringsAsFactors=FALSE)
+
+----------------------------
+
+path_op= "/home/qx816/notebooks/weibull_mar7/"
+
+om_output=read.csv(gsub(" ","",paste(path_op,"OM_MODEL_OUTPUT_2019-03-12.csv")),stringsAsFactors=FALSE,sep="|")
+
+
+
+====================== TO save the results in csv and path
+
+write.csv(Dataframe, file = "path/MyData.csv") 
+
+=========================================================================================================================================================
+
+-------------------------------------------------
+====== Using Packages
+library(ggplot2)
+
+============= Installing packages
+install.packages('sqldf', repos='http://cran.us.r-project.org')
+
+=============== Count of DataFrame
+nrow(f1)
+=====================================================================================================================================
+
+====================================    Filtering In R
+
+f1 = om_output[om_output$CALC_DATE == "2019-03-07",]
+
+============================================== Group BY
+
+df1=df_output[as.Date(df_output$CALC_DATE)>= as.Date(max(df_output$CALC_DATE))-(48*7),]
+
+df2=df1[df1$OM_METRIC=='COUNT_NBR' & df1$OM_ALGO=='MA_Ribbon',]
+date1=unique((df2$CALC_ID))
+df3=aggregate(df2$OM_NBR, by=list(Calc_id=df2$CALC_ID), FUN=sum) 
+df4=df3[df3$x>15,]
+length(df4$Calc_id) 
+
+=================== Some R Scripting 
+  
+df1=df_output[df_output$OM_ALGO=='TREND_without_BB',]
+df2=df1[order(df1$OM_CRRT_PRIORITY_SCORE,decreasing=TRUE),]
+df3 = df2[0:5,] 
+ 
+
+=====================================================================================================================================
+
+===========================================================Schema Check
+
+sapply(om_output,typeof) ========== IN R language
+=====================================================================================================================================
+
+================================= R function how to find count of a col having negative values
+date_part=gsub("[[:punct:]]","",Sys.Date())
+
+source("/home/qx816/notebooks/qx816_Weibull/ds/Weibull/weibull_testscripts_L.R")
+path_op="/data/data/weibull/model_output/weibull_l/upload_folder/"
+
+output_failcode_month_L=read.csv(gsub(" ","",paste(path_op,"WEIBULL_",date_part,"_l_","finaloutput","_BUILD_MONTH.csv")),stringsAsFactors=FALSE)
+
+check_cpe_month_L= function(df_output){
+    
+    print(length(which(df_output$CPE_MILEAGE_MEDIAN <0)))
+    print(length(which(df_output$CPE_MILEAGE_LOWER_BOUND <0)))
+    print(length(which(df_output$CPE_MILEAGE_UPPER_BOUND <0)))
+    print(length(which(df_output$CPE_MONTH_IN_SERVICE_LOWER_BOUND <0)))
+    print(length(which(df_output$CPE_MONTH_IN_SERVICE_MEDIAN <0)))
+    print(length(which(df_output$CPE_MONTH_IN_SERVICE_UPPER_BOUND <0)))
+    
+    #df1 <- which(df_output$CPE_MILEAGE_MEDIAN <0)
+    #length(df)
+}
+
+check_cpe_month_L(output_failcode_month_L)
+=====================================================================================================================================
+
+====================================== Ploting using R
+======== BAr plot
+g <- ggplot(f1, aes(OM_SCORE_REL_BUCKET,CALC_ID))
+g + geom_bar(stat = "identity", width = 0.2, fill="brown")+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+f2=om_output[om_output$SOURCE=="TELEMATICS" & om_output$OM_ALGO=="MA_Ribbon" & om_output$CODE=="2398",] 
+
+!!!!!!!!!!!!!!!!!
+filter2=df_output[df_output$SOURCE=='TELEMATICS' & df_output$OM_ALGO=='MA_Ribbon',]
+nrow(filter2)
+total_id=NROW(filter2$CALC_ID)
+total_id
+ggplot(filter2, aes(x =filter2$OM_SCORE_REL_BUCKET, y =total_id)) + geom_bar(stat = "identity")
+
+!!!!!!!!!!!!!!!!!!
+
+df1=df_output[df_output$SOURCE=="REL" & df_output$OM_ALGO=="TREND_without_BB",]
+df2=df1[order(df1$OM_SCORE,decreasing=TRUE),]
+df3 = df2[0:5,]
+filter2=df_output[df_output$SOURCE=='TELEMATICS' & df_output$OM_ALGO=='MA_Ribbon',]
+pp = ggplot(filter2)+geom_bar(aes(x=OM_SCORE_REL_BUCKET,fill=as.factor(OM_SCORE_REL_BUCKET)),position="dodge",stat="count")
+plot(pp, ylab ="Count of ID")
+
+!!!!!!!!!!!!!!!!!!!!!!!
+ 
+head(f2$CALC_ID)
+============= point plot
+
+g <- ggplot(f2, aes(CALC_DATE,OM_SCORE))
+g + geom_point(stat = "identity",color="brown")+ theme(axis.text.x = element_text(angle=66, vjust=0.6))+labs(title="Bar Chart CALC_DATE VS OM_SCORE", 
+           subtitle="ON BASIS OF SOURCE== TELEMATICS , OM_ALGO== MA_Ribbon , CODE== 2398 ")
+		   
+========= Line with point plot
+ggplot(filter2, aes(x =filter2$CALC_DATE, y = filter2$OM_SCORE, group=1)) + geom_line()+geom_point()
+
+
+
+=====================================================================================================================================
+================================== Using SQL in R
+
+In R if data set is having more values SQL quiry dont work (it will work at max of 50k r 1 lakh)
+
+library(gsubfn)
+library(proto)
+library(RSQLite)
+library(sqldf)
+
+unique(df1$ENGINE_SERIES)
+
+sd <- sqldf('SELECT COUNT(*) FROM df1')
+print(sd)
+
+st = sqldf('SELECT ENGINE_SERIES,max(CALC_DATE) FROM df1 GROUP BY ENGINE_SERIES')
+print(st)
+
+s1 = sqldf('SELECT DISTINCT(ENGINE_SERIES) FROM df1')
+print(s1)
+
+sq <- sqldf('SELECT CALC_ID,SUM(OM_NBR) FROM out GROUP BY CALC_ID having SUM(OM_NBR) >15')
+print(sq)
+
+
+library(sqldf)   -------- To write SQL quires
+sqldf(select om_output.calc_date from om_output limit 10)
+
+sqldf("SELECT COUNT(*) FROM df2 WHERE state = 'CA'")
+
+sqldf("SELECT df2.firstname, df2.lastname, df1.var1, df2.state FROM df1
+INNER JOIN df2 ON df1.personid = df2.id WHERE df2.state = 'TX'")
+
+
+
+=====================================================================================================================================
+======================================== Dplyr
+
+library(DBI)
+library(dplyr)
+library(dbplyr)
+
+frst_s <- om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE) & OM_NBR>0.0005)
+scnd_s <- (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(OM_NBR)>5) %>% dplyr::group_by(CALC_ID)) 
+thrd_s <-  (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)>=15) %>% dplyr::group_by(CALC_ID) 
+
+Censor.Shipments <- shipments.to.use %>% select(engine_serial_num,Expected.Miles) %>% dplyr::filter(engine_serial_num %in% ESNs2InclFromShipments)
+Censor.IncidentTracker <- MCF.Set %>% dplyr::filter(is.na(Faults))
+Censor <- Censor %>% dplyr::filter(!ESN %in% Censor.ESNs)  ===== ESN not in Censor ESN's
+
+#if ((om_output %>% dplyr::(filter(ENGINE_SERIES=="X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE) & OM_NBR>0.0005) || (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(OM_NBR)>5) %>% dplyr::group_by(CALC_ID)) || (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)>=15) %>% dplyr::group_by(CALC_ID)))
+     #print(pass)
+
+#frst_s <- om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE) & OM_NBR>0.0005)
+     
+if (nrow(om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)<15))>100)
+    cat ("\n Test Case 13: Passed")
+    #else if (nrow(om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(OM_NBR)<=5))>100)
+        #cat("y","\n")
+    
+    #| (as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)>=15)) %>% dplyr::group_by(CALC_ID)
+#stg <- om_output %>% dplyr::filter(CALC_DATE == max(CALC_DATE))  %>%  dplyr::group_by(ENGINE_SERIES)
+
+=====================================================================================================================================
+
+
+
+
+=====================================================================================================================================
+============================================================= Using R on DSVM
+>R
+
+> bld_file<-read.csv("WEIBULL_2019-04-18_b_BUILD_MONTH.csv",T)
+> colnames(bld_file)
+>unique(bld_file$MESSAGE)
+>min(bld_file$NUM_FAILURES)
+=====================================================================================================================================
+
+
+=====================================================================================================================================
+=================================== Some usefull work done using R Language
+
+path_op= "C:/Users/qx816/Downloads/"
+
+om_out=read.csv(gsub(" ","",paste(path_op,"OM_MODEL_OUTPUT_2019-03-12.csv")),stringsAsFactors=FALSE,sep="|")
+
+sapply(om_out,typeof)
+
+library(gsubfn)
+library(proto)
+library(RSQLite)
+library(sqldf)
+library(DBI)
+library(dplyr)
+
+
+#if ((om_output %>% dplyr::(filter(ENGINE_SERIES=="X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE) & OM_NBR>0.0005) || (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(OM_NBR)>5) %>% dplyr::group_by(CALC_ID)) || (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)>=15) %>% dplyr::group_by(CALC_ID)))
+#print(pass)
+#frst_s <- om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE) & OM_NBR>0.0005)
+e_s <-c("B","L")
+df_1 <- om_out %>% dplyr::filter(ENGINE_SERIES %in% e_s & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP)
+
+df_2 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_1 GROUP BY CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP having sum(OM_NBR)<15')
+
+df_AA <-om_out %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CALC_ID)
+
+df_BB <- df_AA %>% dplyr ::filter(sum(OM_NBR)<15)%>% dplyr::select(CALC_ID,OM_NBR) %>% dplyr::group_by(CALC_ID,sum(OM_NBR))
+
+for (i in 1:2)
+{
+  c1=0
+  c2=0
+  c3=0
+  if (nrow(df_2)>0)
+  {
+    c1 = c1+1
+    
+    df_3 <- df_1 %>% dplyr::filter(as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7)) %>% dplyr::group_by(CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP)
+    df_4 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_3 GROUP BY CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP having sum(OM_NBR)<=5 and CALC_ID in (select CALC_ID from df_2)')
+    #df_4 <- df_3 %>% dplyr ::filter(sum(OM_NBR)<=5) %>% dplyr::group_by(CALC_ID)
+    if (nrow(df_4)>0)
+    {
+      c2 =c2+1
+    }
+    if(nrow(df_4)==0){
+      c3 = c3+1
+    }
+  }
+}
+print(c1)
+print(c2)
+print(c3)
+if (c1 <1)
+{
+  cat("\n scenario 2 pass")
+}
+if(c2 <1)
+{
+  cat("\n scenario 3 pass")  
+}
+if (c1 >=1)
+{
+  cat("\n scenario 2 failed")
+}
+if (c2 >=1)
+{
+  cat("\n ALL scenario 3 failed")
+}
+if(c3>=1)
+{
+  cat("\n No data present for df after 2nd scenario for 3rd scenario")
+}
+
+===================================
+library(gsubfn)
+library(proto)
+library(RSQLite)
+library(sqldf)
+
+sd <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_1 GROUP BY CALC_ID having sum(OM_NBR)<15')
+print(sd)
+
+
+#cat ("\n Test Case 13: Passed")
+#else if (nrow(om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(OM_NBR)<=5))>100)
+#cat("y","\n")
+
+#| (as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)>=15)) %>% dplyr::group_by(CALC_ID)
+#stg <- om_output %>% dplyr::filter(CALC_DATE == max(CALC_DATE))  %>%  dplyr::group_by(ENGINE_SERIES)
+
+===================================================================
+
+path_op= "C:/Users/qx816/Downloads/"
+
+wb_fail_grp=read.csv(gsub(" ","",paste(path_op,"failmode_group_map_b.csv")),stringsAsFactors=FALSE,sep=",")
+
+dfrm <- as.data.frame(om_output)
+nrow(dfrm)
+
+AS <- om_output[om_output$CALC_DATE == '2017-03-07']
+sd <-as.Date(max(om_output$CALC_DATE))-48*7
+out <- om_output[as.Date(om_output$CALC_DATE) >= sd & om_output$OM_METRIC == "COUNT_NBR" & om_output$OM_ALGO =="MA_Ribbon",]
+length(unique(out$CALC_ID))
+sapply(out,typeof)
+
+library(gsubfn)
+library(proto)
+library(RSQLite)
+library(sqldf)
+
+sq <- sqldf('SELECT * FROM wb_fail_grp group by POPULATION,FAILMODE_GROUP ')
+print(sq)
+length(unique(sq$CALC_ID))
+pop <- sqldf('SELECT FAILMODE_GROUP FROM sq')
+spq <- sqldf('SELECT * FROM wb_fail_grp where FAILMODE_GROUP not in pop')
+
+mid <- sqldf('SELECT POPULATION from wb_fail_grp where FAILMODE_GROUP == "LOW" and FAILMODE_GROUP == "MEDIUM"')
+
+print(mid)
+
+======================================================
+
+library(plyr)
+cnt <- count(om_output, c("CALC_ID"))
+cnt
+df1=om_output[om_output$OM_ALGO=="MA_Ribbon" & om_output$ENGINE_SERIES=="X" & om_output$OM_METRIC=="COST_NBR"  & as.Date(om_output$CALC_DATE)==as.Date(max(om_output$CALC_DATE)),]
+unique(om_output$OM_SCORE_REL_BUCKET)
+unique(om_output$OM_SCORE_REL_PREV_BUCKET)
+unique(om_output$OM_NBR_CUMUL_BUCKET)
+unique(om_output$OM_CRRT_PRIORITY_SCORE_BUCKET)
+unique(df1$OM_CRRT_PRIORITY_SCORE_BUCKET) 
+
+
+nrow(AS)
+head(om_output)
+library(ggplot2)
+
+df1=om_output[om_output$OM_ALGO=='TREND_without_BB',]
+df2=df1[order(df1$OM_CRRT_PRIORITY_SCORE,decreasing=TRUE),]
+df3 = df2[0:5,] 
+
+ggplot() + 
+  geom_point(data = df3, aes( x= CODE,y = OM_CRRT_PRIORITY_SCORE), color = "red",size =2.5) +
+  geom_point(data = df3, aes( x=CODE,y = OM_PREV_PRIORITY_SCORE),color="blue",size =2.5) +theme(axis.text.x = element_text(angle=90, vjust=0.6,))+
+  xlab('CODES') +
+  ylab('Top Priority Scores')+geom_point()+geom_segment()
+
+unique(om_output$c)
+library(sqldf)
+library(gsubfn)
+library(proto)
+library(RSQLite)
+require(sqldf)
+
+sq <- sqldf('SELECT COUNT(*) FROM out')
+print(sq)
+
+sd <-as.Date(max(om_output$CALC_DATE))
+sd
+st <- sd-48*7
+st
+class(om_output$OM_NBR)
+unique(om_output$OM_METRIC),
+
+df <- om_output[om_output$CALC_DATE == max(om_output$CALC_DATE) & om_output$OM_METRIC == "RPH" & om_output$OM_NBR>0.0005,]
+out <- om_output[as.Date(om_output$CALC_DATE) >= st,]
+unique(out$OM_METRIC)
+write.csv(out, file = "path/MyData.csv")
+
+=========================================
+path_op= "C:/Users/qx816/Downloads/"
+
+om_out=read.csv(gsub(" ","",paste(path_op,"OM_MODEL_OUTPUT_2019-03-12.csv")),stringsAsFactors=FALSE,sep="|")
+
+sapply(om_out,typeof)
+
+library(gsubfn)
+library(proto)
+library(RSQLite)
+library(sqldf)
+library(DBI)
+library(dplyr)
+
+df_1 <- om_out %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CALC_ID)
+
+df_2 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_1 GROUP BY CALC_ID having sum(OM_NBR)<15')
+
+#df_2 <- df_1 %>% dplyr ::filter(sum(OM_NBR)<15) %>% dplyr::group_by(CALC_ID,sum(OM_NBR))
+
+for (i in 1:2)
+{
+  c1=0
+  c2=0
+  c3=0
+  if (nrow(df_2)>0)
+  {
+    c1 = c1+1
+    clc_id <- (df_2$CALC_ID[i])
+    df_3 <- df_1 %>% dplyr::filter(as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7)) %>% dplyr::group_by(CALC_ID)
+    df_4 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_3 GROUP BY CALC_ID having sum(OM_NBR)<=5 and CALC_ID in (select CALC_ID from df_2)')
+    #df_4 <- df_3 %>% dplyr ::filter(sum(OM_NBR)<=5) %>% dplyr::group_by(CALC_ID)
+    if (nrow(df_4)>0)
+    {
+      c2 =c2+1
+    }
+    if(nrow(df_4)==0){
+      c3 = c3+1
+    }
+  }
+}
+print(c1)
+print(c2)
+print(c3)
+if (c1 <1)
+{
+  cat("\n scenario 2 pass")
+}
+if(c2 <1)
+{
+  cat("\n scenario 3 pass")  
+}
+if (c1 >=1)
+{
+  cat("\n scenario 2 failed")
+}
+if (c2 >=1)
+{
+  cat("\n ALL scenario 3 failed")
+}
+if(c3>=1)
+{
+  cat("\n No data present for df after 2nd scenario for 3rd scenario")
+}
+
+
+
+e_s <-c("B","L")
+df_1 <- om_out %>% dplyr::filter(ENGINE_SERIES %in% e_s & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP)
+
+df_2 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_1 GROUP BY CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP having sum(OM_NBR)<15')
+
+#df_2 <- df_1 %>% dplyr ::filter(sum(OM_NBR)<15) %>% dplyr::group_by(CALC_ID,sum(OM_NBR))
+
+for (i in 1:2)
+{
+  c1=0
+  c2=0
+  c3=0
+  if (nrow(df_2)>0)
+  {
+    c1 = c1+1
+    clc_id <- (df_2$CALC_ID[i])
+    df_3 <- df_1 %>% dplyr::filter(as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7)) %>% dplyr::group_by(CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP)
+    df_4 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_3 GROUP BY CODE,SOURCE,BUILD_YEAR,REL_USER_APPL_DESC,REL_ENGINE_NAME_DESC,ENGINE_SERIES,REL_MONTH_BUILD_DATE,REL_OEM_NORMALIZED_GROUP having sum(OM_NBR)<=5 and CALC_ID in (select CALC_ID from df_2)')
+    #df_4 <- df_3 %>% dplyr ::filter(sum(OM_NBR)<=5) %>% dplyr::group_by(CALC_ID)
+    if (nrow(df_4)>0)
+    {
+      c2 =c2+1
+    }
+    if(nrow(df_4)==0){
+      c3 = c3+1
+    }
+  }
+}
+print(c1)
+print(c2)
+print(c3)
+if (c1 <1)
+{
+  cat("\n scenario 2 pass")
+}
+if(c2 <1)
+{
+  cat("\n scenario 3 pass")  
+}
+if (c1 >=1)
+{
+  cat("\n scenario 2 failed")
+}
+if (c2 >=1)
+{
+  cat("\n ALL scenario 3 failed")
+}
+if(c3>=1)
+{
+  cat("\n No data present for df after 2nd scenario for 3rd scenario")
+}
+
+=====================================================================================================================================
+
+
+# Basic Setup ------------------------------------------------------------------------------------------------
+cat("\014") #clears screen
+graphics.off() # clears old plots
+rm(list=ls()) # removes all objects
+setwd("~/Product_Quality") # Set current location, where clustering results have been stored
+=====================================================================================================================================
+============= How to collect data from cluster using R 
+# Data
+
+Data was retrieved from the server "SDWPSQL6001/CAPABILITYDB" server. This has not been brought into the cluster. Need be, this can be done. 
+
+```{r}
+con <- odbc::dbConnect(odbc::odbc(), dsn = "Capability",Database = "HDPacific")
+RYG_tbl <- dplyr::tbl(con,"qryRYG_New2")
+Error_tbl <- dplyr::tbl(con,"tblErrorTable") %>% select(FaultCode,SoftwareVersion,SystemErrorName)
+RYG.Data <- dplyr::left_join(RYG_tbl,Error_tbl,by = c("Error_Name" = "SystemErrorName", "CalibrationVersion" = "SoftwareVersion")) %>% 
+  dplyr::collect()
+
+
+# write.csv(RYG.Data,file = "RYGData.csv",row.names = F)
+# RYG.Data <- read.csv(file = "RYGData.csv")
+
+skimr::skim(RYG.Data)
+=====================================================================================================================================
+
+
+# Load libraries ---------------------------------------------------------------------------------------------
+library("dplyr")
+# Load data --------------------------------------------------------------------------------------------------
+rawdata <- read.csv(file = "clustering_v2.csv")
+
+# Get Cluster & associate Fail Code count (except where Fail code is "Unknown") 
+interim_data <- filter(rawdata,Fail.Code!="Unknown") %>% group_by(Cluster_ID,Fail.Code) %>% summarise(cluster_fail_count=n())
+
+# Get the total count of each Fail Code from "rawdata"
+fail_data <- filter(rawdata) %>% group_by(Fail.Code) %>% summarise(total_fail_count=n())
+
+# Join "interim_data" with "fail_data"
+interim_data <- left_join(interim_data,fail_data,by="Fail.Code")
+
+# Sort the above data in desc order of issue_count
+highest_incidents1 <- highest_incidents[order(-highest_incidents$issue_count),]
+=====================================================================================================================================
+========================== To select Randomly From dataframe in R
+
+ok <- om_output[sample(nrow(om_output),1000),]
+=====================================================================================================================================
+# Convert into %age terms and round it to two decimal points
+interim_data$pect_occr <- interim_data$pect_occr * 100
+interim_data$pect_occr <- round(interim_data$pect_occr,2)
+
+# Give descriptive names to all the columns ====== To Rename the Column
+names(interim_data)[1] <- paste("Cluster_ID")
+names(interim_data)[2] <- paste("Most Occuring Fail Code in Cluster")
+=====================================================================================================================================
+# Write the result into a CSV
+write.csv(interim_data,"Clustering_Analysis.csv",row.names = FALSE)
+
+write.table(MyData, file = "MyData.csv",row.names=FALSE, na="",col.names=FALSE, sep=",")
+
+ # Calculate days difference column and perfome other cleansing procesess
+  finalResults$days.diff <- finalResults$Earliest.Indication.Date - finalResults$lag.date
+  finalResults$days.diff[is.na(finalResults$days.diff)] <- "" 
+  finalResults$lag.date <- NULL 
+  
+  # Write the results into a CSV file
+  write.csv(finalResults,"results.csv",row.names = FALSE)
+  
+-====================== For loop in R
+
+for (unique.group in 1:length(unique(daysDiffData$main_group)))
+  {
+  }
+  
+
+===== reading excel with sheetwise ******
+
+install.packages('readxl')
+library(readxl)
+try_xl <- readxl::read_xlsx("C:/Users/qx816/Downloads/options_df_fail_1_ref.csv.xlsx",sheet = 1)
+=========================================================================================================================================================
+========== Importing all csv files from one location and binding into one dataframe
+files <- list.files(path = "C:/Users/ku906/Documents/insite_miles.csv", pattern = ".csv")
+files <- file.path("C:/Users/ku906/Documents/insite_miles.csv",files)
+myfiles <- lapply(files, read.csv, header=T, stringsAsFactors = F)
+insite.data <- do.call(what = rbind.data.frame,args = myfiles)
+insite.data$VALUE <- as.numeric(insite.data$VALUE)
+insite.data$DATES <- as.Date(insite.data$DATES)
+insite.data.rev <- insite.data %>% dplyr::distinct(.)
+insite.data.rev$ESN <- as.factor(insite.data.rev$ESN)
+
+========= OR
+# Get the files names
+files = list.files(pattern="*.csv")
+# First apply read.csv, then rbind
+myfiles = do.call(rbind, lapply(files, function(x) read.csv(x, stringsAsFactors = FALSE)))
+
+====== rbinding of two dfs
+
+final <- rbind.data.frame(1st_dataset,2nd_dataset)
+
+
+
+=====================================================================================================================================
+library(changepoint)
+library(dplyr)
+library(readr)
+
+telematics_joined <- read_csv("C:/Users/oz234/telematics_joined/telematics_joined.csv", 
+    col_types = cols(X1 = col_skip(), engine_serial_num = col_skip(), 
+        occurrence_date = col_date(format = "%m/%d/%Y")))
+
+library(hydroTSM)
+plot(cpt.meanvar(with((telematics_filtered %>%
+                         dplyr::filter(fault_code == 559) %>%
+                         dplyr::group_by(date_week) %>%
+                         dplyr::summarise(count = length(date_week)) %>%
+                         dplyr::arrange(date_week)), zoo(count, date_week)),
+                 test.stat='Poisson',
+                 method='PELT',
+                 penalty="BIC"),
+     col = "darkgreen",
+     lwd = 2,
+     cpt.col='red',
+     cpt.width = 3,
+     main = "Fault Code 559",
+     ylab = "Count",
+     xlab = "Time",
+     xaxt ="n")
+
+	 
+======== filtering colum values which are not there in other table column
+	 
+esnFaultCodeCombined <- dplyr::filter(esnFaultCodeCombined, !(unique.identifier %in% unique.identifier.1))	
+
+========= Sorting the table based on Earliest.Indication.Date column
+
+esnFaultCodeCombined <- esnFaultCodeCombined[order(esnFaultCodeCombined$Earliest.Indication.Date), ] 
+
+------ Rbinding in R
+
+# Rbind the datasets 
+
+esnFaultCodeCombined <- rbind.data.frame(esnFaultCodeCombined_1, esnFaultCodeCombined_2)
+
+===============
+# For each ESN, we will create a flag that will help get the lag date specific to that ESN only 
+      esnFaultCodeCombined$group.lag <- cumsum(c(0,as.numeric(diff(esnFaultCodeCombined$fault_code)) != 0))
+      esnFaultCodeCombined <- esnFaultCodeCombined %>% dplyr::group_by(ESN,group.lag) %>% 
+        dplyr::mutate(lag.date = dplyr::lag(Earliest.Indication.Date, n = 1, default = NA))
+		
+-- IN Above
+
+diff == Example
+temp = c(10,1,1,1,1,1,1,2,1,1,1,1,1,1,1,3,10)
+diff(temp)
+output:
+[1] -9  0  0  0  0  0  1 -1  0  0  0  0  0  0  2  7
+analysis ::
+
+ 1 - 10 = -9
+ 1 -  1 =  0
+ 1 -  1 =  0
+.
+.
+.
+ 3 -  1 =  2
+10 -  3 =  7
+((MOving from back))
+
+diff(temp, differences = 2) 
+[1]  9  0  0  0  0  1 -2  1  0  0  0  0  0  2  5
+
+diff(diff(temp))
+[1]  9  0  0  0  0  1 -2  1  0  0  0  0  0  2  5
+diff(temp, lag = 2)
+[1] -9  0  0  0  0  1  0 -1  0  0  0  0  0  2  9
+For example, if lag = 2, the differences between the third and the first value, 
+between the fourth and the second value, between the fifth and the third value etc.
+
+----======= Replacing na with ""
+
+finalResults$days.diff <- finalResults$Earliest.Indication.Date - finalResults$lag.date
+  finalResults$days.diff[is.na(finalResults$days.diff)] <- "" 
+=====================================================================================================================================
+============= Left outer join in R
+RYG.Data <- dplyr::left_join(RYG_tbl,Error_tbl,by = c("Error_Name" = "SystemErrorName", "CalibrationVersion" = "SoftwareVersion")) %>% 
+  dplyr::collect()
+ 
+## here RYG_tbl,Error_tbl are tables to join in left outer and inside by = c() we need to mention columns
+
+=== skimr::skim(RYG.Data) 
+skim gives detailed summery of each columns present in dataset with histogram plots for respective columns also
+
+
+=====================================================================================================================================
+========= Creating Dummy values
+below code do create column Data if category column values is "R" it takes 1 as value and if it is "Y" the number will be 2,3
+ 
+RYG.Data <- RYG.Data %>% mutate(Cat = ifelse(Category == "R",1,ifelse(Category == "Y",2,3)))
+
+
+
+
+=====================================================================================================================================
+# Rename columns in the "Fault Code Info" file
+  names(fcData)[1] <- paste("fault.code")
+  names(fcData)[2] <- paste("description")
+  
+# Covert type of the description field from factor to character
+  fcData$fault.code  <- as.character(fcData$fault.code)
+  fcData$description <- as.character(fcData$description)
+
+
+
+=====================================================================================================================================
+======== Ploting basics 
+
+lattice::histogram(RYG.Data$DaysOfData,xlab = "Day of Data") 
+
+## THis is usefull for creating histogram plot on RYG.Data 
+
+
+=====================================================================================================================================
+=====================================================================================================================================
+library(ggplot2)
+library(dplyr)
+#library(ggthemes)
+
+#' visualize_pop_report
+#' @description A function to visualize the values of various quantities (say calculated RPH) over time.
+#' @param report Dataframe that is an output of existing Weibull run file. Will contain estimates of rph
+#' for each run
+#' @param failure_mode_filter String - Serves as filter to ensure that one failure mode is represented
+#' @param rph_filter String - Serves to only plot a single type of rph (with upper/lower_bounds)
+visualize_pop_report <- function(report, failure_mode_filter, rph_filter = "usage_miles_250k"){
+  return_plot <- report %>% 
+    dplyr::filter(FAILURE_MODE == failure_mode_filter) %>% 
+    dplyr::select(calculation_date, dplyr::contains(rph_filter)) %>%
+    tidyr::gather(key = statistic_name, value = statistic_value, -calculation_date) %>% 
+    ggplot(aes(x = calculation_date, y = statistic_value, color = statistic_name, group = statistic_name)) + 
+    geom_point() + geom_line() +
+    ylab(rph_filter) + xlab('Date of Model Evaluation') +
+    ggtitle(paste(rph_filter, failure_mode_filter)) + ggthemes::theme_tufte() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) + guides(color=F, group=F)
+    return_plot
+}
+
+
+#' Visualize distributions of simulated data
+#' @description Given a set of lifetime/survival data and a trace of shape/scale parameters, plots example cdfs. They are plotted lighter and overlain to see highest density
+#' @param traces_df A set of traces of different parameters from a stan model
+#' @param survival_data A dataframe of ages at failures.
+#' @return A line plot with the "true" ecdf in a different color
+
+visualize_lifetime_distribution <- function(traces_df, survival_df){
+  initial_plot <- survival_df %>% ggplot(aes(x=time)) + stat_ecdf(geom='step')
+  for(i in 1:nrow(traces_df)){
+    nc_df <- dplyr::data_frame("time" = rweibull(nrow(survival_df), shape = traces_df$shape[i],
+                                            scale = traces_df$scale[i]))
+    initial_plot <- initial_plot + stat_ecdf(data = nc_df, mapping=aes(time, color='red'), alpha = 0.3, geom = "step") + 
+      ggthemes::theme_tufte()
+  }
+  initial_plot
+}
+
+
+
+=====================================================================================================================================
+
+
+path_op= "C:/Users/qx816/Downloads/"
+
+wb_fail_grp=read.csv(gsub(" ","",paste(path_op,"failmode_group_map_b.csv")),stringsAsFactors=FALSE,sep=",")
+
+library(dplyr)
+
+
+
+library(DBI)
+
+optk <-  DBI::dbSendQuery("Select POPULATION FROM wb_fail_grp ") %>% DBI::dbFetch()
+
+
+
+
+
+dfrm <- as.data.frame(om_output)
+nrow(dfrm)
+
+AS <- om_output[om_output$CALC_DATE == '2017-03-07']
+sd <-as.Date(max(om_output$CALC_DATE))-48*7
+out <- om_output[as.Date(om_output$CALC_DATE) >= sd & om_output$OM_METRIC == "COUNT_NBR" & om_output$OM_ALGO =="MA_Ribbon",]
+length(unique(out$CALC_ID))
+sapply(out,typeof)
+
+library(gsubfn)
+library(proto)
+library(RSQLite)
+library(sqldf)
+
+sq <- sqldf('SELECT * FROM wb_fail_grp group by POPULATION,FAILMODE_GROUP ')
+print(sq)
+length(unique(sq$CALC_ID))
+pop <- sqldf('SELECT FAILMODE_GROUP FROM sq')
+spq <- sqldf('SELECT * FROM wb_fail_grp where FAILMODE_GROUP not in pop')
+
+mid <- sqldf('SELECT POPULATION from wb_fail_grp where FAILMODE_GROUP == "LOW" and FAILMODE_GROUP == "MEDIUM"')
+
+print(mid)
+
+
+
+
+
+
+library(plyr)
+cnt <- count(om_output, c("CALC_ID"))
+cnt
+df1=om_output[om_output$OM_ALGO=="MA_Ribbon" & om_output$ENGINE_SERIES=="X" & om_output$OM_METRIC=="COST_NBR"  & as.Date(om_output$CALC_DATE)==as.Date(max(om_output$CALC_DATE)),]
+unique(om_output$OM_SCORE_REL_BUCKET)
+unique(om_output$OM_SCORE_REL_PREV_BUCKET)
+unique(om_output$OM_NBR_CUMUL_BUCKET)
+unique(om_output$OM_CRRT_PRIORITY_SCORE_BUCKET)
+unique(df1$OM_CRRT_PRIORITY_SCORE_BUCKET) 
+
+
+nrow(AS)
+head(om_output)
+library(ggplot2)
+
+df1=om_output[om_output$OM_ALGO=='TREND_without_BB',]
+df2=df1[order(df1$OM_CRRT_PRIORITY_SCORE,decreasing=TRUE),]
+df3 = df2[0:5,] 
+
+ggplot() + 
+  geom_point(data = df3, aes( x= CODE,y = OM_CRRT_PRIORITY_SCORE), color = "red",size =2.5) +
+  geom_point(data = df3, aes( x=CODE,y = OM_PREV_PRIORITY_SCORE),color="blue",size =2.5) +theme(axis.text.x = element_text(angle=90, vjust=0.6,))+
+  xlab('CODES') +
+  ylab('Top Priority Scores')+geom_point()+geom_segment()
+
+unique(om_output$c)
+library(sqldf)
+library(gsubfn)
+library(proto)
+library(RSQLite)
+require(sqldf)
+
+
+sq <- sqldf('SELECT COUNT(*) FROM out')
+print(sq)
+
+sd <-as.Date(max(om_output$CALC_DATE))
+sd
+st <- sd-48*7
+st
+class(om_output$OM_NBR)
+unique(om_output$OM_METRIC),
+
+df <- om_output[om_output$CALC_DATE == max(om_output$CALC_DATE) & om_output$OM_METRIC == "RPH" & om_output$OM_NBR>0.0005,]
+out <- om_output[as.Date(om_output$CALC_DATE) >= st,]
+unique(out$OM_METRIC)
+write.csv(out, file = "path/MyData.csv")
+
+
+
+=====================================================================================================================================
+=====================================================================================================================================
+path_op= "C:/Users/qx816/Documents/"
+
+om_out=read.csv(gsub(" ","",paste(path_op,"OM_MODEL_OUTPUT_2019-04-03.csv")),stringsAsFactors=FALSE,sep="|")
+
+sapply(om_out,typeof)
+
+print(unique(om_out$OM_ALGO))
+print(max(om_out$CALC_DATE))
+
+library(gsubfn)
+library(proto)
+library(RSQLite)
+library(sqldf)
+library(DBI)
+library(dplyr)
+
+
+#if ((om_output %>% dplyr::(filter(ENGINE_SERIES=="X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE) & OM_NBR>0.0005) || (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(OM_NBR)>5) %>% dplyr::group_by(CALC_ID)) || (om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)>=15) %>% dplyr::group_by(CALC_ID)))
+#print(pass)
+#frst_s <- om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE) & OM_NBR>0.0005)
+
+df_1 <- om_out %>% dplyr::filter(ENGINE_SERIES == "X" & OM_METRIC=="COUNT_NBR" & OM_ALGO == "MA_Ribbon") %>% dplyr::group_by(CALC_ID)
+
+df_2 <- sqldf('SELECT CALC_ID,SUM(OM_NBR),* FROM df_1 GROUP BY CALC_ID having sum(OM_NBR)<15')
+
+df_3 <- df_2 %>% dplyr::filter(as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7)) %>% dplyr::group_by(CALC_ID)
+
+df_4 <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_3 GROUP BY CALC_ID having sum(OM_NBR)<5 and CALC_ID in (select CALC_ID from df_2)')
+
+df_r1 <- om_out %>% dplyr::filter(ENGINE_SERIES == "X" & OM_METRIC=="RPH" & CALC_DATE == max(CALC_DATE)) %>% dplyr::group_by(CALC_ID)
+
+df_r <- sqldf('SELECT CALC_ID,* from df_r1 where CALC_ID in (select CALC_ID from df_4) and OM_NBR <0.05 ')
+
+
+
+df_AA <-om_out %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7)) %>% dplyr::group_by(CALC_ID)
+
+df_BB <- df_AA %>% dplyr ::filter(sum(OM_NBR)<15)%>% dplyr::select(CALC_ID,OM_NBR) %>% dplyr::group_by(CALC_ID,sum(OM_NBR))
+
+for (i in 1:2)
+{
+  c1=0
+  c2=0
+  c3=0
+  if (nrow(df_2)>0)
+  {
+    c1 = c1+1
+    
+    df_3 <- df_2 %>% dplyr::filter(as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7)) %>% dplyr::group_by(CALC_ID)
+    df_4 <- sqldf('SELECT CALC_ID,* FROM df_3 GROUP BY CALC_ID having sum(OM_NBR)<=5 and CALC_ID in (select CALC_ID from df_2)')
+    #df_4 <- df_3 %>% dplyr ::filter(sum(OM_NBR)<=5) %>% dplyr::group_by(CALC_ID)
+    if (nrow(df_4)>0)
+    {
+      df_r <- sqldf('SELECT * from om_out where CALC_ID in (select CALC_ID from df_4) and CALC_DATE == (SELECT max(CALC_DATE) from df_4) and OM_METRIC == "RPH" and OM_NBR <0.05 ')
+      c2 =c2+1
+    }
+    if(nrow(df_4)==0){
+      c3 = c3+1
+    }
+  }
+}
+print(c1)
+print(c2)
+print(c3)
+if (c1 <1)
+{
+  cat("\n scenario 2 pass")
+}
+if(c2 <1)
+{
+  cat("\n scenario 3 pass")  
+}
+if (c1 >=1)
+{
+  cat("\n scenario 2 failed")
+}
+if (c2 >=1)
+{
+  cat("\n ALL scenario 3 failed")
+}
+if(c3>=1)
+{
+  cat("\n No data present for df after 2nd scenario for 3rd scenario")
+}
+
+
+
+
+
+library(gsubfn)
+library(proto)
+library(RSQLite)
+library(sqldf)
+
+sd <- sqldf('SELECT CALC_ID,sum(OM_NBR) FROM df_1 GROUP BY CALC_ID having sum(OM_NBR)<15')
+print(sd)
+
+
+#cat ("\n Test Case 13: Passed")
+#else if (nrow(om_output %>% dplyr::filter(ENGINE_SERIES=="X" & OM_METRIC=="COUNT_NBR" & as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(12*7) & sum(OM_NBR)<=5))>100)
+#cat("y","\n")
+
+#| (as.Date(CALC_DATE)>= as.Date(max(CALC_DATE))-(48*7) & sum(OM_NBR)>=15)) %>% dplyr::group_by(CALC_ID)
+#stg <- om_output %>% dplyr::filter(CALC_DATE == max(CALC_DATE))  %>%  dplyr::group_by(ENGINE_SERIES)
+
+
+
+=====================================================================================================================================
+files_list <- list.files('data/model_output/B2013_Validation_GammaPrior/', pattern = "*report_.csv")
+split_files <- strsplit(files_list, "_")
+setwd("data/model_output/B2013_Validation_GammaPrior/")
+df_list <- lapply(1:length(files_list), function(q){
+  # if( split_files[[q]][3] == "1")split_files[[q]][3] <- "2016"
+  # if(split_files[[q]][5] == "1") split_files[[q]][5] <- "2013"
+  # if(split_files[[q]][5] == "2") split_files[[q]][5] <- "2017"
+  # to_name <- paste0(split_files[[q]], collapse="_")
+  # file.rename(from = files_list[q], to = to_name )
+  
+  split_name <- split_files[[q]]
+  pd <- readr::read_csv(files_list[q])
+  pd$BUILD_YEAR <- split_name[3]
+  pd$BUILD_Quarter <- split_name[[7]]
+  pd$warranty <- ifelse(split_name[[5]] == "1825", "emissions", "base")
+  pd <-pd %>% dplyr::rename(date_of_calculation = month_of_run) %>%
+    #Get rid of wrong/confusing mileage
+    dplyr::select(-dplyr::contains("SERVICE_RPH_LIMIT_2"), 
+                  -dplyr::contains("MILEAGE_RPH_LIMIT_1"))
+})
+
+df <- dplyr::bind_rows(df_list)
+colnames(df) <- gsub(pattern = "_LIMIT_1",replacement = "", x = colnames(df))
+colnames(df) <- gsub(pattern = "_LIMIT_2",replacement = "", x = colnames(df))
+df %>% readr::write_csv("~/Desktop/ds/Weibull/data/model_output/rph_report_OM_dummydata.csv")
+setwd("/Users/ql326/Desktop/ds/Weibull")
+
+=============================================
+
+
+
+========================================================================================
+print("Executing B ",`date`);
+#data download
+print `python /home/qx816/notebooks/ap_25/ds/Weibull/src/wbl_main.py UAT /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_b_uat.yaml >/tmp/wblb.log`;
+#create options
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_options_df.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_b_uat.yaml failcode_input.csv >>/tmp/wblb.log`;
+#Run from options 
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_run_from_options.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_b_uat.yaml failcode_input.csv >>/tmp/wblb.log`;
+#Post process#
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_post_process.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_b_uat.yaml failcode_input.csv  >>/tmp/wblb.log`;
+
+#create options
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_options_df.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_b_uat.yaml faultcode_input.csv >>/tmp/wblb.log`;
+##Run from options
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_run_from_options.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_b_uat.yaml faultcode_input.csv >>/tmp/wblb.log`;
+##Post process#
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_post_process.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_b_uat.yaml faultcode_input.csv  >>/tmp/wblb.log`;
+# Upload results #
+print `python /home/qx816/notebooks/ap_25/ds/Weibull/src/results_upload.py DEV /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_b_uat.yaml >>/tmp/wblb.log`;
+
+nohup perl execution_wbb.pl >/tmp/pb.log &
+
+------------- TO kill the run
+
+kill -9 <processid>
+-------------- TO know which job is running 
+
+ps aux |grep <userid>
+
+
+===================================================================================================
+
+print("Executing l ",`date`);
+#data download
+print `python /home/qx816/notebooks/ap_25/ds/Weibull/src/wbl_main.py UAT /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_l_uat.yaml >/tmp/wbll.log`;
+##create options
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_options_df.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_l_uat.yaml failcode_input.csv >>/tmp/wbll.log`;
+##Run from options
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_run_from_options.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_l_uat.yaml failcode_input.csv >>/tmp/wbll.log`;
+##Post process#
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_post_process.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_l_uat.yaml failcode_input.csv  >>/tmp/wbll.log`;
+#
+##create options
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_options_df.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_l_uat.yaml faultcode_input.csv >>/tmp/wbll.log`;
+###Run from options
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_run_from_options.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_l_uat.yaml faultcode_input.csv >>/tmp/wbll.log`;
+###Post process#
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_post_process.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_l_uat.yaml faultcode_input.csv  >>/tmp/wbll.log`;
+## Upload results #
+print `python /home/qx816/notebooks/ap_25/ds/Weibull/src/results_upload.py DEV /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_l_uat.yaml >>/tmp/wbll.log`;
+
+
+nohup perl execution_wbl.pl >/tmp/pl.log &
+
+===================================================================================================
+
+
+################# 
+print("Executing x ",`date`);
+#data download
+print `python /home/qx816/notebooks/ap_25/ds/Weibull/src/wbl_main.py UAT /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_x15_uat.yaml >/tmp/wblx.log`;
+##create options
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_options_df.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_x15_uat.yaml failcode_input.csv >>/tmp/wblx.log`;
+##Run from options
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_run_from_options.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_x15_uat.yaml failcode_input.csv >>/tmp/wblx.log`;
+##Post process#
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_post_process.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_x15_uat.yaml failcode_input.csv  >>/tmp/wblx.log`;
+#
+##create options
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_options_df.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_x15_uat.yaml faultcode_input.csv >>/tmp/wblx.log`;
+###Run from options
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_run_from_options.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_x15_uat.yaml faultcode_input.csv >>/tmp/wblx.log`;
+###Post process#
+print `Rscript /home/qx816/notebooks/ap_25/ds/Weibull/R/bayesian_post_process.R /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_x15_uat.yaml faultcode_input.csv  >>/tmp/wblx.log`;
+## Upload results #
+print `python /home/qx816/notebooks/ap_25/ds/Weibull/src/results_upload.py DEV /home/qx816/notebooks/ap_25/ds/Weibull/conf_file_x15_uat.yaml >>/tmp/wblx.log`;
+
+nohup perl execution_wbx.pl >/tmp/px.log &
+
+=====================================================================================================================================
+=====================================================================================================================================
+
+
+
+
+
+=====================================================================================================================================

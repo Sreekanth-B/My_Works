@@ -1,0 +1,256 @@
+
+
+============================================================================================================================================
+// Reading the data from Hive tables
+
+=====1
+
+val sqlContext = new org.apache.spark.sql.SQLContext(sc);
+
+val tripInfoDF = spark.sql("select * from database.table_1")
+
+val EAinfoDF = spark.sql("select * from database.table_1")
+
+// creating the temp table outof Dataframe
+
+tripInfoDF.registerTempTable("tripInfoDF");
+
+ 
+val sqlContext = new org.apache.spark.sql.SQLContext(sc);
+
+// using sqlContext to write sql quiries on top of created temp table
+ 
+val op = sqlContext.sql("SELECT * from CalO limit 5");
+// creating objects for column value conversions
+
+=====2
+
+def lToGal = udf((value:String) => {
+
+if (value != null) 
+(value.toFloat * 0.2641).toString
+else 
+value
+    })
+
+
+def kmToMi = udf((value:String) => {
+
+if (value != null) 
+(value.toDouble * 0.6213).toString
+else 
+value
+    })
+
+
+def Null_c = udf((df_1, col_g) =>{
+for i in df_1.columns{
+  if (df_1.filter(df_1.i.isNull()).count() != 0)
+    print("Fail : DQ_001 - The column",i," has Null values")
+     
+  else:
+      print('Success')
+
+def kmPerLToMiPerGal = udf((value:String) => {
+
+if (value != null) 
+(value.toDouble * 2.35214583).toString
+else 
+value
+    })
+
+def secToHr(value: String): String = (value.toDouble / 3600).toString
+
+
+def secToHr = udf((value:String) => {
+
+if (value != null) 
+(value.toDouble / 3600).toString
+else 
+value
+    })
+
+
+	
+	
+def getPercent = udf((param1: Double, param2: Double) => {
+      val percent = param1*100 / param2
+      if(percent != null && percent <= 100) percent
+        // HV158 - Mar 11 2019 - Refer XDS 353 Fixing formula only, Decision pending on PERCENT > 100
+        // HV158 - Apr 16, 2019 - XDS 1291 capping to 100
+      else 100.00
+    })
+
+	
+	
+	
+// Apllyting the above created functions on the columns and changinf 
+the columns values
+========= 3 
+
+val tripInfoCalDF = tripInfoDF.withColumn("New_Converted_COl_1",lToGal($"Prev_col_name_1")).
+      withColumn("New_Converted_COl_2",lToGal($"Prev_col_name_2")).
+      withColumn("New_Converted_COl_3",lToGal($"Prev_col_name_3")).
+      withColumn("New_Converted_COl_4",lToGal($"Prev_col_name_4")).
+	  withColumnRenamed("Prev_col_name_to_convert_1","new_col_name_after_change_1").
+	  withColumnRenamed("Prev_col_name_to_convert_2","new_col_name_after_change_2")
+	  
+
+// joining two dfs and applying percent on the cols and creating new col with percent values
+	  
+====== 4
+
+val intermediateDF = tripInfoCalDF.join(EAinfoDF, Seq("common_col_1", "common_col_2")).
+      withColumn("Newly_gen_col_1", when($"col_2" === 0, null).otherwise(getPercent($"col_1", $"col_2"))).
+	  withColumn("Newly_gen_col_1", when($"col_2" === 0, null).otherwise(getPercent($"col_1", $"col_2"))).
+	  withColumn("Newly_gen_col_1", when($"col_2" === 0, null).otherwise(getPercent($"col_1", $"col_2")))
+      
+// here we are checking col_2 is 0 or not if col_2 is zero then denominatoe is zero then it will occur infinite error to avoid this we are checking col_2
+
+
+// selecting the required columns from the above generated df and printing 60 values in the console
+use below command for selecting the columns 
+
+intermediateDF.select("col_1","col_2","col_3").show(60)
+
+
+
+// Note: Withcol function will create new col with out erasing the old columns. at the end we will be having all the prev cols with new cols in df
+
+============================================================================================================================================
+
+
+========================================================================================================================================================================================================================================================================================
+
+============================================================================================================================================
+
+============================================================================================================================================
+
+
+============================================================================================================================================
+
+
+========================================================================================================================================================================================================================================================================================
+
+============================================================================================================================================
+
+import spark.implicits._
+
+    val esndf = spark.sql("select col_1, col_2 , BUILD_DATE" +
+      " from database.table_1 " +
+      " where col_2='A2017' OR col_2='B2017' OR col_2='C2013' OR col_2='I2013' OR col_2='K2013' ").
+      withColumn("BUILD_YEAR", year($"build_date")).
+      withColumn("BUILD_MONTH", month($"build_date")).
+      withColumn("BUILD_DAY_OF_MONTH", dayofmonth($"build_date")).
+      withColumn("BUILD_DAY_OF_WEEK", date_format($"build_date", "EEEE")).
+      withColumn("BUILT_ON_WEEKEND", Util.isWeekendUDF($"BUILD_DAY_OF_WEEK")).
+      withColumnRenamed("col_1", "ESN").
+      withColumnRenamed("col_2", "ENGINE_DESCRIPTION")
+val relFeaturesDF = spark.sql("select * from database.table_2").withColumnRenamed("prev_col_name", "new_col_name")
+    val fullFeaturesDF = spark.sql("SELECT * FROM database.table_3")
+
+    val epatEsn = epatFeaturesDF.select("esn")
+    val oeplEsn = oeplFeaturesDF.select("esn")
+
+	
+val countEpat = epatEsn.join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "EPAT_COUNT").orderBy("BUILD_YEAR")
+    val countOepl = oeplEsn.join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "OEPL_COUNT").orderBy("BUILD_YEAR")
+
+	
+val countFeatures = fullFeaturesDF.select("esn").union(fullFeaturesDF.select("REL_ESN").withColumnRenamed("REL_ESN","ESN")).
+      join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "FEATURES_COUNT").orderBy("BUILD_YEAR")
+    val fullCount = esndf.groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "FULL_COUNT").orderBy("BUILD_YEAR")
+
+    val esnAvailability = fullCount.
+      join(countRel, Seq("BUILD_YEAR"),"left_outer").
+      join(countEds, Seq("BUILD_YEAR"),"left_outer").
+      join(countEpat, Seq("BUILD_YEAR"),"left_outer").
+      join(countOepl, Seq("BUILD_YEAR"),"left_outer").
+      join(countFeatures, Seq("BUILD_YEAR"),"left_outer").
+      orderBy("BUILD_YEAR")
+
+    esnAvailability.show(false)
+
+	
+	
+relFeaturesDF.select("rel_esn").withColumnRenamed("rel_esn", "esn").union(edsFeaturesDF.select("esn")).distinct().join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "EDS_COUNT").orderBy("BUILD_YEAR")
+    fullFeaturesDF.select("rel_esn").withColumnRenamed("rel_esn", "esn").union(fullFeaturesDF.select("esn")).distinct().join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "EDS_COUNT").orderBy("BUILD_YEAR")
+
+	
+val theseClaims = claims.filter($"REL_ESN" === "79967439").cache() // has 2 records
+    val theseIncidents = incidents.filter($"ESN" === "79967439").cache() // has 3 records
+    val theseEds = eds.filter($"ESN" === "79967439").cache() // has 2 records
+
+    theseEds.count()
+    theseClaims.count()
+    theseIncidents.count()
+
+    theseClaims.select("REL_DSID", "REL_CMP_FAIL_CODE_LIST", "REL_FAILURE_DATE", "REL_CMP_CLAIM_DATE_LIST","REL_MINED_DSID_LIST").
+      orderBy("REL_FAILURE_DATE").show()
+    theseEds.select("DSID","DSID_CREATE_DATE").orderBy("DSID_CREATE_DATE").show()
+    theseIncidents.select("DSID", "REL_CMP_FAIL_CODE_LIST", "REL_FAILURE_DATE","DSID_CREATE_DATE","EARLIEST_INDICATION_DATE","REL_MINED_DSID_LIST").
+      orderBy("REL_FAILURE_DATE").show()
+
+	  
+	  
+val RelEngineClaimDetailMVSchema = Map(
+      "col_1" -> StringType,
+      "oem_code" -> StringType,
+      "oem_group_name" -> StringType,
+      "oem_group_code" -> StringType,
+      "oem_app_group_name" -> StringType,
+
+	  
+)
+    val RelEngineClaimDetailMVDF = Util.applySchema(spark.sql("""SELECT * FROM database.table_4""".stripMargin),RelEngineClaimDetailMVSchema)
+    println(RelEngineClaimDetailMVDF.columns.mkString("|"))
+
+	
+	
+	
+ cqmsEsnJoinedDf.
+      filter($"CAR_COMPLETION_DATE".isNotNull && $"BUILD_DATE".gt($"CREATION_DATE") && $"BUILD_DATE".lt($"CAR_COMPLETION_DATE")).
+      select(
+        $"col_1" as "ESN",
+        $"BUILD_DATE" as "ESN_BUILD_DATE",
+        $"NC_ISSUE_ID" as "ISSUE_ID",
+        $"PART_NO").
+      groupBy($"ESN").agg(collect_set(concat_ws(" - ", $"ISSUE_ID", $"PART_NO")) as "ISSUE_PART_LST").
+      distinct()
+
+	  
+val esnPartSupplierMap = partSupplierMap.join(esnPartMap, Seq("PART_NUM"), joinType = "left_outer").where($"ESN".isNotNull)
+
+
+val engineAbusePrimaryFilteredDF = engineAbuseDataDF.
+      select("esn", "parameter_fmt", "severity_fmt", "time_val_fmt",
+        "timeunit_fmt", "ranges_fmt", "rangeunit_fmt",  "timestamp_fmt").
+      filter($"severity_fmt".isin("1","2","3","TOTAL")).
+      filter($"timeunit_fmt".isin("HH:MM:SS","HHHHHH:MM:SS")).
+      filter($"parameter_fmt".isin(parametersList:_*))
+
+	  
+val engineAbuseRenamedDF = engineAbusePrimaryFilteredDF.
+      select('esn,
+        'timestamp_fmt.as("max_ea_timestamp"),
+        'parameter_fmt.as('parameter),
+        'severity_fmt.as('severity),
+        'time_val_fmt.as('time))
+		
+		
+val ParamMapping  = Map(
+      "CRANKCASE PRESSURE"->"INS_EA_CRANKCASE_PRSR_SEC",
+     "ENGINE COOLANT TEMPERATURE"->"INS_EA_COOLANT_TMP_SEC",
+     "ENGINE OIL PRESSURE"->"INS_EA_OIL_PRSR_SEC")
+	 
+
+	 
+val engineAbuseParamTransformDF = engineAbuseRenamedDF.
+      select('esn.cast("integer").as("ESN"),
+        'max_ea_timestamp.as("INS_IMAGE_TIMESTAMP").cast("timestamp"),
+        'parameter).withColumn("threshold",convert('rangeunit,'parameter,getThreshold($"ranges"))).
+      withColumn("parameter",
+        concat(csvToJsonMap($"parameter"), lit("_SEV_"), 'severity)).
+      withColumn("time_in_sec",convert('timeunit,lit("TIMECOLUMN"),'time).cast("double")).
+      withColumn("time_in_sec",when($"time_in_sec"===Double.NaN,0.0d).otherwise($"time_in_sec")).
+      drop("severity","time","timeunit","ranges","rangeunit")

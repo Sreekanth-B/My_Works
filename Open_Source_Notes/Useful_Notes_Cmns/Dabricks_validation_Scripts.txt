@@ -1,0 +1,554 @@
+========================================================================================================================================================================
+========================================================================================================================================================================
+=== Spark configuration for reading ADLS data in Azure Databricks
+
+
+spark.conf.set("dfs.adls.oauth2.access.token.provider.type", "ClientCredential")
+spark.conf.set("dfs.adls.oauth2.client.id", dbutils.secrets.get(scope = "eaasedldev", key = "appid"))
+spark.conf.set("dfs.adls.oauth2.credential", dbutils.secrets.get(scope = "eaasedldev", key = "key"))
+spark.conf.set("dfs.adls.oauth2.refresh.url", "https://login.microsoftonline.com/b31a5d86-6dda-4457-85e5-c55bbc07923d/oauth2/token")
+
+===== Required packages
+
+#python functions
+import sys
+import os
+from datetime import datetime, timedelta
+import pandas as pd
+import numpy as np
+import ast
+import time
+import logging
+import logging.handlers
+import traceback
+import uuid
+import json
+import itertools
+
+#pyspark functions
+from pyspark.sql import SparkSession
+from pyspark.sql import SQLContext
+from pyspark.sql import HiveContext
+import pyspark.sql.functions as F
+from pyspark.sql.window import Window
+from pyspark.sql.types import DateType, StructType, StructField, StringType, TimestampType, BooleanType, DoubleType, IntegerType, DecimalType
+from pyspark.sql.functions import from_unixtime,lit, to_timestamp, col
+
+pd.set_option('display.max_columns', None)
+#pd.set_option('display.max_rows', 300)
+
+======== Reading the file 
+
+# Set up Widgets
+dbutils.widgets.text("testInstancesPath", "test_instances_path")
+
+# Get Widget parameters
+testInstancesPath = dbutils.widgets.get("testInstancesPath")
+
+with open(testInstancesPath) as f:
+  instance_properties = json.load(f)
+  
+  
+==============
+
+# Generic Variables
+algo_name = dbutils.widgets.get('algo')
+propfile_version = str(dbutils.widgets.get('propfile_version'))
+raw_or_agg = dbutils.widgets.get('raw_or_agg')
+df_post_spark = spark.sql("select * from global_temp.results_"+ algo_name +"_"+ propfile_version + "_processed")
+df_post = df_post_spark.cache()
+status_list = []
+columns_list = df_post.columns
+necessary_cols_list = ['equipmentid','customerreference','cust_id','vin','telematicsdeviceid','componentserialnumber',
+              'in_serv_loc','algo_id','algo_name','algo_status','issue_occr_timestamp','issue_type','createdby','granularity','package_version','release_phase','algo_method']
+hour_list = df_post.select('issue_occr_timestamp').collect()
+
+
+
+========= Post processing Scripts
+
+class PostValidations(object):
+  
+  def __init__(self, df_post, status_list, columns_list, necessary_cols_list, raw_or_agg):
+    self.df_post = df_post
+    self.status_list = status_list
+    self.columns_list = columns_list
+    self.necessary_cols_list = necessary_cols_list
+    self.raw_or_agg = raw_or_agg
+  
+  # Test Case 1 (DS_POS_001) : To check if all necessary columns are present in the dataframe or not
+  def columnsCheck(self):
+    try:
+      if not set(self.necessary_cols_list).issubset(self.columns_list):
+        for col in self.necessary_cols_list:
+          try:
+            if col not in self.columns_list:
+              print("Fail : DS_POS_001 - Column",col,"is not present in the dataframe.")
+          except Exception as err:
+              print("Fail : DS_POS_001 - Error : {0}".format(err))
+              self.status_list.append("fail")
+              continue
+        self.status_list.append("fail")
+      else:
+        self.status_list.append("success")
+    except Exception as err:
+      print("Fail : DS_POS_001 - Error : {0}".format(err))
+      self.status_list.append("fail")
+      pass
+    
+  # Test Case 2 (DS_POS_002) : 'componentserialnumber', 'issue_occr_timestamp' and 'algo_status' columns should not have null values
+  def nullCheck(self):
+    try:
+      if self.df_post.filter(self.df_post.componentserialnumber.isNull()).count() != 0:
+        print("Fail : DS_POS_002 - 'componentserialnumber' column has Null values.")
+        self.status_list.append("fail")
+      else:
+        self.status_list.append("success")
+        
+      if self.df_post.filter(self.df_post.issue_occr_timestamp.isNull()).count() != 0:
+        print("Fail : DS_POS_002 - 'issue_occr_timestamp' column has Null values.")
+        self.status_list.append("fail")
+      else:
+        self.status_list.append("success")
+        
+      if self.df_post.filter(self.df_post.algo_status.isNull()).count() != 0:
+        print("Fail : DS_POS_002 - 'algo_status' column has Null values.")
+        self.status_list.append("fail")
+      else:
+        self.status_list.append("success")
+    except Exception as err:
+      print("Fail : DS_POS_002 - Error : {0}".format(err))
+      self.status_list.append("fail")
+      pass
+    
+  # Test Case 3 (DS_POS_003) : 'issue_occr_timestamp' column should be in 'YYYYMMDDHH'/'YYYYMMDD' format and in string datatype
+  def dateformatCheck(self, hourkey_list):
+      try:
+        for key in hourkey_list:
+          try:
+            req_date = str(key)
+            if self.raw_or_agg == 'raw' or self.raw_or_agg == 'agg':
+              time.strptime(req_date, '%Y%m%d%H')
+            elif self.raw_or_agg == 'day':
+              time.strptime(req_date, '%Y%m%d')
+          except Exception as err:
+             raise (err)
+        self.status_list.append("success")
+      except Exception as err:
+        print("Fail : DS_POS_003 - Error: {0}".format(err))
+        self.status_list.append("fail")
+        pass
+		
+========== Calling the functions
+
+# Instantiate the class
+post_test = PostValidations(df_post, status_list, columns_list, necessary_cols_list, raw_or_agg)
+
+# Calling the functions using class object
+post_test.columnsCheck()
+post_test.nullCheck()
+try:
+  hourkey_list = [int(row.issue_occr_timestamp) for row in hour_list]
+  post_test.dateformatCheck(hourkey_list)
+except Exception as err:
+  print("Fail : DS_POS_003 - Error: {0}".format(err))
+  status_list.append("fail")
+  pass
+  
+-======
+try:
+  if 'fail' in status_list:
+    raise ValueError
+except Exception as e:
+  print("Postprocessing results validations failed.")
+  raise Exception("Postprocessing results validations failed.")
+  
+  
+================
+
+===== Validation scripts creation
+
+df_algo = spark.sql("select * from global_temp.results_INJM_D_34")
+
+
+
+class AlgoValidations(object):
+  
+  def __init__(self, df_algo, status_list, columns_list, necessary_cols_list, raw_or_agg):
+    self.df_algo = df_algo
+    self.status_list = status_list
+    self.columns_list = columns_list
+    self.necessary_cols_list = necessary_cols_list
+    self.raw_or_agg = raw_or_agg
+
+  # Test Case 1 (DS_ALG_001) : To check if all necessary columns are present in the dataframe or not
+  def columnsCheck(self):
+    try:
+      if not set(self.necessary_cols_list).issubset(self.columns_list):
+        for col in self.necessary_cols_list:
+          try:
+            if col not in self.columns_list:
+              print("Fail : DS_ALG_001 - Column",col,"is not present in the dataframe.")
+          except Exception as err:
+              print("Fail : DS_ALG_001 - Error : {0}".format(err))
+              self.status_list.append("fail")
+              continue
+        self.status_list.append("fail")
+      else:
+        self.status_list.append("success")
+    except Exception as err:
+      print("Fail : DS_ALG_001 - Error : {0}".format(err))
+      self.status_list.append("fail")
+      pass
+    
+  # Test Case 2 (DS_ALG_002) : 'flag' column should be 0/1 and does not have null values
+  def nullCheck(self):
+    try:
+      if self.df_algo.filter(self.df_algo.flag.isNull()).count() != 0:
+        print("Fail : DS_ALG_002 - The Flag column has Null values")
+        self.status_list.append("fail")
+      else:
+        self.status_list.append("success")
+        
+      if self.df_algo.filter(~((col("flag") == '0') | (col("flag") == '1'))).count() != 0:
+        print("Fail : DS_ALG_002 - The Flag column has values other than 0/1.")
+        self.status_list.append("fail")
+      else:
+        self.status_list.append("success")
+    except Exception as err:
+      print("Fail : DS_ALG_002 - Error : {0}".format(err))
+      self.status_list.append("fail")
+      pass
+  
+  # Test Case 3 (DS_ALG_003) : 'hourkey' column should be in 'YYYYMMDDHH' format and in string datatype
+  def dateformatCheck(self, hourkey_list):
+    try:
+      for key in hourkey_list:
+        try:
+          req_date = str(key)
+          if self.raw_or_agg == 'raw' or self.raw_or_agg == 'agg':
+            time.strptime(req_date, '%Y%m%d%H')
+          elif self.raw_or_agg == 'day':
+            time.strptime(req_date, '%Y%m%d')
+        except Exception as err:
+             raise (err)
+      self.status_list.append("success")
+      
+    except Exception as err:
+      print("Fail : DS_ALG_003 - Error: {0}".format(err))
+      self.status_list.append("fail")
+      pass
+    
+  # Test Case 4 (DS_ALG_004) : All columns datatype in the dataframe should be 'string'
+  def datatypeCheck(self):
+    try:
+      for column, datatype in self.df_algo.dtypes:
+        try:
+          if datatype != "string":
+            print("Fail : DS_ALG_004 - {col} is not String type".format(col=column))
+            self.status_list.append("fail")
+        except Exception as err:
+          raise(err)
+      self.status_list.append("success")
+    except Exception as err:
+      print("Fail : DS_ALG_004 - Error : {0}".format(err))
+      self.status_list.append("fail")
+      pass
+          
+  # Test Case 5 (DS_ALG_005) : 'datapoint' column should have only 'new' as value
+  def valueCheck(self):
+    try:
+      if 'datapoint' in self.df_algo.columns:
+        if self.df_algo.filter(~(col("datapoint") == "new")).count() != 0:
+          print("Fail : DS_ALG_005 - The 'datapoint' column has values other than 'new'.")
+          self.status_list.append("fail")
+        else:
+          self.status_list.append("success")
+    except Exception as err:
+      print("Fail : DS_ALG_005 - Error : {0}".format(err))
+      self.status_list.append("fail")
+      pass
+	  
+	  
+=======================================================
+
+# Generic Variables
+algo_name = dbutils.widgets.get('algo')
+propfile_version = str(dbutils.widgets.get('propfile_version'))
+raw_or_agg = dbutils.widgets.get('raw_or_agg')
+df_algo_spark = spark.sql("select * from global_temp.results_"+ algo_name +"_"+ propfile_version)
+df_algo = df_algo_spark.cache()
+status_list = []
+columns_list = df_algo.columns
+necessary_cols_list = ['equipmentid','customerreference','cust_id','vin','telematicsdeviceid']
+hour_list = df_algo.select('hourkey').collect()
+
+
+=======================
+
+
+# Instantiate the class
+algo_test = AlgoValidations(df_algo, status_list, columns_list, necessary_cols_list, raw_or_agg)
+
+# Calling the functions using class object
+algo_test.columnsCheck()
+algo_test.nullCheck()
+algo_test.datatypeCheck()
+algo_test.valueCheck()
+try:
+  hourkey_list = [int(row.hourkey) for row in hour_list]
+  algo_test.dateformatCheck(hourkey_list)
+except Exception as err:
+  print("Fail : DS_ALG_003 - Error: {0}".format(err))
+  status_list.append("fail")
+  pass
+  
+  
+=========
+
+try:
+  if 'fail' in status_list:
+    raise ValueError
+except Exception as e:
+  print("Algorithms results validations failed")
+  raise Exception("Algorithms results validations failed")
+  
+  
+=========================
+  
+
+
+class Data_Quality:
+  
+  # Test Case 1 (DS_ALG_001) : To check if all necessary columns are present in the dataframe or not
+  def columnsCheck(self, columns_list, necessary_cols_list):
+    try:
+      if not set(necessary_cols_list).issubset(columns_list):
+        for col in necessary_cols_list:
+          if col not in columns_list:
+            print("Fail : DS_ALG_001 - Column",col,"is not present in the dataframe.")
+    except Exception as err:
+      print("Fail : DS_ALG_001 - Error : {0}".format(err))
+      pass
+    
+  # Test Case 2 (DS_ALG_002) : 'flag' column should be 0/1 and does not have null values
+  def nullCheck(self):
+    try:
+      if df_algo.filter(df_algo.flag.isNull()).count() != 0:
+        print("Fail : DS_ALG_002 - The Flag column has Null values")
+      if df_algo.filter(~((col("flag") == '0') | (col("flag") == '1'))).count() != 0:
+        print("Fail : DS_ALG_002 - The Flag column has values other than 0/1.")
+    except Exception as err:
+      print("Fail : DS_ALG_002 - Error : {0}".format(err))
+      pass
+  
+  # Test Case 3 (DS_ALG_003) : 'hourkey' column should be in 'YYYYMMDDHH' format and in string datatype
+  def dateformatCheck(self, hour_list):
+    hourkey_list = [int(row.hourkey) for row in hour_list]
+    for key in hourkey_list:
+      try:
+        req_date = str(key)
+        if inst.raw_or_agg == 'raw' or inst.raw_or_agg == 'agg':
+          time.strptime(req_date, '%Y%m%d%H')
+        elif inst.raw_or_agg == 'day':
+          time.strptime(req_date, '%Y%m%d')
+      except Exception as err:
+          if type(err).__name__ == 'ValueError':
+            print("Fail : DS_ALG_003 - The datetime string format is not valid for", key)
+            continue
+          else:
+            print("Fail : DS_ALG_003 - Error : {0}".format(err))
+            pass 
+   
+  # Test Case 4 (DS_ALG_004) : All columns datatype in the dataframe should be 'string'
+  def datatypeCheck(self):
+    try:
+      for column, datatype in df_algo.dtypes:
+        if datatype != "string":
+           print("Fail : DS_ALG_004 - {col} is not String type".format(col=column))
+    except Exception as err:
+      print("Fail : DS_ALG_004 - Error : {0}".format(err))
+      pass
+          
+  # Test Case 5 (DS_ALG_005) : 'datapoint' column should have only 'new' as value
+  def valueCheck(self):
+    try:
+      if 'datapoint' in df_algo.columns:
+        if df_algo.filter(~(col("datapoint") == "new")).count() != 0:
+          print("Fail : DS_ALG_005 - The 'datapoint' column has values other than 'new'.")
+    except Exception as err:
+      print("Fail : DS_ALG_005 - Error : {0}".format(err))
+      pass
+	  
+	  
+=============== Calling the above validation functions
+
+# Instantiate the class
+algo_test = AlgoValidations()
+
+# Generic Variables
+columns_list = df_algo.columns
+necessary_cols_list = ['equipmentid','customerreference','cust_id','vin','telematicsdeviceid']
+hour_list = df_algo.select('hourkey').collect()
+
+# Calling the functions using class object
+algo_test.columnsCheck(columns_list, necessary_cols_list)
+algo_test.nullCheck()
+try:
+  hourkey_list = [int(row.hourkey) for row in hour_list]
+  algo_test.dateformatCheck(hour_list)
+except Exception as err:
+  print("Fail : DS_ALG_003 - Error: {0}".format(err))
+  pass
+algo_test.datatypeCheck()
+algo_test.valueCheck()
+
+
+
+================-================Post processing validaiton scripts
+class PostValidations:
+  
+  # Test Case 1 (DS_POS_001) : To check if all necessary columns are present in the dataframe or not
+  def columnsCheck(self, columns_list, necessary_cols_lis):
+    try:
+      if not set(necessary_cols_list).issubset(columns_list):
+        for col in necessary_cols_list:
+          if col not in columns_list:
+            print("Fail : DS_POS_001 - Column",col,"is not present in the dataframe.")
+    except Exception as err:
+      print("Fail : DS_POS_001 - Error : {0}".format(err))
+      pass
+    
+  # Test Case 2 (DS_POS_002) : 'componentserialnumber', 'issue_occr_timestamp' and 'algo_status' columns should not have null values
+  def nullCheck(self):
+    try:
+      if df_post.filter(df_post.componentserialnumber.isNull()).count() != 0:
+        print("Fail : DS_POS_002 - 'componentserialnumber' column has Null values.")
+      if df_post.filter(df_post.issue_occr_timestamp.isNull()).count() != 0:
+        print("Fail : DS_POS_002 - 'issue_occr_timestamp' column has Null values.")
+      if df_post.filter(df_post.algo_status.isNull()).count() != 0:
+        print("Fail : DS_POS_002 - 'algo_status' column has Null values.")
+    except Exception as err:
+      print("Fail : DS_POS_002 - Error : {0}".format(err))
+      pass
+    
+  # Test Case 3 (DS_POS_003) : 'issue_occr_timestamp' column should be in 'YYYYMMDDHH'/'YYYYMMDD' format and in string datatype
+  def dateformatCheck(self, hour_list):
+      hourkey_list = [int(row.issue_occr_timestamp) for row in hour_list]
+      for key in hourkey_list:
+        try:
+          req_date = str(key)
+          if inst.raw_or_agg == 'raw' or inst.raw_or_agg == 'agg':
+            time.strptime(req_date, '%Y%m%d%H')
+          elif inst.raw_or_agg == 'day':
+            time.strptime(req_date, '%Y%m%d')
+        except Exception as err:
+          if type(err).__name__ == 'ValueError':
+            print("Fail : DS_POS_003 - The datetime string format is not valid for", key)
+            continue
+          else:
+            print("Fail : DS_POS_003 - Error : {0}".format(err))
+            pass
+      
+	  
+	  
+========================= Function calling
+
+# Instantiate the class
+post_test = PostValidations()
+
+# Generic Variables
+columns_list = df_post.columns
+necessary_cols_list = ['equipmentid','customerreference','cust_id','vin','telematicsdeviceid','componentserialnumber',
+              'in_serv_loc','algo_id','algo_name','algo_status','issue_occr_timestamp','issue_type','createdby','granularity','package_version','release_phase','algo_method']
+hour_list = df_post.select('issue_occr_timestamp').collect()
+
+# Calling the functions using class object
+post_test.columnsCheck(columns_list, necessary_cols_list)
+post_test.nullCheck()
+try:
+  hourkey_list = [int(row.issue_occr_timestamp) for row in hour_list]
+  post_test.dateformatCheck(hour_list)
+except Exception as err:
+  print("Fail : DS_POS_003 - Error: {0}".format(err))
+  pass
+  
+  
+  
+  
+  
+  
+  
+  
+  
+ =========================================================================================================
+ 
+ # ************************** DS_ALG_XBL_001
+# DS_ALG_XBL_001 :: Scenario :: The Column 'REL_CMP_ENGINE_NAME' should be only X as value 
+
+def DS_ALG_XBL_001(Algo_X_W_df):
+  ENgine_Name = Algo_X_W_df['REL_CMP_ENGINE_NAME'].unique().tolist()
+  c1=0
+  c2=0
+  
+  ls1=[]
+  for i in ENgine_Name:   
+    if i in ['X', 'B','L'] and len(ENgine_Name) ==1 or len(ENgine_Name) == 2:
+      c1+=1
+    else:
+      ls1.append(i)
+      c2+=1 
+  if c1 ==1 or c1==2: 
+      print("DS_ALG_XBL_001 :: For Algo_X_W_df test case passed")
+      log ='Test case passed'
+  else:
+      print("DS_ALG_XBL_001 :: For Algo_X_W_df test case failed")
+      log ='Column REL_CMP_ENGINE_NAME is having other values also :: Test case Failed' 
+      TestFlag[1]=False
+      CriticalTestFlag[1]=TestFlag[1] and CriticalTable['DS_ALG_XBL_001']=="Critical"      
+  return TestFlag[1],log
+
+my_date1 = datetime.now(pytz.timezone('US/Eastern'))
+sree_o= DS_ALG_XBL_001(Algo_X_W_df)
+my_date2 = datetime.now(pytz.timezone('US/Eastern'))
+td=(my_date2-my_date1).total_seconds()
+testcase_id='DS_ALG_XBL_001'
+nature_of_tc=CriticalTable['DS_ALG_XBL_001']
+metrics= "REL_CMP_ENGINE_NAME"
+value='REL_CMP_ENGINE_NAME column should have only X as values'
+if sree_o[0] :
+  test_status = 'Pass'
+else:
+  test_status = 'Fail'
+failure_log =str(sree_o[1])
+
+df=sql("select * from quality_qa_mi.preprocessing_validate")
+insert_df = spark.createDataFrame([(myrunId,testcase_id,my_date1,my_date2,td,nature_of_tc,metrics,value,test_status,failure_log)], df.schema)
+insert_df.registerTempTable("insert_df") 
+sql("insert into table quality_qa_mi.preprocessing_validate select * from insert_df")
+  
+  =================
+# *********************************** DS_ALG_XBL_003
+# Scenario :: CALC_DATE should be the most recent Thursday's date for all engine series.
+def DS_ALG_XBL_003(Algo_X_W_df):    
+    Max_Calc_Date_X = Algo_X_W_df.CALC_DATE.max()       
+    #print(engine)
+    #st = df.select('').flatMap(lambda x: x).collect()
+    print("DS_ALG_XBL_003 :: For Algo_X_W_df Max calc_date is " + str(Max_Calc_Date_X))
+    return Max_Calc_Date_X
+    
+my_date1 = datetime.now(pytz.timezone('US/Eastern'))
+sree_o=  DS_ALG_XBL_003(Algo_X_W_df)
+my_date2 = datetime.now(pytz.timezone('US/Eastern'))
+td=(my_date2-my_date1).total_seconds()
+testcase_id='DS_ALG_XBL_003'
+nature_of_tc="Highly_Critical"
+metrics= "CALC_DATE"
+value='CALC_DATE should be Recent in data'
+test_status='Pass'
+failure_log = ' For  Algo_X_W_df   Max_calc_date  in Output data is == ' + str(sree_o)
+
+df=sql("select * from quality_qa_mi.preprocessing_validate")
+insert_df = spark.createDataFrame([(myrunId,testcase_id,my_date1,my_date2,td,nature_of_tc,metrics,value,test_status,failure_log)], df.schema)
+insert_df.registerTempTable("insert_df") 
+sql("insert into table quality_qa_mi.preprocessing_validate select * from insert_df")   

@@ -1,0 +1,254 @@
+
+
+
+FROM DATA BRICKS:
+=====================================================================================================================================
+
+===== To setup spark configuration to access data from ADLS
+
+%python 
+
+# Required setup for using Databricks
+
+spark.conf.set("dfs.adls.oauth2.access.token.provider.type", "ClientCredential")
+
+spark.conf.set("dfs.adls.oauth2.client.id", dbutils.secrets.get(scope = "eaasedldev", key = "appid"))
+
+spark.conf.set("dfs.adls.oauth2.credential", dbutils.secrets.get(scope = "eaasedldev", key = "key"))
+
+spark.conf.set("dfs.adls.oauth2.refresh.url", "https://login.microsoftonline.com/b31a5d86-6dda-4457-85e5-c55bbc07923d/oauth2/token")
+=====================================================================================================================================
+
+
+=== To install packages and supressing the message
+
+suppressMessages(library(SparkR))
+
+=== To execute any notebook
+ 
+%run /Shared/project/common/config_ADLS 
+
+=== To use SQL in any notebook
+
+%sql
+select * from database.table limit 10
+
+=== SQL querying
+
+query <- paste0("SELECT * from database.table")
+sqlresult <- sql(query)
+#display(sqlresult)
+dim(sqlresult)
+
+schema(sqlresult)
+=====================================================================================================================================================================
+
+
+
+###pull data using python from dev hive tables
+
+%python
+query = "select sr.service_request_no as service_request, sr.sr_source_type,sr.creation_dt,sa.notes as problem,sa.type FROM 
+cmiedwp_world_raw.SERVICE_REQUEST SR LEFT JOIN cmiedwp_world_raw.SERVICE_ACTIVITY SA on sr.service_request_no = sa.service_request_no 
+WHERE sr.sr_dsn = 'SIEBEL~GTSR' and sa.type = 'Call - Inbound'  and sr.creation_dt >= '2019-01-01' and sr.Priority 
+IN('Cummins CARE Level 1', 'Cummins CARE Level 2', 'Cummins CARE Level 3')"
+
+python_df = spark.sql(query)
+python_df.show()
+
+======================================================================================================================================================================
+
+###Pulling data from sqlserver using python
+
+jdbcHostname = "eaasedldevsqlserver.database.windows.net"
+jdbcDatabase = "eaasedldevsqldbaggr"
+jdbcPort = 1433
+jdbcUrl = "jdbc:sqlserver://{0}:{1};database={2}".format(jdbcHostname, jdbcPort, jdbcDatabase)
+
+jdbcUsername = dbutils.secrets.get(scope = "sqljdbc", key = "username")
+jdbcPassword = dbutils.secrets.get(scope = "sqljdbc", key = "password")
+
+connectionProperties = {
+  "user" : jdbcUsername,
+  "password" : jdbcPassword,
+  "driver" : "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+}
+
+df = spark.read.jdbc(url=jdbcUrl, table="specto.faultcode",properties=connectionProperties)
+display(df)
+
+
+======================================================================================================================================================================
+
+%r
+library(SparkR)
+results <- SparkR::sql("select sr.service_request_no as service_request FROM cmiedwp_world_raw.SERVICE_REQUEST SR")
+rdf_sample <- SparkR::collect(results)
+head(rdf_sample)
+
+
+======================================================================================================================================================================
+
+%scala
+// Pulling data from dev hive tables using SCALA
+val jdbcUsername = dbutils.secrets.get(scope = "sqljdbc", key = "username")
+val jdbcPassword = dbutils.secrets.get(scope = "sqljdbc", key = "password")
+
+Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver")
+
+val jdbcHostname = "eaasedldevsqlserver.database.windows.net"
+val jdbcPort = 1433
+val jdbcDatabase = "eaasedldevsqldbaggr"
+
+// Create the JDBC URL without passing in the user and password parameters.
+val jdbcUrl = s"jdbc:sqlserver://${jdbcHostname}:${jdbcPort};database=${jdbcDatabase}"
+
+// Create a Properties() object to hold the parameters.
+import java.util.Properties
+val connectionProperties = new Properties()
+
+connectionProperties.put("user", s"${jdbcUsername}")
+connectionProperties.put("password", s"${jdbcPassword}")
+
+val driverClass = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+connectionProperties.setProperty("Driver", driverClass)
+
+val engineinfodim = spark.read.jdbc(jdbcUrl, "specto.ngca_specto_mo_t", connectionProperties)
+
+
+%scala
+engineinfodim.show
+
+======================================================================================================================================================================
+
+%md
+# This is how to Convert an R dataframe to a PySpark dataframe with an example of creating a SQL table in 3 cells  
+
+%R
+# prepare your R dataframe by making it a parquet file
+require(SparkR)
+SparkR::new_df <- createDataFrame(r_dataframe)
+SparkR::write.df(new_df, path="dbfs:/cumminscare/summary_test.parquet", source="parquet", mode="overwrite")
+
+%python
+# create df3 which makes this a spark dataframe ready for loading to SQL
+df3 = spark.read.load("dbfs:/cumminscare/summary_test.parquet") 
+
+
+======================================================================================================================================================================
+
+
+%python
+# Notice in line 17 that .mode() function. Here it appends to the table. You can change it to "Overwrite" if you need to.
+jdbcHostname = "eaasedldevsqlserver.database.windows.net"
+jdbcDatabase = "eaasedldevsqldbaggr"
+jdbcPort = 1433
+jdbcUrl = "jdbc:sqlserver://{0}:{1};database={2}".format(jdbcHostname, jdbcPort, jdbcDatabase)
+
+jdbcUsername = dbutils.secrets.get(scope = "sqljdbc", key = "username")
+jdbcPassword = dbutils.secrets.get(scope = "sqljdbc", key = "password")
+
+connectionProperties = {
+  "user" : jdbcUsername,
+  "password" : jdbcPassword,
+  "driver" : "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+}
+
+df3.write.option( "batchsize", "10000").mode("Append").jdbc( url = jdbcUrl, table = "cummins_care.cumminscare_summary_test", properties=connectionProperties ) 
+
+
+
+======================================================================================================================================================================
+
+
+======================================================================================================================================================================
+
+
+======================================================================================================================================================================
+
+
+======================================================================================================================================================================
+
+
+======================================================================================================================================================================
+
+
+======================================================================================================================================================================
+
+
+
+
+
+
+
+
+== writing the output file into dbfs path and saving it as csv
+
+SparkR::write.df(repartition(sqlresult,1),path="dbfs:/FileStore/tables/output/csv/final_output_1", source="csv", header=TRUE)
+
+
+=== writting hadoop commands 
+
+%fs ls dbfs:/FileStore/tables/output/csv/final_output_1
+
+== reading the data into df
+
+df <- read.df("/user/cj612/tmp/file.csv", source="csv", header=T) 
+
+=== selecting different columns from df
+
+display(select(df, "CALC_ID", "CALC_DATE", "COUNT_NBR"))
+
+=== grouping for count
+
+gf <- groupBy(df, "CALC_ID")
+gf_count <- count(gf)
+display(gf_count)
+
+============= Complex SQL Queries in data bricks
+====== 1
+
+%sql
+select  calc_id, calc_date, metric, 
+        ema2(metric) over (partition by calc_id order by calc_date) as ema2, 
+        ema4(metric) over (partition by calc_id order by calc_date) as ema4, 
+        ema8(metric) over (partition by calc_id order by calc_date) as ema8, 
+        ema12(metric) over (partition by calc_id order by calc_date) as ema12, 
+        avg(metric) over (partition by calc_id order by calc_date rows between 2 preceding and current row) as sma2, 
+        avg(metric) over (partition by calc_id order by calc_date rows between 4 preceding and current row) as sma4,
+        avg(metric) over (partition by calc_id order by calc_date rows between 8 preceding and current row) as sma8, 
+        avg(metric) over (partition by calc_id order by calc_date rows between 12 preceding and current row) as sma12 
+from    some_input_table 
+order by calc_id, calc_date
+
+=======2
+
+SELECT df.*
+FROM  database.table limit 10
+AS df JOIN () AS maxCo ON df.CALC_ID = maxCO.CALC_ID
+GROUP BY df.CALC_ID
+HAVING (SUM(COUNT_NBR)>=15 OR SUM(COUNT_NBR)/SUM(COUNT_NBR_POPULATION)) > 0.0005 OR SUM_MAX_COUNT_NBR >=5 )
+
+======= 3 == filtering the past 12 weeks of data
+
+%sql
+SELECT xom.CALC_ID
+FROM database.table AS xom
+JOIN (SELECT CALC_ID, DATE_ADD(MAX(CALC_DATE), -84) AS MAX_DATE 
+FROM database.table GROUP BY CALC_ID ) AS minD ON 
+minD.CALC_ID = xom.CALC_ID
+WHERE xom.CALC_DATE >= MAX_DATE 
+GROUP BY xom.CALC_ID HAVING SUM(COUNT_NBR) >=5
+-- Able to get the SUM(COUNT_NBR) for last 12 weeks with this 
+
+==== 4 == filtering past 48 weeks of data
+
+%sql
+SELECT xom.CALC_ID
+FROM database.table AS xom
+JOIN (SELECT CALC_ID, DATE_ADD(MAX(CALC_DATE), -336) AS MAX_DATE 
+FROM database.table GROUP BY CALC_ID ) AS minD ON 
+minD.CALC_ID = xom.CALC_ID
+WHERE xom.CALC_DATE >= MAX_DATE 
+GROUP BY xom.CALC_ID HAVING SUM(COUNT_NBR) >=15
+

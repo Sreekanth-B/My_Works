@@ -1,0 +1,1591 @@
+
+=============================================================================================================
+============ SOme usefull DE function in SCALA
+
+def extractTableNames(database: String) :Array[String] = {
+    import spark.implicits._
+    val databaseTables = spark.sql(s"show tables in $database").filter( $"database" === s"$database" ).as[Database]
+    databaseTables.map(_.tableName).collect()
+  }
+
+  
+def typeDatasets(database: String)  = {
+    extractTableNames(database).foreach(tableName => {
+      val table = spark.sql(s"select * from $database.$tableName")
+      typeDataset(table,tableName)
+    })
+  }
+
+
+=============================================================================================================
+=============================================================================================================
+=== usefull functions taken
+
+
+====================================1
+
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.{col, _}
+import org.apache.spark.sql.types.{DataType, DoubleType, StringType}
+
+object OEPL extends BaseJob{
+
+  import spark.implicits._
+
+  override def createPrimary(): Unit = {
+    val optionAssemblyRawDF = spark.sql("SELECT * FROM QUALITY_RELIABILITY.RLD_ENGINE_OPTION_ASSEMBLY").withColumnRenamed("ENGINE_SERIAL_NUM", "ESN")
+    val REL_ENGINE_OPTION_ASSEMBLY_SCHEMA = Map(
+      "ESN" -> StringType,
+      "plant_id_code" -> StringType,
+      "shop_order_num" -> StringType,
+      "model_name" -> StringType,
+      "cpl_num" -> StringType,
+      "shop_order_type_flg" -> StringType,
+      "build_upfit_date" -> StringType,
+      "build_upfit_year" -> StringType,
+      "build_upfit_month" -> StringType,
+      "option_assembly_num" -> StringType,
+      "start_date" -> StringType,
+      "stop_date" -> StringType,
+      "qty_per_shop_order_num" -> DoubleType,
+      "option_assembly_flg" -> StringType // TODO what is this column?  data dictionary says its about customizations.  Is this related to any hypothesis?
+    )
+
+
+    val optionAssemblyRawFormatDF = applySchema(optionAssemblyRawDF, REL_ENGINE_OPTION_ASSEMBLY_SCHEMA)
+
+    formatCapitalizeNames(optionAssemblyRawDF).write.mode("overwrite").saveAsTable("QUALITY_PRIMARY.OEPL_OPTION_ASSEMBLY_BOM_DATA")
+
+
+    //Extract the Option Assembly Data
+    val optionAssemblyPrimaryDF = spark.sql("SELECT * FROM QUALITY_PRIMARY.OEPL_OPTION_ASSEMBLY_BOM_DATA")
+
+
+    // filter the required shop orders from the OEPL table
+    // Why is this filter here?
+    // TODO Investigate Filter
+    val optionAssemblyFilteredDF = optionAssemblyPrimaryDF.filter($"SHOP_ORDER_NUM".contains("SO") && $"SHOP_ORDER_TYPE_FLG" === "BUILD").
+      select("ESN", "SHOP_ORDER_NUM", "OPTION_ASSEMBLY_NUM", "CPL_NUM", "start_date", "stop_date", "plant_id_code")
+
+    //Capitalize column names and load to master table
+    formatCapitalizeNames(optionAssemblyFilteredDF).write.mode("overwrite").saveAsTable("QUALITY_COMPUTE.OEPL_OPTION_ASSEMBLY_BOM_MASTER")
+  }
+
+  override def createFeatures(): Unit = {
+    val optionAssemblyMasterDF = spark.sql("select * from QUALITY_COMPUTE.OEPL_OPTION_ASSEMBLY_BOM_MASTER")
+    spark.conf.set("spark.sql.pivotMaxValues",100000)
+
+    optionAssemblyMasterDF.
+      withColumn("OEPL_OPTION_ASSEMBLY_NUM", concat(lit("option_assembly_"), $"OPTION_ASSEMBLY_NUM")).
+      withColumnRenamed("CPL_NUM","ENGINE_CPL_NUM_GROUPING")
+//    Do we want to do this?
+//    val optionAssemblyPivotedDF = optionAssemblyMasterDF.groupBy("ESN", "SHOP_ORDER_NUM").pivot("OPTION_ASSEMBLY_NUM").agg(countDistinct("OPTION_ASSEMBLY_NUM")).na.fill(0).cache()
+//    optionAssemblyPivotedDF.count()
+
+
+    // Temporary - need to see if we need to update this or just copy it
+    val bucketsDF = spark.sql("SELECT OPTION_ASSEMBLY_NUM, OPTION_BUCKET, OPTION_TYPE FROM REFERENCE.OEPL_OPTION_ASSEMBLY_BUCKETS_MAP")  // TODO what is this reference?
+    val shopOrderBomBucketsDF = optionAssemblyMasterDF.join(bucketsDF, Seq("OPTION_ASSEMBLY_NUM"))
+
+    val bucketsShopOrders = bucketsDF.select("OPTION_ASSEMBLY_NUM").
+      distinct().
+      collect().
+      map(x => x(0))
+
+
+    val bucketsOptionAssembliesFilteredDF = shopOrderBomBucketsDF.filter($"OPTION_ASSEMBLY_NUM".isin(bucketsShopOrders: _*))
+
+    val bucketsOptionAssemblyPivotedDF = bucketsOptionAssembliesFilteredDF.
+      groupBy("ESN").
+      pivot("OPTION_TYPE").
+      agg(max("OPTION_BUCKET")). // This line is a bit confusing.  we don't actuall want the max.  there will only be 1 value so max of that will be that value
+      withColumn("_tmp", split($"Peak_Torque_ST_Horsepower", "[|]")).
+      withColumn("PEAK_TORQUE", $"_tmp".getItem(0)).
+      withColumn("ST", $"_tmp".getItem(1)==="ST").
+      withColumn("HORSEPOWER", $"_tmp".getItem(2)).
+      drop("_tmp").
+      drop("Peak_Torque_ST_Horsepower")
+
+    val allOptionAssemblyPivotedDF = bucketsOptionAssemblyPivotedDF//.join(optionAssemblyPivotedDF, Seq("ESN"), joinType = "left_outer")
+
+    val esnListDf =  spark.sql("select * from REFERENCE.x15_esn_list").withColumnRenamed("engine_serial_num", "esn")
+
+
+    //Filter fuel pump related engines
+    val optionAssemblyFeaturesDF = allOptionAssemblyPivotedDF.join(esnListDf, Seq("ESN"))
+
+    optionAssemblyFeaturesDF.columns.map(colname => colname.replaceAll("[(|)]", "").replaceAll(" ", "_").toUpperCase)
+
+    formatCapitalizeNamesWithPrefix(optionAssemblyFeaturesDF,"OEPL_",Set("ESN")).write.mode("overwrite").saveAsTable("QUALITY_COMPUTE.OEPL_OPTION_ASSEMBLY_FEATURES")
+  }
+
+  def printCountsWithColumnRemoved(df : DataFrame, columns: Seq[String]): (Long,Long) ={
+    (df.distinct().count(),df.drop(columns:_*).distinct().count())
+  }
+
+  //Function to Capitalize and format(remove spaces/spl characters) from column names
+  def formatCapitalizeNames(dataFrame: DataFrame): DataFrame = {
+    val capitalizedNames = dataFrame.columns.map(colname => colname.replaceAll("[(|)]", "").replaceAll(" ", "_").toUpperCase)
+    val originalNames = dataFrame.columns
+    dataFrame.select(List.tabulate(originalNames.length)(i => col(originalNames(i)).as(capitalizedNames(i))): _*)
+  }
+
+  def formatCapitalizeNamesWithPrefix(dataFrame: DataFrame, prefix: String, excludeColumns : Set[String] = Set()): DataFrame = {
+    val capPrefix = prefix.toUpperCase
+    val capitalizedNames = dataFrame.columns.map(colname => colname.replaceAll("[(|)]", "").replaceAll(" ", "_").toUpperCase).map(col => {
+      if(excludeColumns.contains(col.toUpperCase()) || col.startsWith(capPrefix)) col else prefix + col
+    })
+    val originalNames = dataFrame.columns
+    dataFrame.select(List.tabulate(originalNames.length)(i => col(originalNames(i)).as(capitalizedNames(i))): _*)
+  }
+
+  // Function to apply a schema specified in schemaMap to an existing dataframe. Dates may need to be converted to a correct format first. All column names will be capitalized. If column schema not specified, will treat as string.
+  def applySchema(df: DataFrame, schemaMap: Map[String, DataType]) = {
+    val upperSchemaMap = schemaMap map {case (k, v) => (k.toUpperCase, v)}
+    df.schema.foldLeft(df) {
+      case(acc, col) => {
+        val colNameUpper = col.name.toUpperCase
+        acc.withColumn(colNameUpper, df(col.name).cast(upperSchemaMap getOrElse (colNameUpper, StringType)))
+      }
+    }
+  }
+}
+
+
+
+====================================2
+
+
+import mck.qb.columbia.feature.detect.EdsFeatureJob.spark
+import mck.qb.columbia.primary.EdsPrimaryJob.spark
+import mck.qb.columbia.primary.reliability.RelEngineClaimsPrimaryJob.spark
+import mck.qb.library.{BaseJob, Util}
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{DoubleType, StringType, TimestampType}
+
+class Scratch extends BaseJob{
+
+  override def createPrimary(): Unit = {
+    import spark.implicits._
+    val esndf = spark.sql("select engine_serial_num, engine_name_desc , BUILD_DATE" +
+      " from quality_reliability.rld_engine_detail_mv " +
+      " where engine_name_desc='X15 1 2017' OR engine_name_desc='X15 3 2017' OR engine_name_desc='ISX1 2013' OR engine_name_desc='ISX2 2013' OR engine_name_desc='ISX3 2013' ").
+      withColumn("BUILD_YEAR", year($"build_date")).
+      withColumn("BUILD_MONTH", month($"build_date")).
+      withColumn("BUILD_DAY_OF_MONTH", dayofmonth($"build_date")).
+      withColumn("BUILD_DAY_OF_WEEK", date_format($"build_date", "EEEE")).
+      withColumn("BUILT_ON_WEEKEND", Util.isWeekendUDF($"BUILD_DAY_OF_WEEK")).
+      withColumnRenamed("engine_serial_num", "ESN").
+      withColumnRenamed("engine_name_desc", "ENGINE_DESCRIPTION")
+
+//    esndf.select("BUILT_ON_WEEKEND").groupBy("BUILT_ON_WEEKEND").agg(count($"BUILT_ON_WEEKEND") as "count").show()
+//
+//    esndf.groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "ESN_COUNT").orderBy("BUILD_YEAR").show()
+//
+//    esndf.select("ENGINE_DESCRIPTION").distinct().show()
+
+    val epatFeaturesDF = spark.sql("SELECT * FROM COMPUTE.EPAT_TEST_CHANNEL_FEATURES")
+    val oeplFeaturesDF = spark.sql("select * from QUALITY_COMPUTE.OEPL_OPTION_ASSEMBLY_FEATURES")
+    val edsFeaturesDF = spark.sql("select * from quality_compute.final_eds")
+    val relFeaturesDF = spark.sql("select * from quality_compute.REL_DSID_FEATURES").withColumnRenamed("ESN", "REL_ESN")
+    val fullFeaturesDF = spark.sql("SELECT * FROM quality_compute.full_features_PERSISTED")
+
+    val epatEsn = epatFeaturesDF.select("esn")
+    val oeplEsn = oeplFeaturesDF.select("esn")
+    val edsEsn = edsFeaturesDF.select("esn")
+    val relEsn = relFeaturesDF.select("rel_esn").withColumnRenamed("rel_esn", "esn")
+    val featEsn = fullFeaturesDF.select("esn")
+
+    val countEpat = epatEsn.join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "EPAT_COUNT").orderBy("BUILD_YEAR")
+    val countOepl = oeplEsn.join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "OEPL_COUNT").orderBy("BUILD_YEAR")
+    val countEds = edsEsn.join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "EDS_COUNT").orderBy("BUILD_YEAR")
+    val countRel = relEsn.join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "REL_COUNT").orderBy("BUILD_YEAR")
+    val countFeatures = fullFeaturesDF.select("esn").union(fullFeaturesDF.select("REL_ESN").withColumnRenamed("REL_ESN","ESN")).
+      join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "FEATURES_COUNT").orderBy("BUILD_YEAR")
+    val fullCount = esndf.groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "FULL_COUNT").orderBy("BUILD_YEAR")
+
+    val esnAvailability = fullCount.
+      join(countRel, Seq("BUILD_YEAR"),"left_outer").
+      join(countEds, Seq("BUILD_YEAR"),"left_outer").
+      join(countEpat, Seq("BUILD_YEAR"),"left_outer").
+      join(countOepl, Seq("BUILD_YEAR"),"left_outer").
+      join(countFeatures, Seq("BUILD_YEAR"),"left_outer").
+      orderBy("BUILD_YEAR")
+
+    esnAvailability.show(false)
+
+
+    relFeaturesDF.select("rel_esn").withColumnRenamed("rel_esn", "esn").union(edsFeaturesDF.select("esn")).distinct().join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "EDS_COUNT").orderBy("BUILD_YEAR")
+    fullFeaturesDF.select("rel_esn").withColumnRenamed("rel_esn", "esn").union(fullFeaturesDF.select("esn")).distinct().join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "EDS_COUNT").orderBy("BUILD_YEAR")
+
+
+    val claims = spark.sql("select * from quality_compute.REL_DSID_FEATURES")
+    val eds = spark.sql("select * from quality_compute.final_eds")
+    val incidents = spark.sql("select * from QUALITY_COMPUTE.ALL_INCIDENTS_NEW")
+
+    val theseClaims = claims.filter($"REL_ESN" === "79967439").cache() // has 2 records
+    val theseIncidents = incidents.filter($"ESN" === "79967439").cache() // has 3 records
+    val theseEds = eds.filter($"ESN" === "79967439").cache() // has 2 records
+
+    theseEds.count()
+    theseClaims.count()
+    theseIncidents.count()
+
+    theseClaims.select("REL_DSID", "REL_CMP_FAIL_CODE_LIST", "REL_FAILURE_DATE", "REL_CMP_CLAIM_DATE_LIST","REL_MINED_DSID_LIST").
+      orderBy("REL_FAILURE_DATE").show()
+    theseEds.select("DSID","DSID_CREATE_DATE").orderBy("DSID_CREATE_DATE").show()
+    theseIncidents.select("DSID", "REL_CMP_FAIL_CODE_LIST", "REL_FAILURE_DATE","DSID_CREATE_DATE","EARLIEST_INDICATION_DATE","REL_MINED_DSID_LIST").
+      orderBy("REL_FAILURE_DATE").show()
+
+    val RelEngineClaimDetailMVSchema = Map(
+      "engine_serial_num" -> StringType,
+      "oem_code" -> StringType,
+      "oem_group_name" -> StringType,
+      "oem_group_code" -> StringType,
+      "oem_app_group_name" -> StringType,
+      "oem_app_group_code" -> StringType,
+      "application_code" -> StringType,
+      "business_unit_name" -> StringType,
+      "aspiration_code" -> StringType,
+      "plant_id_code" -> StringType,
+      "region_code" -> StringType,
+      "territory_code" -> StringType,
+      "territory_id_seq" -> DoubleType,
+      "engine_group_desc" -> StringType,
+      "engine_family_code" -> StringType,
+      "engine_name_desc" -> StringType,
+      "design_application_code" -> StringType,
+      "design_config_num" -> StringType,
+      "design_hsp_num" -> DoubleType,
+      "design_rpm_num" -> DoubleType,
+      "mktg_config_num" -> StringType,
+      "mktg_config_name" -> StringType,
+      "mktg_hsp_num" -> DoubleType,
+      "mktg_rpm_num" -> DoubleType,
+      "build_date" -> TimestampType,
+      "build_year" -> StringType,
+      "build_qtr" -> StringType,
+      "build_month" -> StringType,
+      "build_acct_qtr" -> StringType,
+      "build_acct_month" -> StringType,
+      "ship_date" -> TimestampType,
+      "ship_year" -> StringType,
+      "ship_qtr" -> StringType,
+      "ship_month" -> StringType,
+      "ship_acct_qtr" -> StringType,
+      "ship_acct_month" -> StringType,
+      "design_phase_code" -> StringType,
+      "variable_timing_id_num" -> StringType,
+      "in_service_date" -> TimestampType,
+      "in_service_year" -> StringType,
+      "in_service_qtr" -> StringType,
+      "in_service_month" -> StringType,
+      "in_service_acct_qtr" -> StringType,
+      "in_service_acct_month" -> StringType,
+      "shotts_ind_code" -> StringType,
+      "vin_num" -> StringType,
+      "shop_order_num" -> StringType,
+      "cpl_num" -> StringType,
+      "coverage_code" -> StringType,
+      "coverage_start_date" -> TimestampType,
+      "lagd" -> DoubleType,
+      "lags" -> DoubleType,
+      "user_appl_code" -> StringType,
+      "claim_id_seq" -> DoubleType,
+      "claim_detail_id_seq" -> DoubleType,
+      "distributor_code" -> StringType,
+      "distributor_group" -> StringType,
+      "claim_year" -> DoubleType,
+      "claim_num" -> StringType,
+      "line_num" -> DoubleType,
+      "program_account_code" -> StringType,
+      "program_group_name" -> StringType,
+      "program_group_code" -> StringType,
+      "fail_system_code" -> StringType,
+      "fail_component_code" -> StringType,
+      "fail_mode_code" -> StringType,
+      "fail_code" -> StringType,
+      "fail_code_and_mode" -> StringType,
+      "fail_system_group_code" -> StringType,
+      "fail_system_group_name" -> StringType,
+      "fail_component_group_code" -> StringType,
+      "fail_component_group_name" -> StringType,
+      "failure_severity_code" -> StringType,
+      "net_amount" -> DoubleType,
+      "payment_date" -> TimestampType,
+      "payment_year" -> StringType,
+      "payment_qtr" -> StringType,
+      "payment_month" -> StringType,
+      "payment_acct_qtr" -> StringType,
+      "payment_acct_month" -> StringType,
+      "original_unit_of_measure" -> StringType,
+      "engine_hrs" -> DoubleType,
+      "engine_miles" -> DoubleType,
+      "failure_date" -> TimestampType,
+      "delay" -> DoubleType,
+      "claim_date" -> TimestampType,
+      "authorization_num" -> StringType,
+      "part_num" -> StringType,
+      "before_in_service_ind" -> StringType,
+      "camp_trp_ind" -> StringType,
+      "engine_use_code" -> StringType,
+      "claim_source_code" -> StringType,
+      "program_payment_code" -> StringType,
+      "materials_amount" -> DoubleType,
+      "markup_amount" -> DoubleType,
+      "beyond_fact_charge" -> DoubleType,
+      "travel_lodging_amount" -> DoubleType,
+      "travel_to_site_amount" -> DoubleType,
+      "travel_labor_amount" -> DoubleType,
+      "tax_amount" -> DoubleType,
+      "repair_labor_amount" -> DoubleType,
+      "other_expense_amount" -> DoubleType,
+      "deductible_amount" -> DoubleType,
+      "cummins_administration_amount" -> DoubleType,
+      "undetailed_parts_amount" -> DoubleType,
+      "labor_hours" -> DoubleType,
+      "dollar_differ_amount" -> DoubleType,
+      "dealer_code" -> StringType,
+      "claim_status_ind" -> StringType,
+      "fail_count_num" -> DoubleType,
+      "total_fail_count_num" -> DoubleType,
+      "invoice_amount" -> DoubleType,
+      "emission_year" -> StringType,
+      "emissions_family_code" -> StringType,
+      "emissions_state_code" -> StringType,
+      "fail_service_date_diff" -> DoubleType,
+      "ecm_code" -> StringType,
+      "ecm_id" -> StringType,
+      "ecm_serial_no" -> StringType,
+      "ecm_part_no" -> StringType,
+      "do_option" -> StringType,
+      "fr_option" -> StringType,
+      "sc_option" -> StringType,
+      "repair_order_num" -> StringType,
+      "service_engine_model" -> StringType,
+      "analysis_rate_cat" -> StringType,
+      "fund_rate_cat" -> StringType,
+      "epa_name" -> StringType,
+      "service_info_fs_code" -> StringType
+    )
+    val RelEngineClaimDetailMVDF = Util.applySchema(spark.sql("""SELECT * FROM quality_reliability.rld_engine_claim_detail_mv""".stripMargin),RelEngineClaimDetailMVSchema)
+    println(RelEngineClaimDetailMVDF.columns.mkString("|"))
+
+
+
+    val dsidMasterPrimaryDF = spark.sql("SELECT * FROM QUALITY_PRIMARY.EDS_EBU_EDSA_DSID_MASTER")
+    val dsidMasterDF = spark.sql("select * from QUALITY_eds.EBU_EDSA_DSID_MASTER")
+
+
+    val esnList = spark.sql("select engine_serial_num from reference.x15_esn_list").withColumnRenamed("engine_serial_num","dsid_esn")
+
+  }
+
+  override def createFeatures(): Unit = {
+
+  }
+
+  //    unMatchedReliability.select("rel_esn").withColumnRenamed("rel_esn", "esn").union(
+  //      coreIncidentTracker.select("rel_esn").withColumnRenamed("rel_esn", "esn")).union(
+  //      coreIncidentTracker.select("esn")).union(
+  //      unMatchedEds.select("esn")).distinct().join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "EDS_COUNT").orderBy("BUILD_YEAR").show()
+  //
+  //    remainingReliabilityEds.select("rel_esn").withColumnRenamed("rel_esn", "esn").union(
+  //      coreIncidentTracker.select("rel_esn").withColumnRenamed("rel_esn", "esn")).union(
+  //      coreIncidentTracker.select("esn")).union(
+  //      remainingReliabilityEds.select("esn")).distinct().join(esndf, usingColumn="esn").groupBy("BUILD_YEAR").agg(countDistinct($"ESN") as "EDS_COUNT").orderBy("BUILD_YEAR").show()
+
+  //    // Look at date clustering features
+  //    val dayTracker = coreIncidentTracker.select("dsid","FAILURE_DATE").
+  //      withColumn("YEAR",year($"FAILURE_DATE")).withColumn("dayOfYear",dayofyear($"FAILURE_DATE")).
+  //      withColumn("yearDays", normalizeYearUDF($"year",$"dayOfYear")).drop("YEAR","dayOfYear","FAILURE_DATE").orderBy("dsid","yearDays").
+  //      cache()
+  //
+  //    dayTracker.show()
+  //    val windowSpec = Window.partitionBy("dsid").orderBy("yearDays")
+  //    val laggedDayTracker = dayTracker.withColumn("lastYearDays",lag($"yearDays",1,null).over(windowSpec)).orderBy("dsid","yearDays")//.filter($"lastYearDays" =!= null)
+  //
+  //    laggedDayTracker.show()
+  //    val recordsWithOneRow = laggedDayTracker.groupBy("dsid").agg(count($"dsid") as "count").filter($"count" === 1)
+  //
+  //    val maxDaysBetweenDates = laggedDayTracker.filter($"lastYearDays".isNotNull).
+  //      withColumn("difference",$"yearDays" - $"lastYearDays").
+  //      groupBy("dsid").agg(max($"difference") as "maxDifference")
+  //
+  //    maxDaysBetweenDates.groupBy("maxDifference").agg(count($"maxDifference") as "count").orderBy("maxDifference").show(100)
+
+
+  //
+//  def expr(myCols: Set[String], allCols: List[String]) = {
+//    allCols.map(x => x match {
+//      case x if myCols.contains(x) => col(x)
+//      case _ => lit(null).as(x)
+//    })
+//  }
+
+//  df1.select(expr(cols1, total):_*).unionAll(df2.select(expr(cols2, total):_*)).show()
+
+}
+==================================================3
+
+package mck.qb.columbia.qa
+
+import java.text.SimpleDateFormat
+import java.util.Date
+
+import com.typesafe.config.Config
+import mck.qb.columbia.config.AppConfig
+import mck.qb.columbia.constants.Constants._
+import mck.qb.library.IO.{Transport, withAutoBroadcastJoinThreshold, withShufflePartition}
+import mck.qb.library.{Job, Util}
+import org.apache.log4j.Logger
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
+import java.util.Date
+import java.text.SimpleDateFormat
+
+abstract class ValidationSchema extends Job with Transport {
+
+  override val logger = Logger.getLogger(this.getClass)
+  private val jobConfig: Config = AppConfig.getMyConfig(VAL_SCHEMA, logger)
+
+  override def cfg: String => String = jobConfig.getString _
+
+  def getTargetDbKey(): String
+
+  def getTargetTableKey(): String
+
+  def getPredefinedSchema(): Map[String, DataType]
+
+  import spark.implicits._
+
+  override def run(): Unit = {
+    withShufflePartition(200) {
+      withAutoBroadcastJoinThreshold(2) {
+
+        logger.warn("Info: Reading: " + getTargetDbKey() + "." + getTargetTableKey())
+        val targetDbTblName = getTargetDbKey()+"."+getTargetTableKey()
+        val targetDbTbl = load(s"select * from ${targetDbTblName}")
+        val targetSchema = targetDbTbl.schema.fields.map(f => (f.name.toUpperCase -> f.dataType)).toMap
+        val predefinedSchema = getPredefinedSchema().map { case (key, value) => key.toUpperCase -> value }
+
+        val start_dttm = new Date()
+        val schemaDF = Seq((targetDbTblName, predefinedSchema.equals(targetSchema))).toDF("dbTbl", "schema")
+        val end_dttm = new Date()
+
+        val timeIntvl = "%.3f".format((end_dttm.getTime - start_dttm.getTime) / 1000.0 / 60)
+
+        val finalDF = schemaDF.
+          withColumn("runid", lit(Util.getSpark().sparkContext.applicationId)).
+          withColumn("testcase_id", col("dbTbl")).
+          withColumn("start_time", lit(new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(start_dttm)).cast(TimestampType)).
+          withColumn("end_time", lit(new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(end_dttm)).cast(TimestampType)).
+          withColumn("execution_time", lit(timeIntvl).cast(DoubleType)).
+          withColumn("nature_of_tc", lit("Non-Critical")).
+          withColumn("metrics", lit("Schema check")).
+          withColumn("description", concat_ws(" ", lit("Schema should match as predefined in"), col("dbTbl"))).
+          withColumn("status", when(col("schema") === true,"pass").otherwise("fail")).
+          withColumn("failure_log", when(col("status") === "fail", concat_ws(" ", lit("Schema does not match as predefined in"), col("dbTbl"))).otherwise(lit(null).cast("String")))
+
+        val finalCols = Seq("runid", "testcase_id", "start_time", "end_time", "execution_time", "nature_of_tc", "metrics", "description", "status", "failure_log")
+
+        finalDF.select(finalCols.head, finalCols.tail: _*).write.insertInto("%s.%s".format(cfg(MODEL_IN_DB_QSK), cfg(VAL_TBL)))
+      }
+    }
+  }
+}
+
+
+
+=============================================================================================================
+=============================================================================================================
+============== UTILL file
+
+package mck.qb.library
+
+import java.sql.Timestamp
+import java.util.Calendar
+
+import mck.qb.columbia.constants.Constants
+import mck.qb.columbia.constants.Constants._
+import mck.qb.columbia.oneoff.CreateEngineTypesReference
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.security.alias.CredentialProviderFactory
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.{Column, DataFrame, Row, SparkSession}
+
+import scala.collection.mutable
+import scala.collection.mutable.WrappedArray
+import scala.util.Try
+
+object Util extends Serializable {
+  val spark = getSpark()
+
+  def getSpark(): SparkSession = {
+    try{
+      SparkSession.builder().enableHiveSupport().getOrCreate()
+    } catch {
+      case e: Exception => {
+        SparkSession.builder().
+          master("local[2]").
+          appName("Spark Locally").
+          getOrCreate()
+      }
+    }
+  }
+  spark.conf.set("spark.sql.shuffle.partitions", 400)
+  spark.conf.set("spark.sql.autoBroadcastJoinThreshold", -1)
+
+  def timeToSecondsUdf = udf {
+    (unit: String, value: String) =>
+
+      unit match {
+        case "HHHHHH:MM:SS" | "HH:MM:SS" => {
+          val Array(hour, minute, second) = value.split(":")
+          hour.toFloat*3600.0 + minute.toFloat*60.0 + second.toFloat
+        }
+
+        case _ => 0.0000
+      }
+  }
+
+  def getPasswordFromCredentialProviders(alias: String, provider: String): String = try {
+    val conf: Configuration = new Configuration()
+    conf.set(CredentialProviderFactory.CREDENTIAL_PROVIDER_PATH, provider)
+    conf.getPassword(alias).mkString
+  }
+  catch {
+    case _: NullPointerException => ""
+    case _: Exception => ""
+  }
+
+  def flattenListListUDF = udf((listList : scala.collection.mutable.WrappedArray[scala.collection.mutable.WrappedArray[Int]]) => {
+    listList.filter(_.length != 0).flatten.toList
+  })
+
+  def getNthColumnUDF = udf( (data: String, n: Integer) => {
+    val delimiter : String = " "
+
+    if(data == null){
+      null
+    } else {
+      val trimmedData = data.trim
+      if(trimmedData == "" || trimmedData == "null"){
+        null
+      } else {
+        val split = trimmedData.split(delimiter)
+        if(split.length > n){
+          split(n)
+        } else {
+          null
+        }
+      }
+    }
+  })
+  def getWarehousePath(warehouseRootPath: String, database: String = "default", tableName: String): String = {
+    var dbname = database.toLowerCase
+    var layer   = "na"
+    if(dbname.contains("_raw")) {
+      dbname  = dbname.replaceAll("_raw", "")
+      layer   = "raw"
+    }
+    else if(dbname.contains("_primary")) {
+      dbname = dbname.replaceAll("_primary","")
+      layer   = "primary"
+    }
+    else if(dbname.contains("_features")) {
+      dbname = dbname.replaceAll("_features","")
+      layer   = "features"
+    }
+    else if(dbname.contains("_mi")) {
+      dbname = dbname.replaceAll("_mi","")
+      layer   = "mi"
+    }
+    else if(dbname.contains("_mo")) {
+      dbname = dbname.replaceAll("_mo","")
+      layer   = "mo"
+    }
+    else if(dbname.contains("_rpt")) {
+      dbname = dbname.replaceAll("_rpt","")
+      layer   = "rpt"
+    }
+    else if(dbname.contains("_reference")) {
+      dbname = dbname.replaceAll("_reference", "")
+      layer   = "reference"
+    }
+    warehouseRootPath.toLowerCase + "/" + layer + "/" + dbname + "/" + tableName.toLowerCase
+  }
+
+  def getAllPossibleDataframe(inputdf:DataFrame,colList:Seq[String],combinationCols:Seq[String],Defaultvalue:String="All"):DataFrame={
+
+    val comblists=combinationCols.toSet.subsets.map(_.toSeq).toSeq
+    val combdfs=comblists.map(combination=>combination.foldLeft(inputdf.selectExpr((colList.toSet diff combination.toSet).toSeq:_*)){
+      case(transdf, withcol) => {
+        transdf.withColumn(withcol, lit(Defaultvalue))
+      }
+    }.selectExpr(colList:_*))
+    combdfs.reduce((a,b)=>a.union(b))
+
+  }
+
+  def getPossibleDataframe(inputdf: DataFrame, lstCols: Seq[String], combCols: Seq[String], bLvlAll: Boolean = true, defaultVal: String = "All"): DataFrame = {
+    val lstCombSet = getPossibleSet(inputdf, lstCols, combCols, bLvlAll, defaultVal)
+
+    lstCombSet.
+      map(combination => combination.foldLeft(inputdf.selectExpr((lstCols.toSet diff combination.toSet).toSeq:_*))
+      {
+        case(transdf, withcol) => transdf.withColumn(withcol, lit(defaultVal))
+      }.selectExpr(lstCols: _*)).
+      reduce(_ union _)
+  }
+
+  def getPossibleSet(inputdf: DataFrame, lstCols: Seq[String], combCols: Seq[String], bLvlAll: Boolean = true, defaultVal: String = "All"): Seq[Seq[String]] = {
+    bLvlAll match {
+      case true => combCols.toSet.subsets.map(_.toSeq).toSeq
+      case false => (0 to combCols.length).map(num => combCols.toSet.drop(num).toSeq)
+    }
+  }
+
+  //  spark.udf.register("your_func_name", getFaultCode, ArrayType(IntegerType()))
+  def getFaultCodesUDF = udf((data: String) => {
+    if(data == null){
+      null
+    }else{
+      val intGetterRegex = "\\d+".r
+      intGetterRegex.findAllIn(data).matchData.toList.map(_.toString.toInt)
+    }
+  })
+
+  def profile(dataFrame: DataFrame): Unit = {
+    val columnsInDf = dataFrame.columns
+    val minCols = columnsInDf.map(col => min(col).as("min_"+col))
+    val maxCols = columnsInDf.map(col => max(col).as("max_"+col))
+    val meanCols = columnsInDf.map(col => mean(col).as("mean_"+col))
+    val distinctValsCols = columnsInDf.map(col => countDistinct(col).as("distinctValues_"+col))
+    val allAggCols = minCols ++ maxCols ++ meanCols ++ distinctValsCols
+
+    val countOfRows = dataFrame.count()
+    println("total number of rows in data frame: ", countOfRows)
+    println("Unique id/ids are the following: ", dataFrame.columns.filter(col => dataFrame.select(col).distinct.count() == countOfRows))
+    println("Total number of non-null values in each column: ")
+    //    dataFrame.describe().filter($"summary" === "count").show // WHAT
+    println("Aggregate statistics of data frame: ")
+    dataFrame.select(allAggCols:_*).show()
+  }
+
+  //Function to Capitalize and format(remove spaces/spl characters) from column names
+  def formatCapitalizeNames(dataFrame: DataFrame): DataFrame = {
+    val capitalizedNames = dataFrame.columns.map(colname => colname.replaceAll("[(|)]", "").replaceAll(" ", "_").replaceAll("/", "").replaceAll("\\\\", "").replaceAll("-", "_").toUpperCase)
+    val originalNames = dataFrame.columns
+    dataFrame.select(List.tabulate(originalNames.length)(i => col(originalNames(i)).as(capitalizedNames(i))): _*)
+  }
+
+  def getTimeSeconds = udf {
+    (time: Timestamp) => if (time == null) Double.NaN else math.round(time.getTime/1000.0)
+  }
+
+  //function to convert km to miles. (for eg. we use it in Reliability - engine claims)
+  def convertKmToMiles = udf{
+    (unit: String, mileage: Double) => {
+      if (unit == "KM" && mileage != null) Some(mileage * 0.621371)
+      else if (unit == "ML" && mileage != null) Some(mileage)
+      else None
+    }
+  }
+
+  def formatCapitalizeNamesWithPrefix(dataFrame: DataFrame, prefix: String): DataFrame = {
+    val capitalizedNames = dataFrame.columns.map(colname => prefix + colname.replaceAll("[(|)]", "").replaceAll(" ", "_").toUpperCase)
+    val originalNames = dataFrame.columns
+    dataFrame.select(List.tabulate(originalNames.length)(i => col(originalNames(i)).as(capitalizedNames(i))): _*)
+  }
+
+  def aggCols(dataFrame: DataFrame, groupBy: Seq[String], orderBy: Seq[String], colsToAgg: Seq[String]): DataFrame = {
+    val window = Window.partitionBy(groupBy.head, groupBy.tail: _*).orderBy(orderBy.head, orderBy.tail: _*)
+    val aggCols = colsToAgg.map(column => max(col(column)).over(window).as("max_" + column)) ++
+      colsToAgg.map(column => min(col(column)).over(window).as("min_" + column)) ++
+      colsToAgg.map(column => mean(col(column)).over(window).as("mean_" + column)) ++
+      colsToAgg.map(column => sum(col(column)).over(window).as("sum_" + column)) ++ Seq(groupBy.map(col)).flatten
+    dataFrame.select(aggCols: _*)
+  }
+
+  def parseClosureType = udf{ s: String => s.split("\\.").last}
+
+  def normalizeYearUDF = udf((year : Int, days : Int) => {
+    365*(year - 2011) + days // erros for leap year... whatever
+  })
+
+  def isWeekendUDF = udf((dayOfWeek : String) => {
+    dayOfWeek == "Saturday" || dayOfWeek == "Sunday"
+  })
+
+  def addMissingColumns(cols : Set[String], fullCols : List[String]) : List[Column] = {
+    fullCols.map{
+      case strCol if cols.contains(strCol) => col(strCol)
+      case strCol => lit(null).as(strCol)
+    }
+  }
+
+  def unionMismatchedDf(leftDf : DataFrame, rightDf: DataFrame) : DataFrame = {
+    val leftCols = leftDf.columns.toSet
+    val rightCols = rightDf.columns.toSet
+
+    val fullCols = leftCols.union(rightCols).toList
+
+    val newLeftCols = addMissingColumns(leftCols,fullCols)
+    val newRightCols = addMissingColumns(rightCols, fullCols)
+
+    leftDf.select(newLeftCols : _*).union(
+      rightDf.select(newRightCols : _*)
+    )
+  }
+
+  import spark.implicits._
+//  val df1 = sc.parallelize(List(1)).toDF("a")
+//  val df2 = sc.parallelize(List(2)).toDF("b")
+//  unionMismatchedDf(df1,df2).show()
+
+  def getGWDescUDF = udf(
+    (data: String, n: Integer)=> {
+    val delimiter : String = " "
+    if(data == null){
+      null
+    } else {
+      val trimmedData = data.trim
+      if(trimmedData == "" || trimmedData == "null"){
+        null
+      } else {
+        val split = trimmedData.split(delimiter)
+        if(split.length > n){
+          split.slice(n, split.length).mkString(" ")
+        } else {
+          null
+        }
+      }
+    }
+  })
+
+  val arrayMax = udf {
+    (arr: WrappedArray[Integer]) => {
+      arr.max
+    }
+  }
+
+  /**
+    * Essentially a list of lists.  flatten will create a new list of the concatenated lists.
+    */
+  val flatMapStr = udf {
+    (arr: WrappedArray[WrappedArray[String]]) => arr.flatten
+  }
+
+  /**
+    * Essentially a list of timestamp datatype.  flatten will create a new list of strings.
+    */
+  val flatTimestampMapString = udf {
+    (arr: WrappedArray[Timestamp]) => arr.map(_.toString)
+  }
+
+  /**
+    * Essentially a list of lists.  flatten will create a new list of the concatenated lists with distinct elements.
+    * Order is not preserved.
+    */
+  val flatMapStrSet = udf {
+    (arr: WrappedArray[WrappedArray[String]]) => arr.flatten.toSet.toList
+  }
+
+  /**
+    * Essentially a list of lists.  flatten will create a new list of the concatenated lists.
+    */
+  val flatMapInt = udf {
+    (arr: WrappedArray[WrappedArray[Integer]]) => Try {
+      arr.filter(_ != null).flatten
+    }.getOrElse(WrappedArray.empty)
+  }
+
+  /**
+    * Essentially a list of lists.  flatten will create a new list of the concatenated lists.
+    */
+  val flatMapList = udf {
+    (arr: WrappedArray[WrappedArray[Double]]) => arr.flatten
+  }
+
+  /**
+    * Essentially a list of lists.  flatten will create a new list of the concatenated lists.
+    */
+  val flatMapDouble = udf {
+    (arr: WrappedArray[WrappedArray[Double]]) => arr.flatten
+  }
+
+  def daysBetweenDates(start: java.sql.Date, end: java.sql.Date) : Long =  {
+    daysBetween(start.getTime,end.getTime)
+  }
+
+  def daysBetween(start: Long, end : Long) : Long = {
+    scala.math.round((end - start)/1000.0/60.0/60.0/24)
+  }
+
+  def getBeforeDate(maxDate: java.util.Date,days: Int): String = {
+    var maxcal: Calendar = Calendar.getInstance()
+    maxcal.setTime(maxDate)
+    maxcal.add(Calendar.DATE, - days)
+    val dateStringBefore = maxcal.get(Calendar.YEAR)  + "-" + ( maxcal.get(Calendar.MONTH) +1) + "-" + maxcal.get(Calendar.DATE)
+    dateStringBefore
+  }
+
+  val cleanNullEmptyStringsUdf = udf ((str: String, itemsToNull : WrappedArray[String]) =>{
+    if(str == null || itemsToNull.contains(str.trim.toLowerCase)) null else str
+  })
+
+  def cleanNullEmptyStringInDf(df : DataFrame, itemsToNull : List[String] = List("null","nil","")): DataFrame ={
+    var newDf = df
+    df.columns.foreach(column => {
+      newDf = newDf.withColumn(column, cleanNullEmptyStringsUdf(col(column), array(itemsToNull map lit: _*) ))
+    })
+    newDf
+  }
+
+  def cleanNullEmptyStringSubsetInDf(df : DataFrame, columns: List[String], itemsToNull : List[String] = List("null","nil","")): DataFrame = {
+    var newDf = df
+    columns.foreach(column => {
+      newDf = newDf.withColumn(column, cleanNullEmptyStringsUdf(newDf(column), array(itemsToNull map lit: _*) ))
+    })
+    newDf
+  }
+
+  def cleanDfColumns(df: DataFrame, colList: List[String], regex: String, replaceWith: String = ""): DataFrame = {
+    var newDf = df
+    colList.foreach(c => {
+      newDf = newDf.withColumn(c, regexp_replace(col(c), lit(regex), lit(replaceWith)))
+    })
+    newDf
+  }
+
+  def printNiceSelectStatement(df : DataFrame) : Unit = {
+    df.columns.foreach(column => {
+      println("\"" + column +"\",")
+    })
+  }
+
+  def applySchema(df: DataFrame, schemaMap: Map[String, DataType]) = {
+    val upperSchemaMap = schemaMap map {case (k, v) => (k.toUpperCase, v)}
+    df.schema.foldLeft(df) {
+      case(acc, col) => {
+        val colNameUpper = col.name.toUpperCase
+        acc.withColumn(colNameUpper, df(col.name).cast(upperSchemaMap getOrElse (colNameUpper, StringType)))
+      }
+    }
+  }
+
+  def reportingESNforOMjobs(df : DataFrame) : Unit = {
+    var outputDF = df.filter($"CODE" =!= "NA").
+      groupBy("CALC_DATE").
+      agg(org.apache.spark.sql.functions.countDistinct($"ESN") as "count").
+      orderBy(desc("CALC_DATE"))
+
+    outputDF.show(20)
+  }
+
+  def reportingCodesforOMjobs(df : DataFrame) : Unit = {
+    var outputDF = df.filter($"CODE" =!= "NA").
+      groupBy("CALC_DATE").
+      agg(org.apache.spark.sql.functions.countDistinct($"CODE") as "count").
+      orderBy(desc("CALC_DATE"))
+
+    outputDF.show(20)
+  }
+
+  def cleanSequencedColumns(df  :DataFrame, startIndex : Int, endIndex : Int, prefix: String,pattern :String,replacement :String) : DataFrame  = {
+    var outputDf = df
+    (startIndex until endIndex).foreach( index => {
+      outputDf = outputDf.
+        withColumn(s"${prefix}${index}", regexp_replace(col(s"${prefix}${index}"),pattern,replacement))
+    })
+    outputDf
+  }
+
+  def reduceByKey(collection: Traversable[Tuple2[String, Double]]) = {
+    collection
+      .groupBy(_._1)
+      .map { case (group: String, traversable) => traversable.reduce{(a,b) => (a._1, a._2 + b._2)} }
+  }
+
+  val populateIfTrue = udf (
+    (condition: Boolean, string : String) => {
+      if(condition) string else null
+    }
+  )
+
+  val median = udf( (values: mutable.WrappedArray[Double]) => {
+    val list = values.toList.sorted
+    if(list.size == 0){
+      null.asInstanceOf[Double]
+    } else if(list.size %2 == 1){
+      list((list.size - 1)/2).toDouble
+    } else {
+      (list(list.size/2) + list(list.size/2-1))/2.0
+    }
+  })
+
+  def unitConverter = udf {
+    (unit:String, value_str:String) =>
+
+      var value = ""
+
+      if(!value_str.equalsIgnoreCase("NULL")) {
+
+        if (value_str.toString.contains(",")) {
+          value = value_str.toString.replaceAll(",", ".")
+        } else {
+          value = value_str
+        }
+
+        unit.toUpperCase() match {
+          case "GAL" =>
+            if (value.toString.contains(",")) {
+              value.toString.replaceAll(",", ".")
+            } else {
+              value
+            }
+
+          case "MI" | "MPH" =>
+            if (value.toString.contains(",")) {
+              value.toString.replaceAll(",", ".")
+            } else {
+              value
+            }
+
+            //Convert KM to Miles
+          case "KM" | "KM/HR" =>
+            if (value.toString.contains(",")) {
+             (value.toString.replaceAll(",", ".").toFloat * 0.6213).toString
+
+            } else {
+              (value.toFloat * 0.6213).toString
+
+            }
+
+            // Convert L to Gal
+          case "L" =>
+            if (value.toString.contains(",")) {
+              (value.toString.replaceAll(",", ".").toFloat * 0.2641).toString
+            } else {
+              (value.toFloat * 0.2641).toString
+            }
+
+          case "IGAL" =>
+            if (value.toString.contains(",")) {
+              (value.toString.replaceAll(",", ".").toFloat * 1.2009).toString
+            } else {
+              (value.toFloat * 1.2009).toString
+            }
+          //Convert Celsius to Fahrenheit
+          case "°C" | "DEG_C" => ((value.toDouble * 9) / 5 + 32).toString
+
+          case "°F" => value
+
+          /** KPA to PSI conversion
+            * KPA_G is gauge pressure
+            * KPA_A is absolute pressure
+            * All Units converted to PSI
+            * */
+          case "KPA" | "KPA_G" | "KPA_A" => (value.toDouble * 0.145).toString
+
+          /*
+          * BAR to PSI conversion
+          * BAR_A is absolute pressure.
+          * All units converted to PSI
+          * */
+          case "BAR" | "BAR_A" => (value.toDouble * 14.50).toString
+
+          // Change inHG (inch of merquery )to PSI
+          case "INHG" => (value.toDouble * 0.49).toString
+
+          // Change inH2O (inch of water) to PSI
+          case "INH2O" => (value.toDouble * 0.036).toString
+
+          case "PSI" => value
+
+          case "KRPM" => (value.toDouble / 1000).toString
+
+          case "RPM" => value
+
+          //FT3/S to M3/S conversion
+          case "FT3/S" => (value.toDouble * 101.94).toString
+          // M3/S no conversion required
+          case "M3/S" => value
+
+          case "%" => value
+          // volts
+          case "V" => value
+
+          case "°" => value
+
+          case "PERCENT" => value
+
+          case "REVS/MI" => value
+
+          case "LBF*FT/S" => value
+
+          //Convert TIME to HOURS
+          case "SECOND" | "S" => (value.toDouble / 3600).toString
+
+          case "PPM" => value
+
+          // Convert TIME to HOURS
+          case "HHHHHH:MM:SS" | "HH:MM:SS" | "HHHHHH:MM" | "HHHHHH" | "HHHH" |
+               "HHHHHH:MM:" | "HH" | "HHHHHH:" | "HHHHHH:M" =>
+            val Array(hour, min, sec) = value.split(":")
+            (hour.toInt + min.toFloat / 60.0).toString
+
+          // Convert Kilowatts(kW) to electrical horsepower (hp)
+          // One electrical horsepower is equal to 0.746 kilowatts, so formula P(hp) = P(kW) / 0.746
+          case "KW" => (value.toDouble / 0.746).toString
+
+          case "HP" => value
+
+          // Convert KM/L to miles/gal
+          case "KM/L" => (value.toDouble / 2.35214583).toString
+
+          case "NA" =>
+            if (value.toString.contains(",")) {
+              value.toString.replaceAll(",", ".")
+            } else {
+              value
+            }
+          case _ => value
+        }
+      } else {
+          "NULL"
+        }
+  }
+
+  def getConvertedUnit = udf{
+    (unit:String)=>
+
+      unit.toUpperCase match {
+
+        case "KM" => "MI"
+        case "KM/HR" => "MPH"
+        case "L" | "IGAL"=> "GAL"
+        case "°C" | "DEG_C" | "°F" => "F"
+        case "KPA" | "KPA_G" | "KPA_A" | "BAR" | "BAR_A" | "INHG" | "INH2O" | "PSI" => "PSI"
+        case "KRPM" | "RPM" => "RPM"
+        case "FT3/S" | "M3/S" => "M3PS"
+        case "%" | "PERCENT" => "PERCENT"
+        case "V" => "VOLTS"
+        case "°" => "DEGREE"
+        case "REVS/MI" => "REVSPMI"
+        case "LBF*FT/S" => "FOOTPOUNDFORCE"
+        case "SECOND" | "S" => "HOURS"
+        case "HHHHHH:MM:SS" | "HH:MM:SS" | "HHHHHH:MM" | "HHHHHH" | "HHHH" |
+             "HHHHHH:MM:" | "HH" | "HHHHHH:" | "HHHHHH:M" => "HOURS"
+        case "PPM" => "PPM"
+        case "KW | HP" => "HP"
+        case "KM/L" => "MPG"
+        case "NULL" | "NNNN" => "NA"
+        case _ => unit
+      }
+  }
+
+  def getConvertedUnitMetrics(unit:String):String = {
+    // CHANGE UNIT NAME TO METRIC FORMAT
+    unit.toUpperCase match {
+      case "MI" => "KM"
+      case "MPH" => "KMH"
+      case "GAL" | "IGAL" => "L"
+      case "MI/GAL" => "KMPL"
+      case "KPA" | "KPA_G" | "KPA_A" | "BAR" | "BAR_A" | "INHG" | "INH2O" | "PSI" => "KPA"
+      case "KRPM" | "RPM" => "RPM"
+      case "FT3/S" | "M3/S" => "M3PS"
+      case "%" | "PERCENT" => "PERCENT"
+      case "V" => "VOLTS"
+      case "°" => "DEGREE"
+      case "REVS/MI" => "REVSPMIN"
+      case "LBF*FT/S" => "FOOTPOUNDFORCE"
+      case "SECOND" | "S" => "HOURS"
+      case "HHHHHH:MM:SS" | "HH:MM:SS" | "HHHHHH:MM" | "HHHHHH" | "HHHH" |
+        "HHHHHH:MM:" | "HH" | "HHHHHH:" | "HHHHHH:M" => "HOURS"
+      case "PPM" => "PPM"
+      case "KW | HP" => "HP"
+      case "FT*LB" | "KGF*M" | "N*M" | "N_M" => "NM"
+
+      case "NULL" | "NNNN" => "NA"
+      case _ => unit.toUpperCase
+    }
+  }
+
+  def unitConverterMetrics = udf {
+    // CONVERT ALL THE UNITS TO METRICS FORMAT
+    (unit:String, value_str:String )=>
+      var value = ""
+
+      if(!value_str.equalsIgnoreCase("NULL")){
+
+        if (value_str.toString.contains(",")) {
+          value = value_str.toString.replaceAll(",", ".")
+        } else {
+          value = value_str
+        }
+
+        unit.toUpperCase() match {
+          // CONVERT MI TO KM
+          case "MI" | "MPH" => (value.toDouble * 1.6).toString
+          // CONVERT GAL TO L
+          case "GAL" => (value.toDouble * 3.785).toString
+          // CONVERT IGAL TO L
+          // IGAL => GAL => L
+          case "IGAL" => (value.toDouble * 1.2009 * 3.785).toString
+
+          // CONVERT MI/GAL TO KM/L
+          case "MI/GAL" => (value.toDouble * 0.425).toString
+
+          // CONVERT DEG F TO DEG C
+          case "°F" | "DEG_F" => ((value.toDouble - 32) / 1.8).toString
+
+          // CONVERT KPA, KPA_A, KPA_G TO KPA
+
+          // CONVERT BAR, BAR_A TO KPA
+          case "BAR" | "BAR_A" => (value.toDouble * 100).toString
+
+          // CONVERT INHG TO KPA
+          case "INHG" => (value.toDouble * 3.386).toString
+
+          // CONVERT INH2O TO KPA
+          case "INH2O" => (value.toDouble * 0.2490).toString
+
+          // CONVERT PSI TO KPA
+          case "PSI" => (value.toDouble * 6.894).toString
+
+          //FT3/S to M3/S conversion
+          case "FT3/S" => (value.toDouble * 101.94).toString
+          // M3/S no conversion required
+          case "M3/S" => value
+
+          case "%" => value
+          // volts
+          case "V" => value
+
+          case "°" => value
+
+          case "PERCENT" => value
+
+          case "REVS/MI" => value
+
+          case "LBF*FT/S" => value
+
+          //Convert TIME to HOURS
+          case "SECOND" | "S" => (value.toDouble / 3600).toString
+
+          case "PPM" => value
+
+          // Convert TIME to HOURS
+          case "HHHHHH:MM:SS" | "HH:MM:SS" | "HHHHHH:MM" | "HHHHHH" | "HHHH" |
+            "HHHHHH:MM:" | "HH" | "HHHHHH:" | "HHHHHH:M" =>
+            val Array(hour, min, sec) = value.split(":")
+            (hour.toInt + min.toDouble / 60.0).toString
+
+          // Convert Kilowatts(kW) to electrical horsepower (hp)
+          // One electrical horsepower is equal to 0.746 kilowatts, so formula P(hp) = P(kW) / 0.746
+          case "KW" => (value.toDouble / 0.746).toString
+
+          case "HP" => value
+
+          // Convert KM/L to miles/gal
+          case "KM/L" => value
+
+          case "FT*LB" => (value.toDouble * 1.36).toString
+          case "N*M" | "N_M" => value
+          case "KGF*M" => (value.toDouble * 9.807).toString
+
+          case "NA" =>
+            if (value.contains(",")) {
+              value.replaceAll(",", ".")
+            } else {
+              value
+            }
+          case _ => value
+
+        }
+      } else {
+        "NULL"
+      }
+
+  }
+
+  def dfZipWithIndex(
+                      df: DataFrame,
+                      offset: Int = 0,
+                      colName: String = "ID",
+                      inFront: Boolean = true
+                    ) : DataFrame = {
+    df.sqlContext.createDataFrame(
+      df.rdd.zipWithIndex.map(ln =>
+        Row.fromSeq(
+          (if (inFront) Seq(ln._2 + offset) else Seq())
+            ++ ln._1.toSeq ++
+            (if (inFront) Seq() else Seq(ln._2 + offset))
+        )
+      ),
+      StructType(
+        (if (inFront) Array(StructField(colName,LongType,false)) else Array[StructField]())
+          ++ df.schema.fields ++
+          (if (inFront) Array[StructField]() else Array(StructField(colName,LongType,false)))
+      )
+    )
+  }
+
+  /**
+    * Saves data frame to target table.
+    * @param df data to save
+    * @param db database name
+    * @param tbl table name
+    * @param path warehouse path
+    * @param mode write option mode, default = overwrite
+    * @param format write format, default = parquet
+    */
+  def saveData(df: DataFrame, db: String, tbl: String, path: String, mode: String = "overwrite", format: String = "parquet"): Unit = {
+    formatCapitalizeNames(df).write.
+      options(Map(Constants.PATH -> Util.getWarehousePath(path, db, tbl))).
+      mode(mode).format(format).
+      saveAsTable(s"$db.$tbl")
+  }
+
+
+  /**
+    * Filter a data frame by the specified engine type
+    * @param cfg job config
+    * @param df data frame to filter
+    * @param engType engine type (from ref list in DB)
+    * @param esnColName ESN-column in the passed in data frame
+    * @return data frame with ESNs of the speficied type
+    */
+  def filterEnginesByType(cfg: String => String, df: DataFrame, engType: String, esnColName: String = "ESN"): DataFrame = {
+    val esnsDf = getEngineTypeESNs(engType, cfg)
+    df.join(esnsDf, df(esnColName) === esnsDf("filter_esn")).drop("filter_esn")
+  }
+
+  /**
+    * Return ESN for specified engine type
+    * @param engType engine type (from ref list in DB)
+    * @param cfg job config
+    * @return data frame with "filter_esn" column with ESNs of specified engine type
+    */
+  def getEngineTypeESNs(engType: String, cfg: String => String): DataFrame = {
+
+    CreateEngineTypesReference.ensureEngineTypesRefList(spark)
+
+    spark.sql(
+      s"""SELECT DISTINCT e.engine_serial_num filter_esn
+         | FROM ${cfg(PRI_DB_REL)}.${cfg(REL_ENG_DTL_TBL)} e
+         | JOIN ${cfg(QUALITY_REF_DB)}.${cfg(REF_ENG_TYPE_NAME_MAP_TBL)} t ON (e.engine_name_desc = t.eng_name)
+         | WHERE t.eng_type = '${engType}'""".stripMargin)
+  }
+
+
+  /**
+    * Adds column with Engine Type
+    * @param cfg job config
+    * @param df data frame to add column to
+    * @param esnColName ESN column name, used for joining
+    * @param addedEngineTypeColName added column name
+    * @return resulting data frame with engine type column added
+    */
+  def addEngineTypeColByESN(cfg: String => String, df: DataFrame, esnColName: String = "ESN", addedEngineTypeColName: String = "ENG_TYPE"): DataFrame = {
+
+    CreateEngineTypesReference.ensureEngineTypesRefList(spark)
+
+    val engTypeDf = spark.sql(
+      s"""SELECT DISTINCT e.engine_serial_num join_esn, t.eng_type ${addedEngineTypeColName}
+         | FROM ${cfg(PRI_DB_REL)}.${cfg(REL_ENG_DTL_TBL)} e
+         | JOIN ${cfg(QUALITY_REF_DB)}.${cfg(REF_ENG_TYPE_NAME_MAP_TBL)} t ON (e.engine_name_desc = t.eng_name)""".stripMargin)
+
+    df.join(engTypeDf, df(esnColName) === engTypeDf("join_esn")).drop("join_esn")
+  }
+
+  sealed trait FileType
+
+  case object PARQUET extends FileType
+  case object CSV extends FileType
+  case object JSON extends FileType
+
+  /**
+    * Reads data from a given path
+    * @param path path of the file
+    * @param fileType PARQUET, CSV
+    */
+  def readData(path: String, fileType: FileType): DataFrame = {
+    try {
+      fileType match {
+        case PARQUET => spark.read.parquet(path)
+        case CSV => spark.read.csv(path)
+        case JSON => spark.read.json(path)
+        case _ => Seq.empty[String].toDF
+      }
+    } catch {
+      case e: Exception =>
+        e.printStackTrace()
+        Seq.empty[String].toDF
+    }
+  }
+
+  /**
+    * Returns a warehouse path map.
+    * @param db Database name
+    * @param tbl Table name
+    */
+  def getPath(warehousePath: String, db: String, tbl: String): Map[String, String] = {
+    Map(PATH -> Util.getWarehousePath(warehousePath, db, tbl))
+  }
+
+  /**
+    * Returns a model external warehouse path map.
+    * @param warehousePath Warehouse path name
+    * @param db Database name
+    */
+  def getExternalPath(warehousePath: String, db: String): String = {
+    var dbname  = db.toLowerCase
+    var layer   = "na"
+
+    if(dbname.contains("_mo")) {
+      dbname = dbname.replaceAll("_mo","")
+      layer   = "mo"
+    }
+    else if(dbname.contains("_rpt")) {
+      dbname = dbname.replaceAll("_rpt","")
+      layer   = "rpt"
+    }
+
+    warehousePath.toLowerCase + "/" + layer + "/" + dbname + "/externalfiles"
+  }
+
+  def hasColumn(df: DataFrame, sColName: String) = Try(df(sColName)).isSuccess
+  //withColumn("message_type", when(lit(hasColumn(dfTelData, "message_type")), col("message_type")).otherwise("FC"))
+
+  /**
+    * Returns a Dataframe of week calc date for number of years.
+    * @param nYears Number of years for calc date needed
+    */
+  def getCalcDate(nYears: Int = 2): DataFrame = {
+    import java.util.Calendar
+    val calendar = Calendar.getInstance
+    val weeksOfYear = calendar.getActualMaximum(Calendar.WEEK_OF_YEAR)
+
+    val rowsRdd: RDD[Row] = spark.sparkContext.parallelize(
+      Seq(
+        Row(0)
+      )
+    )
+
+    val schema = new StructType().add(StructField("Week", IntegerType, true))
+
+    val dfCalcDate = spark.createDataFrame(rowsRdd, schema)
+
+    (0 to (weeksOfYear * nYears)).map(n => {
+      dfCalcDate.withColumn("Week", lit(n)).
+        withColumn("CALC_DATE", date_sub(next_day(current_date, "Fri"), 1 + (n * 7)))
+    }).reduce(_ union _).filter('Week > 0).select("CALC_DATE").orderBy('CALC_DATE.desc)
+  }
+}
+
+
+// TODO figure out why the shell won't allow generics
+//def flatMapList[T:ClassTag](arr: WrappedArray[WrappedArray[T]]) : Array [T] = {
+//arr.flatten.toArray
+//}
+//
+//udf(flatMapList _)
+
+
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+package mck.qb.columbia.deprecated
+
+import mck.qb.library.BaseJob
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.{col, _}
+import org.apache.spark.sql.types.{DataType, DoubleType, StringType}
+
+object OEPL extends BaseJob{
+
+  import spark.implicits._
+
+  override def createPrimary(): Unit = {
+    val optionAssemblyRawDF = spark.sql("SELECT * FROM QUALITY_RELIABILITY.RLD_ENGINE_OPTION_ASSEMBLY").withColumnRenamed("ENGINE_SERIAL_NUM", "ESN")
+    val REL_ENGINE_OPTION_ASSEMBLY_SCHEMA = Map(
+      "ESN" -> StringType,
+      "plant_id_code" -> StringType,
+      "shop_order_num" -> StringType,
+      "model_name" -> StringType,
+      "cpl_num" -> StringType,
+      "shop_order_type_flg" -> StringType,
+      "build_upfit_date" -> StringType,
+      "build_upfit_year" -> StringType,
+      "build_upfit_month" -> StringType,
+      "option_assembly_num" -> StringType,
+      "start_date" -> StringType,
+      "stop_date" -> StringType,
+      "qty_per_shop_order_num" -> DoubleType,
+      "option_assembly_flg" -> StringType // TODO what is this column?  data dictionary says its about customizations.  Is this related to any hypothesis?
+    )
+
+
+    val optionAssemblyRawFormatDF = applySchema(optionAssemblyRawDF, REL_ENGINE_OPTION_ASSEMBLY_SCHEMA)
+
+    formatCapitalizeNames(optionAssemblyRawDF).write.mode("overwrite").saveAsTable("QUALITY_PRIMARY.OEPL_OPTION_ASSEMBLY_BOM_DATA")
+
+
+    //Extract the Option Assembly Data
+    val optionAssemblyPrimaryDF = spark.sql("SELECT * FROM QUALITY_PRIMARY.OEPL_OPTION_ASSEMBLY_BOM_DATA")
+
+
+    // filter the required shop orders from the OEPL table
+    // Why is this filter here?
+    // TODO Investigate Filter
+    val optionAssemblyFilteredDF = optionAssemblyPrimaryDF.filter($"SHOP_ORDER_NUM".contains("SO") && $"SHOP_ORDER_TYPE_FLG" === "BUILD").
+      select("ESN", "SHOP_ORDER_NUM", "OPTION_ASSEMBLY_NUM", "CPL_NUM", "start_date", "stop_date", "plant_id_code")
+
+    //Capitalize column names and load to master table
+    formatCapitalizeNames(optionAssemblyFilteredDF).write.mode("overwrite").saveAsTable("QUALITY_COMPUTE.OEPL_OPTION_ASSEMBLY_BOM_MASTER")
+  }
+
+  override def createFeatures(): Unit = {
+    val optionAssemblyMasterDF = spark.sql("select * from QUALITY_COMPUTE.OEPL_OPTION_ASSEMBLY_BOM_MASTER")
+    spark.conf.set("spark.sql.pivotMaxValues",100000)
+
+    optionAssemblyMasterDF.
+      withColumn("OEPL_OPTION_ASSEMBLY_NUM", concat(lit("option_assembly_"), $"OPTION_ASSEMBLY_NUM")).
+      withColumnRenamed("CPL_NUM","ENGINE_CPL_NUM_GROUPING")
+//    Do we want to do this?
+//    val optionAssemblyPivotedDF = optionAssemblyMasterDF.groupBy("ESN", "SHOP_ORDER_NUM").pivot("OPTION_ASSEMBLY_NUM").agg(countDistinct("OPTION_ASSEMBLY_NUM")).na.fill(0).cache()
+//    optionAssemblyPivotedDF.count()
+
+
+    // Temporary - need to see if we need to update this or just copy it
+    val bucketsDF = spark.sql("SELECT OPTION_ASSEMBLY_NUM, OPTION_BUCKET, OPTION_TYPE FROM REFERENCE.OEPL_OPTION_ASSEMBLY_BUCKETS_MAP")  // TODO what is this reference?
+    val shopOrderBomBucketsDF = optionAssemblyMasterDF.join(bucketsDF, Seq("OPTION_ASSEMBLY_NUM"))
+
+    val bucketsShopOrders = bucketsDF.select("OPTION_ASSEMBLY_NUM").
+      distinct().
+      collect().
+      map(x => x(0))
+
+
+    val bucketsOptionAssembliesFilteredDF = shopOrderBomBucketsDF.filter($"OPTION_ASSEMBLY_NUM".isin(bucketsShopOrders: _*))
+
+    val bucketsOptionAssemblyPivotedDF = bucketsOptionAssembliesFilteredDF.
+      groupBy("ESN").
+      pivot("OPTION_TYPE").
+      agg(max("OPTION_BUCKET")). // This line is a bit confusing.  we don't actuall want the max.  there will only be 1 value so max of that will be that value
+      withColumn("_tmp", split($"Peak_Torque_ST_Horsepower", "[|]")).
+      withColumn("PEAK_TORQUE", $"_tmp".getItem(0)).
+      withColumn("ST", $"_tmp".getItem(1)==="ST").
+      withColumn("HORSEPOWER", $"_tmp".getItem(2)).
+      drop("_tmp").
+      drop("Peak_Torque_ST_Horsepower")
+
+    val allOptionAssemblyPivotedDF = bucketsOptionAssemblyPivotedDF//.join(optionAssemblyPivotedDF, Seq("ESN"), joinType = "left_outer")
+
+    val esnListDf =  spark.sql("select * from REFERENCE.x15_esn_list").withColumnRenamed("engine_serial_num", "esn")
+
+
+    //Filter fuel pump related engines
+    val optionAssemblyFeaturesDF = allOptionAssemblyPivotedDF.join(esnListDf, Seq("ESN"))
+
+    optionAssemblyFeaturesDF.columns.map(colname => colname.replaceAll("[(|)]", "").replaceAll(" ", "_").toUpperCase)
+
+    formatCapitalizeNamesWithPrefix(optionAssemblyFeaturesDF,"OEPL_",Set("ESN")).write.mode("overwrite").saveAsTable("QUALITY_COMPUTE.OEPL_OPTION_ASSEMBLY_FEATURES")
+  }
+
+  def printCountsWithColumnRemoved(df : DataFrame, columns: Seq[String]): (Long,Long) ={
+    (df.distinct().count(),df.drop(columns:_*).distinct().count())
+  }
+
+  //Function to Capitalize and format(remove spaces/spl characters) from column names
+  def formatCapitalizeNames(dataFrame: DataFrame): DataFrame = {
+    val capitalizedNames = dataFrame.columns.map(colname => colname.replaceAll("[(|)]", "").replaceAll(" ", "_").toUpperCase)
+    val originalNames = dataFrame.columns
+    dataFrame.select(List.tabulate(originalNames.length)(i => col(originalNames(i)).as(capitalizedNames(i))): _*)
+  }
+
+  def formatCapitalizeNamesWithPrefix(dataFrame: DataFrame, prefix: String, excludeColumns : Set[String] = Set()): DataFrame = {
+    val capPrefix = prefix.toUpperCase
+    val capitalizedNames = dataFrame.columns.map(colname => colname.replaceAll("[(|)]", "").replaceAll(" ", "_").toUpperCase).map(col => {
+      if(excludeColumns.contains(col.toUpperCase()) || col.startsWith(capPrefix)) col else prefix + col
+    })
+    val originalNames = dataFrame.columns
+    dataFrame.select(List.tabulate(originalNames.length)(i => col(originalNames(i)).as(capitalizedNames(i))): _*)
+  }
+
+  // Function to apply a schema specified in schemaMap to an existing dataframe. Dates may need to be converted to a correct format first. All column names will be capitalized. If column schema not specified, will treat as string.
+  def applySchema(df: DataFrame, schemaMap: Map[String, DataType]) = {
+    val upperSchemaMap = schemaMap map {case (k, v) => (k.toUpperCase, v)}
+    df.schema.foldLeft(df) {
+      case(acc, col) => {
+        val colNameUpper = col.name.toUpperCase
+        acc.withColumn(colNameUpper, df(col.name).cast(upperSchemaMap getOrElse (colNameUpper, StringType)))
+      }
+    }
+  }
+}
+
+
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================
+=============================================================================================================

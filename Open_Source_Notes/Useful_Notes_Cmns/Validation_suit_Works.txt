@@ -1,0 +1,579 @@
+
+================== Validation works in Data bricks
+
+== executing the config file present in same repository
+
+%run ./PSBU_ConfigFile
+
+=== loading the data
+
+Pre_X_W = spark.read.option("header","true").option("delimiter",",").option("inferSchema","true").format("parquet")
+.load("adl://eaasedldevadls.azuredatalakestore.net/data/mo/file_repository")
+display(Pre_X_W)
+
+== creation of table from data frame
+
+sqlContext.registerDataFrameAsTable(Pre_X_W, "Pre_X_W")
+
+== converting the spark df to pandas df
+
+Pre_X_W_df = Pre_X_W.toPandas()
+
+== listing the unique values in column
+
+Check = Pre_BnL_E_df['CALC_DATE'].unique().tolist()
+for i in Check:
+  print(i)
+  
+=== writting the sql queries on the table 
+
+sqlContext.registerDataFrameAsTable(Pre_X_W, "Pre_X_W")
+sd = sqlContext.sql("select EARLIEST_OCCURRENCE_DATE,CALC_DATE from Pre_X_W")
+sd.show()
+
+========================================================================================================================================================================
+
+============================= inserting the results into the hive table 
+
+my_date1 = datetime.now(pytz.timezone('US/Eastern'))
+sree_o= DS_PRE_XBL_001(pre_xbl_df)
+my_date2 = datetime.now(pytz.timezone('US/Eastern'))
+td=(my_date2-my_date1).total_seconds()
+testcase_id='DS_PRE_XBL_001'
+nature_of_tc=CriticalTable['DS_PRE_XBL_001']
+metrics= "REL_CMP_ENGINE_NAME"
+value='REL_CMP_ENGINE_NAME column should have only X or B or L as values'
+if sree_o[0] :
+  test_status = 'Pass'
+else:
+  test_status = 'Fail'
+failure_log =str(sree_o[1])
+
+df=sql("select * from quality_qa_mi.preprocessing_validate")
+insert_df = spark.createDataFrame([(myrunId,testcase_id,my_date1,my_date2,td,nature_of_tc,metrics,value,test_status,failure_log)], df.schema)
+insert_df.registerTempTable("insert_df") 
+sql("insert into table quality_qa_mi.preprocessing_validate select * from insert_df")
+
+
+========================================================================================================================================================================
+
+====== to get the presnt day
+
+from datetime import datetime
+sk = datetime.today().strftime('%A')
+print(sk)
+
+========================================================================================================================================================================
+=== function to validate the date whether it is in specified format or notebook
+
+dt = ['2012-06-16','2013-2-12','2019-12-31']
+c=0
+c1=0
+for i in dt :
+  if format_check(i):
+    c+=1
+  else:
+    c1+=1
+def format_check(date):
+  if datetime.strptime(date, '%Y-%M-%d'):
+    sree =1
+  else:
+    sree = 0
+  return sree
+print(c,c1)
+
+=== function for validating the col values are should be in 'YYYY' format or 'All'
+
+date_lst = Pre_X_W_df['BUILD_YEAR'].unique().tolist()  
+
+for i in date_lst:
+    if i !='All':   
+      if datetime.strptime(i, '%Y'):
+        c1+=1
+      else:
+        ls.append(i)
+        c2+=1   
+
+=====
+
+df_rnd = pre_xbl_df['REL_MONTH_BUILD_DATE'].unique().tolist()
+c=0
+for i in df_rnd:
+  if datetime.strptime(str(pd.to_datetime(i)), "%Y-%m-%d %H:%M:%S") or datetime.strptime(str(pd.to_datetime(i)), "%Y-%m-%d"):
+    c+=1
+print(len(df_rnd),c)
+
+
+=======
+
+def format_check(date):
+    if str(date)!='None':      
+      if datetime.strptime(str(pd.to_datetime(date)), "%Y-%m-%d %H:%M:%S") or datetime.strptime(str(pd.to_datetime(date)), "%Y-%m-%d"):
+        sree =1
+      else:
+        sree = 0
+      return sree
+  df_cd = pre_xbl_df['CALC_DATE'].unique().tolist()
+  df_eod = pre_xbl_df['EARLIEST_OCCURRENCE_DATE'].unique().tolist()
+  df_rnd = pre_xbl_df['REL_MONTH_BUILD_DATE'].unique().tolist()
+  c1=0
+  c2=0
+  c3=0  
+  for i in df_cd:
+    if format_check(i) == 1:
+      c1+=1
+  for j in df_eod:
+    if format_check(j) ==1:
+      c2+=1      
+  for k in df_rnd:
+    if format_check(j) ==1:
+      c3+=1
+	  
+	  
+========================================================================================================================================================================
+		
+=== Concating the different columns and creating the concated value col value listing
+
+New_CALC_ID=Pre_X_W_df['CODE'].astype(str)+'-'+Pre_X_W_df['REL_OEM_NORMALIZED_GROUP'].astype(str)
++'-'+Pre_X_W_df['REL_QUARTER_BUILD_DATE'].astype(str)+'-'+Pre_X_W_df['REL_ENGINE_NAME_DESC'].astype(str)+'-'+Pre_X_W_df['SOURCE'].astype(str) 
+
+
+=== function to match two col values
+
+if (pre_xbl_df['REL_CMP_ENGINE_NAME']).any() == 'B' or (pre_xbl_df['REL_CMP_ENGINE_NAME']).any() =='L':
+    calc_id = pre_xbl_df['CALC_ID'].tolist()
+    New_CALC_ID = pre_xbl_df['CODE'].astype(str)+'-'+pre_xbl_df['REL_USER_APPL_DESC'].astype(str)+'-'+pre_xbl_df['REL_CMP_ENGINE_NAME'].astype(str)
+	+'-'+pre_xbl_df['REL_ENGINE_NAME_DESC'].astype(str)+'-'+pre_xbl_df['REL_OEM_NORMALIZED_GROUP'].astype(str)
+	+'-'+pre_xbl_df['REL_MONTH_BUILD_DATE'].astype(str)+'-'+pre_xbl_df['REL_QUARTER_BUILD_DATE'].astype(str) +'-'+pre_xbl_df['BUILD_YEAR'].astype(str)
+	+'-'+pre_xbl_df['SOURCE'].astype(str)
+	
+	
+    if len(calc_id) == len(New_CALC_ID):
+        c=0
+        ls=[]
+        for i in range(0,len(New_CALC_ID)):
+            if calc_id[i] == New_CALC_ID[i]:
+                c+=1
+            else:
+                ls.append(i)				
+				
+				
+=========================================================================================================================================================================
+
+=== function to check the max dat is Friday or not
+
+def DS_PRE_XBL_003(pre_xbl_df):    
+    Max_Calc_Date = pre_xbl_df.CALC_DATE.max()       
+    day = datetime.strptime(str(Max_Calc_Date), "%Y-%m-%d").weekday()
+    final_weekday = (calendar.day_name[day])
+    return final_weekday
+	
+== getting the column max value
+
+Max_Calc_Date_X = Pre_X_W_df.CALC_DATE.max()
+Max_Calc_Date_BnL_W = Pre_BnL_E_df.CALC_DATE.max()
+
+
+==== function to check the col values or in 'YYYY-Q1'/'YYYY-Q2'/'YYYY-Q3'/'YYYY-Q4' formats or ALL
+
+date_list = pre_xbl_df['REL_QUARTER_BUILD_DATE'].unique().tolist()
+  def format_check(date_1):
+      if datetime.strptime(date_1, '%Y'):
+        Sree = 1
+      return Sree
+  ln=len(date_list)
+  #print(ln)
+  ls_1=[]
+  ls_2=[]
+  not_l=[]
+
+  for i in date_list:
+      if len(i) == 7:        
+          lt=i.split('-')
+          ls_1.append(lt[0])
+          ls_2.append(lt[1])
+      else:
+          not_l.append(i)
+
+  ls_Y=[]
+  ls_Q=[]
+  print(not_l)
+  q_lst=['Q1','Q2','Q3','Q4']
+  c=0 
+  for i,j in zip(ls_1,ls_2):
+      if format_check(i) == 1 and j in q_lst: 
+          c+=1
+      else:
+          ls_Y.append(i)
+          ls_Q.append(j)
+
+=========================================================================================================================================================================
+
+		  
+======== itterating each row in the pandas df for col and printing the un-matched values
+
+for i in range(1,len(Pre_X_W_df)):
+    if Pre_X_W_df.COUNT_NBR [i] >0:
+      if Pre_X_W_df.EARLIEST_OCCURRENCE_DATE[i] == Pre_X_W_df.CALC_DATE[i] :
+        c+=1
+        ls_y.append(str(Pre_X_W_df.EARLIEST_OCCURRENCE_DATE[i])+ '  --  ' +str(Pre_X_W_df.CALC_DATE[i]))
+      else:
+        ls_n.append(str(Pre_X_W_df.EARLIEST_OCCURRENCE_DATE[i])+ '  --  ' +str(Pre_X_W_df.CALC_DATE[i]))
+		
+
+========================================================================================================================================================================	
+==== function to check infinite values present in all the columns starts with COUNT_
+
+import numpy as np
+    from numpy import inf
+
+    col_names = Pre_X_W_df.columns.tolist()
+    col_names = [str.upper(cval) for cval in col_names]
+    count_lst=[]
+    for i in col_names:
+        if i.startswith("COUNT_"):
+            count_lst.append(i)
+
+    def infinite_check(data_1):
+        # If infinite values present it is true otherwise false
+        if np.isinf(Pre_X_W_df[data_1]).any():
+            sree = 1
+            return sree
+
+    c=0
+    c1=0
+    ls1=[]
+    ls2=[]        
+    for i in count_lst:
+        if infinite_check(i) != 1:
+            c+=1
+            ls1.append(i)
+        else:
+            c1+=1
+            ls2.append(i) 
+	
+== type 2
+
+import numpy as np
+    from numpy import inf
+
+    col_names = Pre_X_W_df.columns.tolist()
+    col_names = [str.upper(cval) for cval in col_names]
+    count_lst=[]
+    for i in col_names:
+        if i.startswith("PREV_COUNT_"):
+            count_lst.append(i)
+
+    def infinite_check(data_1):
+        # If infinite values present it is true otherwise false
+        #Pandas_Sample_df[data_1] = Pandas_Sample_df.data_1.astype(float)
+        if Pre_X_W_df[data_1].any() != 'NA':
+            if np.isinf(Pre_X_W_df[data_1].astype(float)).any():
+                sree = 1
+                return sree
+
+    c=0
+    c1=0
+    ls1=[]
+    ls2=[]        
+    for i in count_lst:
+        if infinite_check(i) != 1:
+            c+=1
+            ls1.append(i)
+        else:
+            c1+=1
+            ls2.append(i) 
+			
+========================================================================================================================================================================
+==== function to check positive values present in all the columns starts with COST_
+
+
+	
+col_names = Pre_X_W_df.columns.tolist()
+    col_names = [str.upper(cval) for cval in col_names]
+    cost_lst=[]
+    for i in col_names:
+        if i.startswith("COST_"):
+            cost_lst.append(i)
+    c=0
+    c1=0
+    c2=0
+    ls1=[]
+    ls2=[]
+    def value_check(data_f):
+        co = Pre_X_W_df.filter(Pre_X_W_df[data_f]<0).count()
+        return len(co)
+      
+    for i in cost_lst:
+        if value_check(i) == 0:
+            c+=1
+            ls1.append(i)
+        else:
+            c1+=1
+            ls2.append(i)
+
+== type 2
+
+col_names = Pre_X_W_df.columns.tolist()
+  col_names = [str.upper(cval) for cval in col_names]
+  PREV_COUNT_lst=[]
+  for i in col_names:
+    if i.startswith("PREV_COUNT_"):
+      PREV_COUNT_lst.append(i)
+  c=0
+  c1=0
+  c2=0
+  ls1=[]
+  ls2=[]
+  def value_check(data_f):
+    if Pre_X_W_df[data_f].any() != 'NA':
+      co = Pre_X_W_df.filter(Pre_X_W_df[data_f].astype(float)<0).count()
+      return co
+
+  for i in PREV_COUNT_lst:
+      if value_check(i) == 0:
+          c+=1
+          ls1.append(i)
+      else:
+          c1+=1
+          ls2.append(i)
+		  
+
+========================================================================================================================================================================
+
+== function to check the values are in specified format or not
+
+ def format_check(date):
+    if datetime.strptime(str(date), '%Y-%m-%d'):
+      sree =1
+    else:
+      sree = 0
+    return sree
+  df_cd = Pre_X_W_df['CALC_DATE'].unique().tolist()
+  df_eod = Pre_X_W_df['EARLIEST_OCCURRENCE_DATE'].unique().tolist()
+  c1=0
+  c2=0
+  
+  for i in df_cd:
+    if format_check(i) == 1:
+      c1+=1
+  for j in df_eod:
+    if format_check(j) ==1:
+      c2+=1
+	  
+	  
+
+========================================================================================================================================================================
+=== function to check all the column values are integers
+
+if all(x.is_integer() for x in Pre_X_W_df.COUNT_NBR):
+    print ('DS_PRE_026 :: Test Case Pass for Pre_X_W_df "COUNT_NBR" column')
+  else:
+    print ('DS_PRE_026 :: Test Case Fail for Pre_X_W_df "COUNT_NBR" column')
+========================================================================================================================================================================
+== function to check all the columns are not null
+
+def null_check(col_name):
+    if pd.notnull(Pre_BnL_E_df[col_name]).all():
+      sree =1 
+    else:
+      sree =0
+    return sree
+  col_names = Pre_BnL_E_df.columns.tolist()
+  col_names = [str.upper(cval) for cval in col_names]
+  c=0
+  c1=0
+  ls1=[]
+  ls2=[]
+  for i in col_names:
+    if null_check(i) == 1:
+      c+=1
+      ls1.append(i)
+    else:
+      c1+=1
+      ls2.append(i)
+	  
+
+
+
+========================================================================================================================================================================
+==== function to check the values or positive and non-infinite values or not
+
+col_names = pre_xbl_df.columns.tolist()
+    col_names = [str.upper(cval) for cval in col_names]
+    cost_lst=[]
+    for i in col_names:
+        if i.startswith("COUNT_"):
+            cost_lst.append(i)
+    c=0
+    c1=0
+    c2=0
+    ls1=[]
+    ls2=[]
+    def infinite_check(data_1):
+      if np.isinf(pre_xbl_df[data_1]).any():
+        sree = 1
+        return sree
+    def value_check(data_f):
+      if pre_xbl_df[data_f].any() != 'NA':
+        co = pre_xbl_df.filter(pre_xbl_df[data_f].astype(float)<0).count()
+        return len(co)
+      
+    for i in cost_lst:
+        if value_check(i) == 0 and infinite_check(i) !=1:
+            c+=1
+            ls1.append(i)
+        else:
+            c1+=1
+            ls2.append(i)
+			
+			
+========================================================================================================================================================================
+======= Data type check 
+
+col_ls = pre_xbl.dtypes
+  col_names = pre_xbl_df.columns.tolist()
+  #print(col_ls)
+  if (pre_xbl_df['REL_CMP_ENGINE_NAME']).any() == 'B' or (pre_xbl_df['REL_CMP_ENGINE_NAME']).any() =='L':
+    
+    ls=['string', 'string', 'string', 'string', 'string', 'string', 'date', 'string', 'date', 'double', 'double', 'double', 'string', 'string', 'bigint', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'string', 'date', 'string', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double']
+    ls_main = []
+    c=0
+    ls_n=[]
+    for i in range(0,len(col_ls)):
+     
+      if col_ls[i][1] == ls[i]:
+        c+=1
+      else:
+        ls_n.append(col_ls[i][0])
+		
+		
+========================================================================================================================================================================
+==== Function for ::  Year should not be greater current year or less than 2010
+
+year_lst = pre_xbl_df['BUILD_YEAR'].unique().tolist()
+  BY_lower_limit = int(2010)
+  import datetime
+  n = datetime.datetime.now()
+  current_year = n.year
+  c=0
+  ls=[]
+
+  for i in year_lst:
+    if int(i) > 2010 and int(i) <= current_year:
+      c+=1
+    else:
+      ls.append(i)
+	  
+==== Function for ::  month greater than current month 
+	  
+	  
+month_lst = pre_xbl_df['REL_MONTH_BUILD_DATE'].unique().tolist()
+  import datetime
+  n = datetime.datetime.now()
+  current_month = n.month
+  c=0
+  ls=[]
+
+  for i in month_lst:
+    if i != 'ALL':      
+      if int(i) <= current_month:
+        c+=1
+      else:
+        ls.append(i)
+========================================================================================================================================================================
+==== function for ::	The values should be greater than zero.
+
+def DS_PRE_XBL_023(pre_xbl_df):   
+  if all(pre_xbl_df["CPE"]>0):
+      print("DS_PRE_XBL_023 :: Test pass")
+      log="Test Case pass"
+  else:
+      print("DS_PRE_XBL_023 :: Test Failed")
+      log="Column CPE not having positive values :: Test Failed"
+      TestFlag[23]=False
+      CriticalTestFlag[23]=TestFlag[23] and CriticalTable['DS_PRE_XBL_023']=="Critical"      
+  return TestFlag[23],log
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+
+========================================================================================================================================================================
+
+
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+========================================================================================================================================================================
+
+
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
+
+========================================================================================================================================================================
