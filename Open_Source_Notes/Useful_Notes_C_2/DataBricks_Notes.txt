@@ -1,0 +1,966 @@
+Databricks is a managed platform for running Apache Spark - 
+that means that you do not have to learn complex cluster management 
+concepts nor perform tedious maintenance tasks to take advantage of Spark.
+
+Workspaces::
+store the notebooks and libraries that you use to operate on and manipulate your data with.
+it allows you to save notebooks and libraries and share them with other users. 
+
+Notebooks :: following languages: Scala, Python, R, SQL
+Notebooks need to be connected to a cluster in order to be able to execute commands however they are not permanently tied to a cluster. This allows notebooks to be 
+shared via the web or downloaded onto your local machine.
+
+Clusters
+Clusters are groups of computers that you treat as a single computer. In Databricks, this means that you can effectively treat 20 computers as you might treat one computer. Clusters allow you to execute code from notebooks or libraries on set of data. That data may be raw data located on cloud storage or structured data that you uploaded as a table to the cluster you are working on.
+It is important to note that clusters have access controls to control who has access to each cluster.
+
+Jobs
+Jobs are the tool by which you can schedule execution to occur either on an already existing cluster or a cluster of its own. These can be notebooks as well as jars or python scripts. They can be created either manually or via the REST API.
+
+
+============
+
+The Data Interfaces
+There are several key interfaces that you should understand when you go to use Spark.
+
+The Dataset
+The Dataset is Apache Spark's newest distributed collection and can be considered a combination of DataFrames and RDDs. It provides the typed interface that is available in RDDs while providing a lot of conveniences of DataFrames. It will be the core abstraction going forward.
+The DataFrame
+The DataFrame is collection of distributed Row types. These provide a flexible interface and are similar in concept to the DataFrames you may be familiar with in python (pandas) as well as in the R language.
+The RDD (Resilient Distributed Dataset)
+Apache Spark's first abstraction was the RDD or Resilient Distributed Dataset. Essentially it is an interface to a sequence of data objects that consist of one or more types that are located across a variety of machines in a cluster. RDD's can be created in a variety of ways and are the "lowest level" API available to the user. While this is the original data structure made available, new users should focus on Datasets as those will be supersets of the current RDD functionality.
+
+
+=============
+Spark Logo Tiny Getting Started with Azure Storage and Azure Data Lake
+Databricks Mount Points:
+
+Connect to our Azure Storage Account - https://docs.azuredatabricks.net/spark/latest/data-sources/azure/azure-storage.html
+Connect to our Azure Data Lake - https://docs.azuredatabricks.net/spark/latest/data-sources/azure/azure-datalake.html
+
+============= dbutils.help()
+
+This module provides various utilities for users to interact with the rest of Databricks.
+credentials: DatabricksCredentialUtils -> Utilities for interacting with credentials within notebooks
+fs: DbfsUtils -> Manipulates the Databricks filesystem (DBFS) from the console
+library: LibraryUtils -> Utilities for session isolated libraries
+meta: MetaUtils -> Methods to hook into the compiler (EXPERIMENTAL)
+notebook: NotebookUtils -> Utilities for the control flow of a notebook (EXPERIMENTAL)
+preview: Preview -> Utilities under preview category
+secrets: SecretUtils -> Provides utilities for leveraging secrets within notebooks
+widgets: WidgetsUtils -> Methods to create and get bound value of input widgets inside notebooks
+
+===== To look for files
+%fs ls /mnt/training-sources/ 
+
+=== To run command
+%sh ls /dbfs/mnt/training-sources/
+
+=== To See content
+
+%fs head /mnt/training-sources/initech/productsCsv/product.csv
+
+======== Defining Schema 
+# Required for StructField, StringType, IntegerType, etc.
+from pyspark.sql.types import *
+csv_schema = StructType([
+  StructField("product_id", LongType(), True),
+  StructField("category", StringType(), True), # TO-DO : you must complete the rest
+  <<FILL-IN>>
+])
+
+======= Creating Dataframe
+product_df = (spark.read                   # The DataFrameReader
+  .option('header', 'true')   # Ignore line #1 - it's a header
+  .schema(csv_schema)          # Use the specified schema
+  .csv(csv_file)               # Creates a DataFrame from CSV after reading in the file
+)
+
+#schema for our streaming DataFrame
+
+from pyspark.sql.types import *
+schema = StructType([ \
+  StructField("orderUUID", StringType(), True), \
+  StructField("productId", IntegerType(), True), \
+  StructField("userId", IntegerType(), True), \
+  StructField("quantity", IntegerType(), True), \
+  StructField("discount", DoubleType(), True), \
+  StructField("orderTimestamp", TimestampType(), True)])
+  
+#streaming DataFrame reader for data on Azure Storage
+
+streaming_df = spark.readStream \
+    .schema(schema) \
+    .option("maxFilesPerTrigger", 1) \
+    .csv("dbfs:/mnt/training-sources/initech/streaming/orders/data/part-*")
+	
+=== Operations on Df
+
+from  pyspark.sql.functions import *
+top_products = streaming_df.groupBy("productId").agg(sum(col("quantity")).alias("total_units_by_product")).orderBy(desc("total_units_by_product"))
+
+== TO see results in table format
+display(top_products)
+
+
+=========== For Power BI connection 
+
+https://docs.azuredatabricks.net/user-guide/bi/power-bi.html
+=============================================================================================================
+Read CSV using Spark's built in CSV reader to Infer the Schema
+
+
+
+# TO-DO
+csv_file = "dbfs:/mnt/training-sources/initech/productsCsv/product.csv"
+product_df = (spark.read                        # The DataFrameReader
+   .option("header", "true")       # Use first line of all files as header
+   .option("inferSchema", "true")  # Automatically infer data types
+   .csv(csv_file)                   # Creates a DataFrame from CSV after reading in the file
+)
+
+=============
+Verify Your Work :: Run the following cell to verify that your DataFrame was created properly.
+
+%python
+product_df.printSchema()
+
+columns = product_df.dtypes
+assert len(columns) == 8, "Expected 8 columns but found " + str(len(columns))
+
+assert columns[0][0] == "product_id", "Expected column 0 to be \"product_id\" but found \"" + columns[0][0] + "\"."
+assert columns[0][1] == "int",        "Expected column 0 to be of type \"int\" but found \"" + columns[0][1] + "\"."
+
+assert columns[1][0] == "category",   "Expected column 1 to be \"category\" but found \"" + columns[1][0] + "\"."
+assert columns[1][1] == "string",     "Expected column 1 to be of type \"string\" but found \"" + columns[1][1] + "\"."
+
+assert columns[2][0] == "brand",      "Expected column 2 to be \"brand\" but found \"" + columns[2][0] + "\"."
+assert columns[2][1] == "string",     "Expected column 2 to be of type \"string\" but found \"" + columns[2][1] + "\"."
+
+assert columns[3][0] == "model",      "Expected column 3 to be \"model\" but found \"" + columns[3][0] + "\"."
+assert columns[3][1] == "string",     "Expected column 3 to be of type \"string\" but found \"" + columns[3][1] + "\"."
+
+assert columns[4][0] == "price",      "Expected column 4 to be \"price\" but found \"" + columns[4][0] + "\"."
+assert columns[4][1] == "double",     "Expected column 4 to be of type \"double\" but found \"" + columns[4][1] + "\"."
+
+assert columns[5][0] == "processor",  "Expected column 5 to be \"processor\" but found \"" + columns[5][0] + "\"."
+assert columns[5][1] == "string",     "Expected column 5 to be of type \"string\" but found \"" + columns[5][1] + "\"."
+
+assert columns[6][0] == "size",       "Expected column 6 to be \"size\" but found \"" + columns[6][0] + "\"."
+assert columns[6][1] == "string",     "Expected column 6 to be of type \"string\" but found \"" + columns[6][1] + "\"."
+
+assert columns[7][0] == "display",    "Expected column 7 to be \"disolay\" but found \"" + columns[7][0] + "\"."
+assert columns[7][1] == "string",     "Expected column 7 to be of type \"string\" but found \"" + columns[7][1] + "\"."
+
+print("Congratulations, all tests passed!\n")
+
+
+====================================================================
+-===== Defining the schema on the object
+
+# Required for StructField, StringType, IntegerType, etc.
+from pyspark.sql.types import *
+
+csv_schema = StructType([
+  StructField("product_id", LongType(), True),
+  StructField("category", StringType(), True),
+  StructField("brand", StringType(), True),
+  StructField("model", StringType(), True),
+  StructField("price", DoubleType(), True),
+  StructField("processor", StringType(), True),
+  StructField("size", StringType(), True),
+  StructField("display", StringType(), True)
+ ])
+
+product_df = (spark.read                   # The DataFrameReader
+  .option('header', 'true')   # Ignore line #1 - it's a header
+  .schema(csv_schema)          # Use the specified schema
+  .csv(csv_file)               # Creates a DataFrame from CSV after reading in the file
+)
+
+product_df.write.parquet("dbfs:/tmp/az/output/reading_data.lab.parquet")
+
+
+=============================================================================================================================================================================
+======= Spark Streaming
+Data is appended to the Input Table every trigger interval. For instance, if the trigger interval is 1 second, then new data is appended to the Input Table every seconds. (The trigger interval is analogous to the batch interval in the legacy RDD-based Streaming API.)
+
+spark.conf.set("spark.sql.shuffle.partitions", 4)
+
+Part-1: Create Streaming DataFrame
+
+#schema for our streaming DataFrame
+
+from pyspark.sql.types import *
+schema = StructType([ \
+  StructField("orderUUID", StringType(), True), \
+  StructField("productId", IntegerType(), True), \
+  StructField("userId", IntegerType(), True), \
+  StructField("quantity", IntegerType(), True), \
+  StructField("discount", DoubleType(), True), \
+  StructField("orderTimestamp", TimestampType(), True)])
+  
+#streaming DataFrame reader for data on Azure Storage
+
+streaming_df = spark.readStream \
+    .schema(schema) \
+    .option("maxFilesPerTrigger", 1) \
+    .csv("dbfs:/mnt/training-sources/initech/streaming/orders/data/part-*")
+	
+	
+	
+What can we do with this Streaming DataFrame?
+If you run the following cell, you'll get a continuously updating display of the number of records read from the stream so far. Note that we're just calling display() on our DataFrame, exactly as if it were a DataFrame reading from a static data source.
+
+To stop the continuous update, just cancel the query.
+
+display(streaming_df)
+
+Part-2: Transform Streaming DataFrame
+We can use normal DataFrame transformations on our streaming DataFrame. For example, let's group the number of orders by productId
+
+from  pyspark.sql.functions import *
+top_products = streaming_df.groupBy("productId").agg(sum(col("quantity")).alias("total_units_by_product")).orderBy(desc("total_units_by_product"))
+
+Call display on top_products
+Turn the streaming table into a streaming bar chart
+
+display(top_products)
+
+Streaming Joins
+Grouping by unkown product IDs is not that that exciting. Let's join the stream with the product lookup data set
+
+Use the join key productId
+
+Load the product lookup data from Azure Storage
+
+product_lookup = spark.read.parquet("/mnt/training-sources/initech/productsFull/")
+
+Join the streaming_df with product_lookup on productId
+
+joined_df = streaming_df.join(product_lookup, "ProductID")
+
+Part-4: Calculate a Streaming Dashboard - Revenue by Product Name
+
+Calculate the Total Revenue by Product Name
+Now that we have the product Name let's use that instead of the productId to groupBy
+Also let's calculate the total revenue instead of just units sold
+Use the quanity column and the StandardCost column
+
+#TO-DO
+top_products = joined_df.groupBy("Name").agg(sum(col("quantity")*col("StandardCost")).alias("total_revenue_by_product")).orderBy(desc("total_revenue_by_product"))
+
+display(top_products)
+
+
+
+
+
+
+=============================================================================================================================================================================
+=============================================================================================================================================================================
+=========== TO get the using versions of using spark, DBR, scala, Python
+Here we are creating 2 notebooks , 
+===========================================
+======================================================1 - Setup Environment
+====== Code inside this note book
+
+=== cell one
+
+%scala
+val tags = com.databricks.logging.AttributionContext.current.tags
+
+//*******************************************
+// GET VERSION OF APACHE SPARK
+//*******************************************
+
+// Get the version of spark
+val Array(sparkMajorVersion, sparkMinorVersion, _) = spark.version.split("""\.""")
+
+// Set the major and minor versions
+spark.conf.set("com.databricks.training.spark.major-version", sparkMajorVersion)
+spark.conf.set("com.databricks.training.spark.minor-version", sparkMinorVersion)
+
+//*******************************************
+// GET VERSION OF DATABRICKS RUNTIME
+//*******************************************
+
+// Get the version of the Databricks Runtime
+val runtimeVersion = tags.collect({ case (t, v) if t.name == "sparkVersion" => v }).head
+val runtimeVersions = runtimeVersion.split("""-""")
+val (dbrVersion, scalaVersion) = if (runtimeVersions.size == 3) {
+  val Array(dbrVersion, _, scalaVersion) = runtimeVersions
+  (dbrVersion, scalaVersion.replace("scala", ""))
+} else {
+  val Array(dbrVersion, scalaVersion) = runtimeVersions
+  (dbrVersion, scalaVersion.replace("scala", ""))
+}
+val Array(dbrMajorVersion, dbrMinorVersion, _) = dbrVersion.split("""\.""")
+
+// Set the the major and minor versions
+spark.conf.set("com.databricks.training.dbr.major-version", dbrMajorVersion)
+spark.conf.set("com.databricks.training.dbr.minor-version", dbrMinorVersion)
+
+//*******************************************
+// GET USERNAME AND USERHOME
+//*******************************************
+
+// Get the user's name
+val username = tags.getOrElse(com.databricks.logging.BaseTagDefinitions.TAG_USER, java.util.UUID.randomUUID.toString.replace("-", ""))
+
+// Get the user's home. Create it if necessary
+val userhome = s"dbfs:/user/$username"
+// This call doesn't fail if it already exists
+val created = dbutils.fs.mkdirs(userhome)
+
+// Set the user's name and home directory
+spark.conf.set("com.databricks.training.username", username)
+spark.conf.set("com.databricks.training.userhome", userhome)
+
+//**********************************
+// VARIOUS UTILITY FUNCTIONS
+//**********************************
+
+def assertSparkVersion(expMajor:Int, expMinor:Int):String = {
+  val major = spark.conf.get("com.databricks.training.spark.major-version")
+  val minor = spark.conf.get("com.databricks.training.spark.minor-version")
+
+  if ((major.toInt < expMajor) || (major.toInt == expMajor && minor.toInt < expMinor))
+    throw new IllegalArgumentException(s"This notebook must be ran on Spark version $expMajor.$expMinor or better, found Spark $major.$minor")
+
+  s"$major.$minor"
+}
+
+def requireDbrVersion(version:String):Unit = {
+  val major = spark.conf.get("com.databricks.training.dbr.major-version")
+  val minor = spark.conf.get("com.databricks.training.dbr.minor-version")
+  val dbrVersion = major+"."+minor
+  
+  if (version != dbrVersion) {
+    throw new IllegalArgumentException(s"This notebook must be ran on Databricks Runtime (DBR) $version version, found DBR $dbrVersion.")
+  }
+}
+
+def assertDbrVersion(expMajor:Int, expMinor:Int):String = {
+  val major = spark.conf.get("com.databricks.training.dbr.major-version")
+  val minor = spark.conf.get("com.databricks.training.dbr.minor-version")
+
+  if ((major.toInt < expMajor) || (major.toInt == expMajor && minor.toInt < expMinor))
+    throw new IllegalArgumentException(s"This notebook must be ran on Databricks Runtime (DBR) version $expMajor.$expMinor or better, found DBR $major.$minor.")
+  
+  s"$major.$minor"
+}
+
+displayHTML("Successfully created class variables and utility functions.")
+
+===== cell two
+%python
+
+from __future__ import print_function
+from __future__ import division
+from pyspark.sql.functions import *
+
+#**********************************
+# VARIOUS UTILITY FUNCTIONS
+#**********************************
+
+def assertSparkVersion(expMajor, expMinor):
+  major = spark.conf.get("com.databricks.training.spark.major-version")
+  minor = spark.conf.get("com.databricks.training.spark.minor-version")
+
+  if (int(major) < expMajor) or (int(major) == expMajor and int(minor) < expMinor):
+    msg = "This notebook must run on Spark version {}.{} or better, found.".format(expMajor, expMinor, major, minor)
+    raise Exception(msg)
+
+  return major+"."+minor
+
+def assertDbrVersion(expMajor, expMinor):
+  major = spark.conf.get("com.databricks.training.dbr.major-version")
+  minor = spark.conf.get("com.databricks.training.dbr.minor-version")
+
+  if (int(major) < expMajor) or (int(major) == expMajor and int(minor) < expMinor):
+    msg = "This notebook must run on Databricks Runtime (DBR) version {}.{} or better, found.".format(expMajor, expMinor, major, minor)
+    raise Exception(msg)
+    
+  return major+"."+minor
+
+#**********************************
+# INIT VARIOUS VARIABLES
+#**********************************
+
+username = spark.conf.get("com.databricks.training.username")
+userhome = spark.conf.get("com.databricks.training.userhome")
+
+import sys
+pythonVersion = spark.conf.set("com.databricks.training.python-version", sys.version[0:sys.version.index(" ")])
+
+None # suppress output
+
+
+===========================================
+========================================== 2 - Classroom Setup
+==== cell one
+%run "./Setup Environment"
+
+===== cell two
+
+%scala
+
+//*******************************************
+// CHECK FOR REQUIRED VERIONS OF SPARK & DBR
+//*******************************************
+
+val dbrVersion = assertDbrVersion(4, 0)
+val sparkVersion = assertSparkVersion(2, 3)
+
+displayHTML(s"""
+Checking versions...
+  <li>Spark: $sparkVersion</li>
+  <li>DBR: $dbrVersion</li>
+  <li>Scala: $scalaVersion</li>
+  <li>Python: ${spark.conf.get("com.databricks.training.python-version")}</li>
+""")
+
+//*******************************************
+// ILT Specific functions
+//*******************************************
+
+// Utility method to count & print the number of records in each partition.
+def printRecordsPerPartition(df:org.apache.spark.sql.Dataset[Row]):Unit = {
+  import org.apache.spark.sql.functions._
+  println("Per-Partition Counts:")
+  val results = df.rdd                                   // Convert to an RDD
+    .mapPartitions(it => Array(it.size).iterator, true)  // For each partition, count
+    .collect()                                           // Return the counts to the driver
+
+  results.foreach(x => println("* " + x))
+}
+
+===========================================
+
+=======================
+
+
+=============================================================================================================================================================================
+=============================================================================================================================================================================
+
+
+
+
+
+
+=============================================================================================================================================================================
+
+
+%fs ls /tmp/az/output/reading_data.lab.parquet
+
+#TO-DO
+top_products = joined_df.groupBy("Name").agg(sum(col("quantity")*col("StandardCost")).alias("total_revenue_by_product")).orderBy(desc("total_revenue_by_product"))
+========================================================================================================================================================================================================================
+========================================================================================================================================================================================================================
+========== From Data bricks 
+
+### For any code run this first
+spark.conf.set("dfs.adls.oauth2.access.token.provider.type", "ClientCredential")
+spark.conf.set("dfs.adls.oauth2.client.id", dbutils.secrets.get(scope = "eaasedldev", key = "appid"))
+spark.conf.set("dfs.adls.oauth2.credential", dbutils.secrets.get(scope = "eaasedldev", key = "key"))
+spark.conf.set("dfs.adls.oauth2.refresh.url", "https://login.microsoftonline.com/b31a5d86-6dda-4457-85e5-c55bbc07923d/oauth2/token")
+
+
+=================================================
+###pull data using python from dev hive tables
+
+%python
+query = "select sr.service_request_no as service_request, sr.sr_source_type,sr.creation_dt,sa.notes as problem,sa.type FROM cmiedwp_world_raw.SERVICE_REQUEST SR LEFT JOIN cmiedwp_world_raw.SERVICE_ACTIVITY SA on sr.service_request_no = sa.service_request_no WHERE sr.sr_dsn = 'SIEBEL~GTSR' and sa.type = 'Call - Inbound'  and sr.creation_dt >= '2019-01-01' and sr.Priority IN('Cummins CARE Level 1', 'Cummins CARE Level 2', 'Cummins CARE Level 3')"
+
+python_df = spark.sql(query)
+python_df.show()
+
+=================================================
+
+###Pulling data from sqlserver using python
+jdbcHostname = "eaasedldevsqlserver.database.windows.net"
+jdbcDatabase = "eaasedldevsqldbaggr"
+jdbcPort = 1433
+jdbcUrl = "jdbc:sqlserver://{0}:{1};database={2}".format(jdbcHostname, jdbcPort, jdbcDatabase)
+
+jdbcUsername = dbutils.secrets.get(scope = "sqljdbc", key = "username")
+jdbcPassword = dbutils.secrets.get(scope = "sqljdbc", key = "password")
+
+connectionProperties = {
+  "user" : jdbcUsername,
+  "password" : jdbcPassword,
+  "driver" : "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+}
+
+df = spark.read.jdbc(url=jdbcUrl, table="specto.faultcode",properties=connectionProperties)
+display(df)
+
+=================================================
+%r
+library(SparkR)
+results <- SparkR::sql("select sr.service_request_no as service_request FROM cmiedwp_world_raw.SERVICE_REQUEST SR")
+rdf_sample <- SparkR::collect(results)
+head(rdf_sample)
+
+=================================================
+%scala
+// Pulling data from dev hive tables using SCALA
+val jdbcUsername = dbutils.secrets.get(scope = "sqljdbc", key = "username")
+val jdbcPassword = dbutils.secrets.get(scope = "sqljdbc", key = "password")
+
+Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver")
+
+val jdbcHostname = "eaasedldevsqlserver.database.windows.net"
+val jdbcPort = 1433
+val jdbcDatabase = "eaasedldevsqldbaggr"
+
+// Create the JDBC URL without passing in the user and password parameters.
+val jdbcUrl = s"jdbc:sqlserver://${jdbcHostname}:${jdbcPort};database=${jdbcDatabase}"
+
+// Create a Properties() object to hold the parameters.
+import java.util.Properties
+val connectionProperties = new Properties()
+
+connectionProperties.put("user", s"${jdbcUsername}")
+connectionProperties.put("password", s"${jdbcPassword}")
+
+val driverClass = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+connectionProperties.setProperty("Driver", driverClass)
+
+val engineinfodim = spark.read.jdbc(jdbcUrl, "specto.ngca_specto_mo_t", connectionProperties)
+
+%scala
+engineinfodim.show
+=================================================
+
+This is how to Convert an R dataframe to a PySpark dataframe with an example of creating a SQL table in 3 cells
+============
+%R
+# prepare your R dataframe by making it a parquet file
+require(SparkR)
+SparkR::new_df <- createDataFrame(r_dataframe)
+SparkR::write.df(new_df, path="dbfs:/cumminscare/summary_test.parquet", source="parquet", mode="overwrite")
+
+=============
+%python
+# create df3 which makes this a spark dataframe ready for loading to SQL
+df3 = spark.read.load("dbfs:/cumminscare/summary_test.parquet") 
+
+=================
+%python
+# Notice in line 17 that .mode() function. Here it appends to the table. You can change it to "Overwrite" if you need to.
+jdbcHostname = "eaasedldevsqlserver.database.windows.net"
+jdbcDatabase = "eaasedldevsqldbaggr"
+jdbcPort = 1433
+jdbcUrl = "jdbc:sqlserver://{0}:{1};database={2}".format(jdbcHostname, jdbcPort, jdbcDatabase)
+
+jdbcUsername = dbutils.secrets.get(scope = "sqljdbc", key = "username")
+jdbcPassword = dbutils.secrets.get(scope = "sqljdbc", key = "password")
+
+connectionProperties = {
+  "user" : jdbcUsername,
+  "password" : jdbcPassword,
+  "driver" : "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+}
+
+df3.write.option( "batchsize", "10000").mode("Append").jdbc( url = jdbcUrl, table = "cummins_care.cumminscare_summary_test", properties=connectionProperties ) 
+
+
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+==================================================================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+==================================================================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+==================================================================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+==================================================================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+=================================================
+========================================================================================================================================================================================================================
+
+========================================================================================================================================================================================================================
+========================================================================================================================================================================================================================
+============== Machine learning example
+ 
+Providing Product Recommendations
+
+One of the most common uses of big data is to predict what users want. This allows Google to show you relevant ads, Amazon to recommend relevant products, and Netflix to recommend movies that you might like. This lab will demonstrate how we can use Apache Spark to recommend products to a user.
+
+We will start with some basic techniques, and then use the SparkML library's Alternating Least Squares method to make more sophisticated predictions. Here are the SparkML Python docs and the Scala docs.
+
+For this lesson, we will use around 900,000 historical product ratings from our company Initech.
+
+In this lab:
+
+Part 0: Exploratory Analysis
+Part 1: Collaborative Filtering
+Part 2: Analysis
+
+Let's start by taking a look at our data. It's already mounted in /mnt/training-msft/ratings.parquet table for us. Exploratory analysis should answer questions such as:
+
+How many observations do I have?
+What are the features?
+Do I have missing values?
+What do summary statistics (e.g. mean and variance) tell me about my data?
+Start by importing the data. Bind it to productRatings by running the cell below
+
+
+product_ratings = spark.read.parquet("dbfs:/mnt/training-sources/initech/productRatings/")
+
+display(product_ratings)
+
+#We'll hold out 60% for training, 20% of our data for validation, and leave 20% for testing 
+
+seed = 1800009193L
+(training_df, validation_df, test_df) = product_ratings.randomSplit([.6, .2, .2], seed=seed)
+
+My Ratings
+Fill in your ratings for the above product_df
+Pick 5-10 product ids to rate
+Choose your ratings be 1-5
+
+#TO-DO
+my_user_id = 0
+my_rated_products = [
+     (1, my_user_id, 5), # Replace with your ratings.
+     (2, my_user_id, 5),
+     (3, my_user_id, 5),
+     (4, my_user_id, 5),
+     (6, my_user_id, 1),
+     (7, my_user_id, 1),
+     (9, my_user_id, 1),
+     (9, my_user_id, 1),
+     (9, my_user_id, 1),
+     ]
+	 
+my_ratings_df = spark.createDataFrame(my_rated_products, ['product_id','user_id','rating'])
+
+
+display(my_ratings_df.join(product_df, ['product_id']))
+
+training_with_my_ratings_DF = training_df.union(my_ratings_df)
+
+===============
+Alternating Least Squares
+In this part, we will use the Apache Spark ML Pipeline implementation of Alternating Least Squares, ALS (Python) or ALS (Scala). ALS takes a training dataset (DataFrame) and several parameters that control the model creation process.
+
+The process we will use for determining the best model is as follows:
+
+Pick a set of model parameters. The most important parameter to model is the rank, which is the number of columns in the Users matrix (green in the diagram above) or the number of rows in the Products matrix (blue in the diagram above). In general, a lower rank will mean higher error on the training dataset, but a high rank may lead to overfitting. We will train models with a rank of 2 using the trainingDF dataset.
+
+Set the appropriate parameters on the ALS object:
+
+The "User" column will be set to the values in our user_id DataFrame column.
+The "Item" column will be set to the values in our product_id DataFrame column.
+The "Rating" column will be set to the values in our rating DataFrame column.
+We'll be using a regularization parameter of 0.1.
+Note: Read the documentation for the ALS class carefully. It will help you accomplish this step.
+
+Have the ALS output transformation (i.e., the result of ALS.fit()) produce a new column called "prediction" that contains the predicted value.
+
+Create multiple models using ALS.fit(), one for each of our rank values. We'll fit against the training data set (trainingDF).
+
+We'll run our prediction against our validation data set (validationDF) and check the error.
+
+Use .setColdStartStrategy("drop") so that the model can deal with missing values.
+===========
+
+from pyspark.ml.recommendation import ALS
+
+# Let's initialize our ALS learner
+als = ALS()
+
+# Now we set the parameters for the method
+(als.setPredictionCol("prediction")
+   .setUserCol("user_id")
+   .setItemCol("product_id")
+   .setRatingCol("rating")
+   .setMaxIter(5)
+   .setSeed(seed)
+   .setRegParam(0.1)
+   .setRank(2)
+   .setColdStartStrategy("drop")
+)
+
+#TO-DO
+
+model = als.fit(training_with_my_ratings_DF) #fill in with training_with_my_ratings_DF
+# Run the model to create a prediction. Predict against the validationDF.
+predict_df = model.transform(validation_df)
+
+display(predict_df)
+============
+Part 2: Your Recommendations:
+Let's look at what ALS recommended for your user based on your ratings
+=======
+
+#TO-DO
+#Filter the predictions DF for your user id something like "user_id = ID"
+predictions = model.recommendForAllUsers(10)
+my_predictions = predictions.filter("user_id = 0")
+
+from pyspark.sql.functions import *
+my_recs = my_predictions.select("user_id", explode("recommendations").alias("recommendations")).select("user_id", "recommendations.product_id", "recommendations.rating")
+
+====== Join
+from pyspark.sql.functions import *
+my_recs = my_predictions.select("user_id", explode("recommendations").alias("recommendations")).select("user_id", "recommendations.product_id", "recommendations.rating").join(product_df, ['product_id'])
+
+display(my_recs)
+
+========================================================================================================================================================================================================================
+Challenges
+Data is all over the place - reports, KPIs and DS is hard with bigger data from disparate sources on exiting tools
+
+Why Initech Needs a Data Lake
+Store both big and data in one location for all personas - Data Engineering, Data Science, Analysts
+They need to access this data in diffrent languages and tools - SQL, Python, Scala, Java, R with Notebooks, IDE, Power BI, Tableau, JDBC/ODBC
+
+Azure Databricks Solutions
+Azure Storage or Azure Data Lake - Is a place to store all data, big and small
+Access both big (TB to PB) and small data easily with Databricks' scaleable clusters
+Use Python, Scala, R, SQL, Java
+
+
+
+==================== SQL 
+
+CREATE OR REPLACE TEMPORARY VIEW products
+USING CSV
+OPTIONS (path "/mnt/training-sources/initech/productsCsv/")
+
+SELECT * FROM products
+
+# Schema defining 
+
+CREATE OR REPLACE TEMPORARY VIEW products (
+  product_id int, 
+   --TO-D0-- 
+USING CSV
+OPTIONS (path "/mnt/training-sources/initech/productsCsv/",
+        --TO-D0-- 
+        )
+============================
+		
+%python 
+
+#schema for our streaming DataFrame
+
+from pyspark.sql.types import *
+schema = StructType([ \
+  StructField("orderUUID", StringType(), True), \
+  StructField("productId", IntegerType(), True), \
+  StructField("userId", IntegerType(), True), \
+  StructField("quantity", IntegerType(), True), \
+  StructField("discount", DoubleType(), True), \
+  StructField("orderTimestamp", TimestampType(), True)])
+
+
+streaming_df = spark.readStream \
+    .schema(schema) \
+    .option("maxFilesPerTrigger", 1) \
+    .csv("dbfs:/mnt/training-sources/initech/streaming/orders/data/part-*")
+    
+streaming_df.createOrReplaceTempView("orders")
+		
+
+SELECT 
+  sum(quantity) AS total_units_by_product,
+  productId 
+  FROM orders 
+  GROUP BY productId 
+  ORDER BY total_units_by_product DESC
+  
+ CREATE OR REPLACE TEMPORARY VIEW products 
+USING parquet
+OPTIONS ("path" "/mnt/training-sources/initech/productsFull/")
+
+
+=========
+============== Machine learning example
+====== All The Description Same as Above example
+
+CREATE OR REPLACE TEMP VIEW ratings
+USING PARQUET
+OPTIONS ("path" "dbfs:/mnt/training-sources/initech/productRatings/")
+
+SELECT * FROM ratings
+
+SELECT count(*) FROM ratings
+
+CREATE OR REPLACE TEMP VIEW products
+USING PARQUET
+OPTIONS ("path" "dbfs:/mnt/training-sources/initech/productsShort/")
+
+SELECT * FROM products
+
+%python
+product_ratings = table("ratings") 
+seed = 1800009193L
+(training_df, validation_df, test_df) = product_ratings.randomSplit([.6, .2, .2], seed=seed)
+
+%python 
+my_user_id = 0
+my_rated_products = [
+     (1, my_user_id, 5), # Replace with your ratings.
+     (2, my_user_id, 5),
+     (3, my_user_id, 5),
+     (4, my_user_id, 5),
+     (6, my_user_id, 1),
+     (7, my_user_id, 1),
+     (9, my_user_id, 1),
+     (9, my_user_id, 1),
+     (9, my_user_id, 1),
+     ]
+spark.createDataFrame(my_rated_products, ['product_id','user_id','rating']).createOrReplaceTempView("my_ratings")
+
+SELECT *
+FROM 
+my_ratings  
+JOIN
+products
+ON 
+(my_ratings.product_id = products.product_id)
+
+CREATE OR REPLACE TEMP VIEW ratings_with_my_ratings
+AS
+SELECT * FROM my_ratings
+UNION ALL
+SELECT * FROM ratings
+
+%python 
+from pyspark.ml.recommendation import ALS
+
+# Let's initialize our ALS learner
+als = ALS()
+
+# Now we set the parameters for the method
+(als.setPredictionCol("prediction")
+   .setUserCol("user_id")
+   .setItemCol("product_id")
+   .setRatingCol("rating")
+   .setMaxIter(5)
+   .setSeed(seed)
+   .setRegParam(0.1)
+   .setRank(2)
+   .setColdStartStrategy("drop")
+)
+
+%python
+training_with_my_ratings_DF = table("ratings_with_my_ratings")
+model = als.fit(training_with_my_ratings_DF)
+# Run the model to create a prediction. Predict against the validationDF.
+model.transform(validation_df).createOrReplaceTempView("validation")
+
+SELECT * FROM validation
+
+Part 2: Your Recommendations:
+
+%python
+model.recommendForAllUsers(10).createOrReplaceTempView("predictions")
+
+SELECT * FROM predictions
+
+Find your predictions:
+Filter for your user_id
+
+SELECT * FROM predictions WHERE user_id = 0
+
+SELECT user_id, product.product_id, product.rating FROM predictions 
+LATERAL VIEW explode(recommendations) AS product
+WHERE user_id = 0
+
+Join your recommendations with the products table
+Make the recommendations human readable by joining with the lookup
+Join on product_id
+
+SELECT * FROM
+(SELECT user_id, product.product_id, product.rating 
+FROM predictions 
+LATERAL VIEW explode(recommendations) AS product
+WHERE user_id = 0) as pred
+JOIN
+products
+ON 
+(pred.product_id = products.product_id)
+
+
+========================================================================================================================================================================================================================
+
+
+========================================================================================================================================================================================================================
+
+
+========================================================================================================================================================================================================================
+
+
+
+========================================================================================================================================================================================================================
+
+
+========================================================================================================================================================================================================================
+
+
+========================================================================================================================================================================================================================
+
+
+========================================================================================================================================================================================================================
+
+
+========================================================================================================================================================================================================================
+
+
+========================================================================================================================================================================================================================
+
+
+========================================================================================================================================================================================================================
+
+
+========================================================================================================================================================================================================================

@@ -1,0 +1,24 @@
+========================= Learn and practice on :: 
+
+========================  JOin, Affregation and creation of jar files and codes 
+
+=== Points on 10/7/2019
+
+Earlier we have used jave - Mapreduce for DE but now not
+
+where Mapreduce thing is expired ::
+
+We use Jave - Spark combination -- to create jar file and processing 
+
+or we use Scala - Spark combination -- to create jar file and processing
+
+Spark was wrriten in scala so we are using scala-spark for DE 
+
+------ Searching on Scala for Data Engineering
+
+https://medium.com/explore-artificial-intelligence/introduction-to-apache-spark-81457568e416
+
+
+
+==================================================================================================================================================
+
