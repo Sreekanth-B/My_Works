@@ -8,5 +8,9 @@ Datasets are present in sreekanthsreeraj - Google drive -> Deeplearning datasets
 
 3) M1R3backprop -- Example of Back Propagation
 
-4) R41optimization -- Model after Hyperperameter  Tuning using all types of Tuning methods.
+4) AgeGroupDetection -- Identifining the age of the actor using Image Analytics
+
+5) R41optimization -- Optimization of Age Detection of Actors -- Model after Hyperperameter  Tuning using all types of Tuning methods.
+
+6) R42activationfn -- Optimization of Age Detection of Actors -- Knowing which activation fun to use by using all
 
