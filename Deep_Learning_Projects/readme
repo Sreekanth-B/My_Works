@@ -1,5 +1,7 @@
 Deep Learning - 
 
-Digit recognition using neural network
-
 Datasets are present in sreekanthsreeraj - Google drive -> Deeplearning datasets-> Minist train n test datasets/ 
+
+1) Digit recognition using neural network  -- train & test of MNIST dataset
+2) M1R3NNoverview -- Fashion MNIST dataset for the same. This dataset comprises of images corresponding to ten classes: T-shirt/top, Trouser, Pullover, Dress, Coat, Sandal, Shirt, Sneaker, Bag, and Ankle boot
+
