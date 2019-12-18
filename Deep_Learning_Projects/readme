@@ -6,3 +6,7 @@ Datasets are present in sreekanthsreeraj - Google drive -> Deeplearning datasets
 
 2) M1R3NNoverview -- Fashion MNIST dataset for the same. This dataset comprises of images corresponding to ten classes: T-shirt/top, Trouser, Pullover, Dress, Coat, Sandal, Shirt, Sneaker, Bag, and Ankle boot
 
+3) M1R3backprop -- Example of Back Propagation
+
+4) R41optimization -- Model after Hyperperameter  Tuning using all types of Tuning methods.
+
