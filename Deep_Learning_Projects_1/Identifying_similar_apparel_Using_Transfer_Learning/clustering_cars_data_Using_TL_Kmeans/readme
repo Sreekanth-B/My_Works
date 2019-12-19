@@ -1,0 +1,3 @@
+Transfer Learning on cars dataset consisting of 8000+ images of various types of cars. 
+
+clustering all the images into 10 clusters using Transfer learning and KMeans clustering
