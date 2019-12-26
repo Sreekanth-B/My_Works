@@ -1,0 +1,6 @@
+Text Classification is a process of classifying data in the form of text such as tweets, reviews, articles, and blogs, into predefined categories. Sentiment analysis is a special case of Text Classification where users’ opinion or sentiments about any product are predicted from textual data.
+
+Here we develop a Sentiment Analysis model that will use TF-IDF feature generation approach
+
+which will be capable of predicting user sentiment about 6 Airlines operating in the United States through analysing user tweets.
+
