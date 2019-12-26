@@ -1,0 +1,11 @@
+
+Sentiment Analysis: 
+                  is a special case of text classification where users’ opinions or sentiments regarding a product are classified into 
+predefined categories such as positive, negative, neutral etc.  Public sentiments can then be used for corporate decision making regarding 
+a product which is being liked or disliked by the public.
+
+Both rule-based and statistical techniques have been developed for sentimental analysis.  With the advancements in Machine Learning 
+and natural language processing techniques, Sentiment Analysis techniques have improved a lot.
+
+In this discussion, we will see how Sentiment Analysis can be performed on live Twitter data. present discussion is divided into 
+two major sections: Scraping Tweets from Twitter and Performing Sentiment Analysis.
