@@ -7,10 +7,13 @@ move right 1 unit, or stay still. In other words, from position (x,y), the frog 
 After T seconds, a villager who sees the frog reports that the frog lies on or inside a square of side-length s with coordinates 
 (x,y),(x+s,y) ,(x,y+s) ,(x+s,y+s). Calculate how many points with integer coordinates on or inside this square could 
 be the frog's position after exactly T seconds.
+
 Input Format:
 The first and only line of input contains four space-separated integers: x, y, s, and T.
+
 Output Format:
 Print the number of points with integer coordinates that could be the frog's position after T seconds.
+
 SAMPLE INPUT 
 2 2 3 6
 SAMPLE OUTPUT 
