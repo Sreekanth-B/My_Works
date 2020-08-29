@@ -18,7 +18,6 @@ val rdd =sc.textFile("HDFS/ Path");
 val rdd2 = map(_.split("\t")).map(r => (r(8)+ ","+r(9)))
 
 
-
 //Filtering the ERROR records and count the router specific errors
 
 //Filter records starting with errors
@@ -162,7 +161,7 @@ val Car_Error_logs = Car_Eng_Specs.filter(_._6.startsWith("ERR"));
 
 
 
-============================================================================================================================================
+=========================================================================================================================================
 
 Code to compute the number of errors produced by every car
 //Loading a text file in to an RDD
