@@ -51,29 +51,10 @@ lateral view outer explode(audit_trail_codes)dummy as audit_trail_code
 
 -- Create temp table
 CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:JOB_NAME}_temp ( 
-  OCC_TIMESTAMP STRING,
+  col_1 STRING,
   FILENAME STRING,
-  ESN STRING,
-  CALIBRATION_SOFTWARE_PHASE STRING,
-  ECM_CODE STRING,
-  ECM_NAME STRING,
-  ENGINE_MODEL STRING,
-  VIN STRING,
-  PCID STRING,
-  OCC_DATE STRING,
-  EVENT_ID STRING,
-  ECM_TIME STRING,
-  ECM_REAL_TIME STRING,
-  START_SOOT_FILL_MONITOR_STATUS STRING,
-  END_SOOT_FILL_MONITOR_STATUS STRING,
-  START_DOC_INLET_TEMPERATURE_UNIT STRING,
-  START_DOC_INLET_TEMPERATURE STRING,
-  MAXIMUM_DOC_OUT_TEMPERATURE_DURING_UNIT STRING,
-  MAXIMUM_DOC_OUT_TEMPERATURE_DURING STRING,
-  MAXIMUM_DPF_OUT_TEMPERATURE_DURING_UNIT STRING,
-  MAXIMUM_DPF_OUT_TEMPERATURE_DURING STRING,
-  MAXIMUM_DPF_DELTA_P_DURING_UNIT STRING,
-  MAXIMUM_DPF_DELTA_P_DURING STRING
+  col_2 STRING, 
+  col_3 STRING
 ) 
 ROW FORMAT DELIMITED 
   FIELDS TERMINATED BY '|' 
@@ -83,30 +64,13 @@ LOCATION '${hiveconf:HDFSLocation}_temp';
 =======================================================================
 -- Create Final external base table 
 CREATE EXTERNAL TABLE IF NOT EXISTS MDSG_INSITE_${hiveconf:JOB_NAME}_BASE_T ( 
-  OCC_TIMESTAMP STRING,
-  FILENAME STRING,
-  ESN STRING,
-  CALIBRATION_SOFTWARE_PHASE STRING,
-  ECM_CODE STRING,
-  ECM_NAME STRING,
-  ENGINE_MODEL STRING,
-  VIN STRING,
-  PCID STRING,
-  EVENT_ID STRING,
-  ECM_TIME STRING,
-  ECM_REAL_TIME STRING,
-  START_SOOT_FILL_MONITOR_STATUS STRING,
-  END_SOOT_FILL_MONITOR_STATUS STRING,
-  START_DOC_INLET_TEMPERATURE_UNIT STRING,
-  START_DOC_INLET_TEMPERATURE STRING,
-  MAXIMUM_DOC_OUT_TEMPERATURE_DURING_UNIT STRING,
-  MAXIMUM_DOC_OUT_TEMPERATURE_DURING STRING,
-  MAXIMUM_DPF_OUT_TEMPERATURE_DURING_UNIT STRING,
-  MAXIMUM_DPF_OUT_TEMPERATURE_DURING STRING,
-  MAXIMUM_DPF_DELTA_P_DURING_UNIT STRING,
-  MAXIMUM_DPF_DELTA_P_DURING STRING
+ col_1 STRING,
+ FILENAME STRING,
+ col_2 STRING, 
+ col_3 STRING
+  
 ) 
-PARTITIONED BY (OCC_DATE STRING) 
+PARTITIONED BY (col_2 STRING) 
 ROW FORMAT DELIMITED 
   FIELDS TERMINATED BY '|' 
 STORED AS ORC 
@@ -128,20 +92,15 @@ DROP TABLE IF EXISTS ${hiveconf:JOB_NAME}_transient;
 =====================================================================================================================================
 
 ======================================================= Using Scoop
+
 TIME_STAMP=`date +%Y-%m-%d-%H:%M:%S`
 mkdir MES_ASSEMBLY_TESTDB_$TIME_STAMP
 cd MES_ASSEMBLY_TESTDB_$TIME_STAMP
 
-sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc:oracle:thin:@jepxsspapp004.ced.corp.cummins.com:1521:MEST004 --username MCKINSEY --password READONLY --query "SELECT LS.ASMBLY_LOCATION, LS.ACTUAL_ARRIVAL, LS.ARRIVAL_DATETIME, LS.PRIOR_ARRIVAL, LS.PRIOR_ARRIVAL_DATETIME, LS.RSSQL_ID FROM ARCHIVE.T_EDP_LOC_STAT_HIST_ARC LS, ABAMS.T_WORKORDER_HIST WH WHERE LS.ACTUAL_ARRIVAL = WH.serial_no AND WH.config_no IN ('D103016BX03', 'D103012BX03') AND ARRIVAL_DATETIME >= '01-JAN-2013' AND  ARRIVAL_DATETIME < '14-FEB-2013' AND  ACTUAL_ARRIVAL like '79%' AND \$CONDITIONS" --hive-database quality_mes --hive-table DISCO_ASSEMBLY --hive-import --target-dir /hive/warehouse/quality_mes.db/DISCO_ASSEMBLY_T1 --hive-delims-replacement '-'  -m 1  >> extract_DISCO_Logs.log 
-
-sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc:oracle:thin:@jepxsspapp004.ced.corp.cummins.com:1521:MEST004 --username MCKINSEY --password READONLY --query "SELECT LS.ASMBLY_LOCATION, LS.ACTUAL_ARRIVAL, LS.ARRIVAL_DATETIME, LS.PRIOR_ARRIVAL, LS.PRIOR_ARRIVAL_DATETIME, LS.RSSQL_ID FROM ARCHIVE.T_EDP_LOC_STAT_HIST_ARC LS, ABAMS.T_WORKORDER_HIST WH WHERE LS.ACTUAL_ARRIVAL = WH.serial_no AND WH.config_no IN ('D103016BX03', 'D103012BX03') AND ARRIVAL_DATETIME >= '14-FEB-2013' AND  ARRIVAL_DATETIME < '01-APR-2013' AND  ACTUAL_ARRIVAL like '79%' AND \$CONDITIONS" --hive-database quality_mes --hive-table DISCO_ASSEMBLY --hive-import --target-dir /hive/warehouse/quality_mes.db/DISCO_ASSEMBLY_T1 --hive-delims-replacement '-'  -m 1  >> extract_DISCO_Logs.log 
-sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc:oracle:thin:@jepxsspapp004.ced.corp.cummins.com:1521:MEST004 --username MCKINSEY --password READONLY --query "SELECT LS.ASMBLY_LOCATION, LS.ACTUAL_ARRIVAL, LS.ARRIVAL_DATETIME, LS.PRIOR_ARRIVAL, LS.PRIOR_ARRIVAL_DATETIME, LS.RSSQL_ID FROM ARCHIVE.T_EDP_LOC_STAT_HIST_ARC LS, ABAMS.T_WORKORDER_HIST WH WHERE LS.ACTUAL_ARRIVAL = WH.serial_no AND WH.config_no IN ('D103016BX03', 'D103012BX03') AND ARRIVAL_DATETIME >= '01-APR-2013' AND  ARRIVAL_DATETIME < '15-MAY-2013' AND  ACTUAL_ARRIVAL like '79%' AND \$CONDITIONS" --hive-database quality_mes --hive-table DISCO_ASSEMBLY --hive-import --target-dir /hive/warehouse/quality_mes.db/DISCO_ASSEMBLY_T1 --hive-delims-replacement '-'  -m 1  >> extract_DISCO_Logs.log 
+sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc:oracle:thin:@jepxsspapp004.ced.corp.****** --username MCKI**** --password READ**** --query "SELECT * from Table where col_2 like '79%' AND \$CONDITIONS" --hive-database quality_mes --hive-table DISCO_ASSEMBLY --hive-import --target-dir /hive/warehouse/quality_mes.db/DISCO_ASSEMBLY_T1 --hive-delims-replacement '-'  -m 1  >> extract_DISCO_Logs.log 
 
 
-
-sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc:oracle:thin:@143.222.192.142:1521:MESP3_LG --username MCKINSEY --password READONLY --query "SELECT NVL(vdpm.PART_DESC,'Unknown Desc') PART_DESC, vdda.DEV_ID, vdda.DEV_START_DATE, vdda.DEV_END_DATE, vdda.SERIAL_NO, vdda.DEV_CONTROL_NO, vdda.ABSN, vdda.OPTION_CODE, vdda.ADD_PART_NO, vdda.ADD_QTY, vdda.OMIT_PART_NO, vdda.OMIT_QTY, vdda.DEV_ACTION FROM V_DVTN_DEV_ALL vdda, V_DVTN_PART_MASTER vdpm, T_WORKORDER_HIST twh WHERE ( ( DECODE(vdda.ADD_PART_NO,NULL,vdda.OMIT_PART_NO,vdda.ADD_PART_NO) = LTRIM(SUBSTR(vdpm.PART_NO(+),1,7),'0')||RTRIM(SUBSTR(vdpm.PART_NO(+),8,2),'0') ) ) AND vdda.SERIAL_NO = twh.serial_no and twh.config_no IN ('D103016BX03', 'D103012BX03')  AND vdda.DEV_START_DATE >='01-JAN-2013' AND vdda.DEV_START_DATE <'01-JAN-2018' AND \$CONDITIONS" --hive-database quality_mes --hive-table DISCO_DEVIATION --hive-import  --target-dir /hive/warehouse/quality_mes.db/DISCO_DEVIATION --hive-delims-replacement '-' -m 1  >> extract_DISCO_DEVIATION_1-JAN-2013_1-JAN-2018.log
-
-sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc:oracle:thin:@143.222.192.142:1521:MESP3_LG --username MCKINSEY --password READONLY --query "SELECT NVL(vdpm.PART_DESC,'Unknown Desc') PART_DESC, vdda.DEV_ID, vdda.DEV_START_DATE, vdda.DEV_END_DATE, vdda.SERIAL_NO, vdda.DEV_CONTROL_NO, vdda.ABSN, vdda.OPTION_CODE, vdda.ADD_PART_NO, vdda.ADD_QTY, vdda.OMIT_PART_NO, vdda.OMIT_QTY, vdda.DEV_ACTION FROM V_DVTN_DEV_ALL vdda, V_DVTN_PART_MASTER vdpm, T_WORKORDER_HIST twh WHERE ( ( DECODE(vdda.ADD_PART_NO,NULL,vdda.OMIT_PART_NO,vdda.ADD_PART_NO) = LTRIM(SUBSTR(vdpm.PART_NO(+),1,7),'0')||RTRIM(SUBSTR(vdpm.PART_NO(+),8,2),'0') ) ) AND vdda.SERIAL_NO = twh.serial_no and twh.config_no IN ('D103016BX03', 'D103012BX03')  AND vdda.DEV_START_DATE >='01-JAN-2018' AND vdda.DEV_START_DATE <trunc(SYSDATE-7) AND \$CONDITIONS" --hive-database quality_mes --hive-table DISCO_DEVIATION --hive-import  --target-dir /hive/warehouse/quality_mes.db/DISCO_DEVIATION --hive-delims-replacement '-' -m 1  > extract_DISCO_DEVIATION_1-JAN-2018_SYSDATE-7.log
+sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc:oracle:thin:@143.222.192.***** --username MCKI**** --password READ**** --query "SELECT NVL(vdpm.PART_DESC,'Unknown Desc') PART_DESC, col_3 from table_2 WHERE ( ( DECODE(vdda.ADD_PART_NO,NULL,vdda.OMIT_PART_NO,vdda.ADD_PART_NO) = LTRIM(SUBSTR(vdpm.PART_NO(+),1,7),'0')||RTRIM(SUBSTR(vdpm.PART_NO(+),8,2),'0') ) ) AND vdda.SERIAL_NO = twh.serial_no and twh.config_no IN ('D103016BX03', 'D103012BX03')  AND \$CONDITIONS" --hive-database quality_mes --hive-table DISCO_DEVIATION --hive-import  --target-dir /hive/warehouse/quality_mes.db/DISCO_DEVIATION --hive-delims-replacement '-' -m 1  >> extract_DISCO_DEVIATION_1-JAN-2013_1-JAN-2018.log
 
 =============================================##Run below commands for pushing data to sql server for reporting
 
@@ -194,62 +153,7 @@ SELECT * FROM ABAMS.T_STATUS_HIST WHERE CHG_DATE >= trunc(SYSDATE-7)  AND CHG_DA
 
 
 
-sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username pt345 --P --table "RPS.T_PRODUCT_FAMILY" --hive-database quality_pps --hive-import --hive-table  T_PRODUCT_FAMILY    --target-dir /hive/warehouse/quality_pps.db/T_PRODUCT_FAMILY  --hive-delims-replacement '-' -m 1
-
-sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username pt345 --P --table "RPS.T_SOURCING_TEAM" --hive-database quality_pps --hive-import --hive-table  T_SOURCING_TEAM    --target-dir /hive/warehouse/quality_pps.db/T_SOURCING_TEAM  --hive-delims-replacement '-' -m 1
--- PT related tables
-sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username na768 --P --query "select P.* from RPS.T_PT_SCHEDULE	 P,	RPS.T_RESP_PQC_ENTITY_MAP RPEM,  RPS.T_PT_HEADER PH  where RPEM.RESP_PQC_ID = PH.RESP_PQC_ID and ENTITY_CODE = 'EBU' and   PH.PROJECT_NUM =  A.PROJECT_NUM and \$CONDITIONS " --hive-database quality_pps --hive-import  --hive-table 	T_PT_SCHEDULE	 --target-dir /hive/warehouse/quality_pps.db/T_PT_SCHEDULE --hive-delims-replacement '-' -m 1
-
-sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username na768 --P --query "select PH.* from RPS.T_RESP_PQC_ENTITY_MAP RPEM,  RPS.T_PT_HEADER PH  where RPEM.RESP_PQC_ID = PH.RESP_PQC_ID and ENTITY_CODE = 'EBU'  and \$CONDITIONS " --hive-database quality_pps --hive-import  --hive-table 	T_PT_HEADER	 --target-dir /hive/warehouse/quality_pps.db/T_PT_HEADER --hive-delims-replacement '-' -m 1
-sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username na768 --P --query "select P.* from RPS.T_PT_STEP1	 P,	RPS.T_RESP_PQC_ENTITY_MAP RPEM,  RPS.T_PT_HEADER PH  where RPEM.RESP_PQC_ID = PH.RESP_PQC_ID and ENTITY_CODE = 'EBU' and   PH.PROJECT_NUM =  P.PROJECT_NUM and \$CONDITIONS " --hive-database quality_pps --hive-import  --hive-table 	T_PT_STEP1	 --target-dir /hive/warehouse/quality_pps.db/T_PT_STEP1 --map-column-java  TECH_DESC=String,TECH_DESC_ORG=String --hive-delims-replacement '-' -m 1
-
--- PD related tables
-sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username na768 --P --query "SELECT P.* FROM RPS.T_PD_PROBLEM_STATEMENT P , RPS.T_RESP_PQC_ENTITY_MAP M, RPS.T_PD_PROJECT_OBJECTIVE PO WHERE  P.PROBLEM_NUM = PO.PROBLEM_NUM AND PO.RESP_PQC_ID = M.RESP_PQC_ID AND ENTITY_CODE = 'EBU'and \$CONDITIONS " --hive-database quality_pps --hive-import  --hive-table T_PD_PROBLEM_STATEMENT --map-column-java  TECH_DESC=String,TECH_DESC_ORG=String 	 --target-dir /hive/warehouse/quality_pps.db/T_PD_PROBLEM_STATEMENT	 --hive-delims-replacement '-' -m 1
-
-sqoop import --connect jdbc:oracle:thin:@ACDCSLPDB575.ACIZ.CUMMINS.COM:1527:RPSP1 --username na768 --P --query "select P.*  from RPS.T_PD_PROBLEM_DESCRIPTION P , RPS.T_RESP_PQC_ENTITY_MAP M, RPS.T_PD_PROJECT_OBJECTIVE PO WHERE  P.PROBLEM_NUM = PO.PROBLEM_NUM AND PO.RESP_PQC_ID = M.RESP_PQC_ID AND ENTITY_CODE = 'EBU'  and \$CONDITIONS " --hive-database quality_pps --hive-import  --hive-table   	T_PD_PROBLEM_DESCRIPTION	 --target-dir /hive/warehouse/quality_pps.db/T_PD_PROBLEM_DESCRIPTION	 --hive-delims-replacement '-' -m 1
-
-
-sqoop import -Dhive.metastore.uris=thrift://hn0-quantu.0per2bzuqjue5ob0duxtyijy4h.dx.internal.cloudapp.net:9083 --connect jdbc:oracle:thin:@143.222.192.142:1521:MESP3_LG --username MCKINSEY --password READONLY  --query "SELECT * FROM ABAMS.T_STATUS_HIST WHERE extract(year from CHG_DATE) = '2013'  AND \$CONDITIONS" --hive-database quality_mes --hive-table T_STATUS_HIST --hive-import  --target-dir /hive/warehouse/quality_mes.db/T_STATUS_HIST --hive-delims-replacement '-' -m 1  >> extract_T_STATUS_HIST.log
-
-============================== Config file creation
-
-// Feature - EPAT - EPAT Test Job Config 
-FET.EPAT.TEST.TN.PRI_TBL=EPAT_JOIN_REPORT
-FET.EPAT.TEST.TN.FET_TBL=EPAT_TEST_FEATURES
-
-// Feature - FIRG - FIRG Job Config  
-FET.FIRG.FIRG.TN.PRI_TBL=FIRG_PART_REPLACEMENT
-FET.FIRG.FIRG.TN.FET_TBL=FIRG_PART_REPLACEMENT
-// ModelOutput - OccurrenceMonitoring Job Config 
-MOP.MO.OM_MOP.TN.MOP_TBL=X15_OM_MODELOUTPUT
-
-// ModelOutput - Weibull Job Config 
-MOP.MO.WEIBULL.TN.WB_PREDICT_RPH=WEIBULL_PREDICTED_RPH
-MOP.MO.WEIBULL.TN.WB_PREDICT_RPH_HIST=WEIBULL_PREDICTED_RPH_HIST
-MOP.MO.WEIBULL.TN.WB_FLTCODE_PREDICT_RPH=WEIBULL_FAULTCODE_PREDICTED_RPH
-
-# FileSystem
-COMMON.FS.HDFS_PATH="wasbs://quantumbrserver@quantumb.blob.core.windows.net"
-
-# Database Detail for Development
-COMMON.DB.REF=quality_dev_reference
-COMMON.DB.RAW_INS=quality_dev_raw
-
-env=${?env}
-
-include "common/primary.conf"
-include "common/feature.conf"
-include "common/model-input.conf"
-include "common/model-output.conf"
-include "common/report.conf"
-
-# Reference Table
-COMMON.TN.REF_TBL=x15_esn_list
-
-
-
-
-=====================================================================================================================================
+======================================================================================================================
 
 
 
