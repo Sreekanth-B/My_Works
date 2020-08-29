@@ -1,5 +1,5 @@
 
-======================================================================================================================================
+===================================================================================================================================
 
 ///// In this demo, Load the data as RDD, compute and find the number of unique occurrence of each record in the dataset
 // Type in spark-shell command to open the Spark scala shell.
@@ -64,46 +64,6 @@ DEMO Steps:
 
 
 ======================================================================================================================================
-
-===== RDD Operations in SPark 
-
-// Spark - Core Programming 
-
-// Reading the file from HDFS into RDD
-
-val rdd =sc.textFile("HDFS/ Path");
-
-// In the above snippet, sc refers to built-in SparkContext
-
-//Filtering Message and Message Type fields
-//For every record split the fields and concatenate Message Type(r(8)) and Message (r(9)) fields with “,”
-
-val rdd2 = map(_.split("\t")).map(r => (r(8)+ ","+r(9)))
-
-
-//Filtering the ERROR records and count the router specific errors
-
-//Filter records starting with errors
-val rdd3 = rdd2. filter(_.startsWith(“ERROR”)) 
-
-//Count Rtr1 records
-val R1Errs = rdd3.map(_.contains(“RTR1”)).count() 
-
-// Count Rtr2 records
-val R2Errs = rdd3.map(_.contains(“RTR2”)).count() 
-
-// load the router error counts into array and paralleize into RDD
-val outarray = Array(“Router 1 contains ”+R1Errs,”Router 2 contains ”+R2Errs); 
-
-val outrdd = sc.paralleize(outarray)
-
-
-// print and save final RDD into output file
-
-outrdd.collect.foreach(println)
-
-outrdd.saveAsTextFile("HDFS path to save")
-
 
 
 //////////////// spliting the fields with "," and fetching only first 2 fields
@@ -944,17 +904,12 @@ movies.filter('produced_year >= 2000).filter(length('movie_title) < 5).show(5)
 
 // filter data down to smaller size to make it easier to see the rollups result
 val twoStatesSummary = flight_summary.select('origin_state, 'origin_city, 'count)
-.where('origin_state === "CA"
-|| 'origin_state === "NY")
+.where('origin_state === "CA" || 'origin_state === "NY")
 .where('count > 1 && 'count < 20)
-.where('origin_city =!= "White
-Plains")
-.where('origin_city =!=
-"Newburgh")
-.where('origin_city =!=
-"Mammoth Lakes")
-.where('origin_city =!=
-"Ontario")
+.where('origin_city =!= "White Plains")
+.where('origin_city =!= "Newburgh")
+.where('origin_city =!= "Mammoth Lakes")
+.where('origin_city =!= "Ontario")
 
 
 ====================================== DISTINCT COUNT OF COLUMN VALUES
@@ -1323,7 +1278,6 @@ println("LOG: wb_output_build_month: "+spark.sql("select count(*) from(select co
 
 println("LOG: OUTPUT TABLE ------wb_output_build_year-------")
 
-println("LOG: wb_output_build_year : "+spark.sql("select count(*) from(select concat(rel_user_appl_desc,build_year,program_group_name,rel_engine_name_desc,code,calc_date) from quality_engine_mo.wb_output_build_year group by concat(rel_user_appl_desc,build_year,program_group_name,rel_engine_name_desc,code,calc_date) having count(concat(rel_user_appl_desc,build_year,program_group_name,rel_engine_name_desc,code,calc_date))>1)temp").show(false))
 
 println("LOG: OUTPUT TABLE ------wb_output_inservice_date-------")
 
@@ -1426,7 +1380,6 @@ df.groupBy("x","y").count().filter("count >= 2").show()
 om_output_df.groupBy("ENGINE_SERIES").agg(max("CALC_DATE"), min("CALC_DATE")).show()
 
 
-
 df.agg(min("A"), max("A")).show()
 
 --------------------------------------- TO getting Max values by grouping by other columns
@@ -1446,7 +1399,6 @@ df.select(max("CALC_DATE")).show()
 
 
 Collecting the unique values into the list in spark dataframe ::
-
 
 Pre_X_W_df.select('REL_CMP_ENGINE_NAME').distinct().rdd.map(lambda r: r[0]).collect()
 
@@ -1471,7 +1423,8 @@ from pyspark.sql.types import DoubleType, IntegerType, StringType
 import pyspark
 import pandas as pd
 
-wb_out= spark.read.option("header","true").option("delimiter",",").option("inferSchema", "true").format("csv").load("/home/qx816/notebooks/Wb_may8/data/model_input/raw/weibull_b/build.csv")
+wb_out= spark.read.option("header","true").option("delimiter",",").option("inferSchema", "true")
+.format("csv").load("/home/qx816/notebooks/Wb_may8/data/model_input/raw/weibull_b/build.csv")
 
 wb_out_1= spark.read.option("header","true").option("delimiter",",").option("inferSchema", "true").format("csv").load("/home/qx816/notebooks/Wb_may8/data/model_input/raw/weibull_b/claims.csv")
 
@@ -1485,7 +1438,7 @@ ck = sqlContext.sql("select max(BUILD_DATE) as Max, min(BUILD_DATE) as Min from 
 
 ck.show()
 
-co=sqlContext.sql("select OM_CRRT_PRIORITY_SCORE from om_out_df where om_algo == 'MA_Ribbon' and cast(OM_CRRT_PRIORITY_SCORE as int)<0 ")
+co= sqlContext.sql("select OM_CRRT_PRIORITY_SCORE from om_out_df where om_algo == 'MA_Ribbon' and cast(OM_CRRT_PRIORITY_SCORE as int)<0 ")
 
 co.count()
 
@@ -1494,6 +1447,7 @@ co=sqlContext.sql("select OM_SCORE_REL_BUCKET,count(CALC_ID) from om_out_df wher
 cd=sqlContext.sql("select distinct(REL_BUILD_DATE) from ff_csv_1")
 
 ====================================== To save the results into csv (to_ press tab we will get options for file saving formates)
+
 cdf = cd.toPandas()
 
 cdf.to_csv('Wb_L_file_May_2_Gold.csv')
@@ -1562,8 +1516,10 @@ diff_cat_in_train_test.distinct().count()
 -============= What if I want to calculate pair wise frequency of categorical columns
 We can use crosstab operation on DataFrame to calculate the pair wise frequency of columns. Let’s apply crosstab operation on ‘Age’ and ‘Gender’ columns of train DataFrame
 train.crosstab('Age', 'Gender').show()
+
 ------===== What If I want to get the DataFrame which won’t have duplicate rows of given DataFrame
 train.select('Age','Gender').dropDuplicates().show()
+
 --=========== What if I want to drop the all rows with null value
 The dropna operation can be use here. To drop row from the DataFrame it consider three options.
 
@@ -1619,19 +1575,3 @@ sqlContext.sql('select Age, max(Purchase) from train_table group by Age').show()
 
 
 
-=====================================================================================================================================
-
-
-
-
-
-=====================================================================================================================================
-
-
-
-
-
-============================================================================================================================================
-
-
-============================================================================================================================================
