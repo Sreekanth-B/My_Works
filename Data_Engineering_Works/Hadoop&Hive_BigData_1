@@ -12,7 +12,7 @@ hadoop fs -copyToLocal hdfs://localhost:9000/user/Out_1/part_file.csv /root/Desk
 
 ======================================================================================================================================
 ======================================================================================================================================
-# To use into hive environment
+# To use hive environment 
 
 /usr/bin/hive
 
@@ -137,7 +137,7 @@ On the command line,
 
 
 
-====================== Creating table and storing it in specific path
+==================== Creating table and storing it in specific path
 
 drop table databasename.tablename;
 CREATE TABLE databasename.tablename(
