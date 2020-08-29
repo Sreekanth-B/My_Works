@@ -171,48 +171,7 @@ df2.write.coalesce(1).format("csv").save("/user/test/us")
 
 =======================================================================================================================================
 
-
-is there any function called loadFile, with load
-no
-
-
-which gets invocked 1st when spark job submitted
-sparksession or context or driver
-
-primary memory full and wants to store in disc
-persist.()
-
-df.chache() -- action or transformation nothing
-
-
-is there any function called groupByKey.reduce((a,b) =>a+b)
-
-
-
-feature in spark-sql not in hive
-
-catalyst query optimizor  -- spark
-optional metastore -- hive 
-support sql queries  --hive
-
-auto schema inference --spark
-schema inforance through DDL  
-
-
-support HQL queries --spark
-
-
-unlike lazy transformations in spark, rdd's dfs discover schema right after the statement for df creation is typed
-
-true
-
-
 =================================================================================================================================
-Hadoop Web UI : localhost:50070
-Driver runs on Master
-Driver will have Sparkcontext and Worker is having Executor
-
-
 ===
 
 Rdd out of array == sc. parallelize(arrary)
