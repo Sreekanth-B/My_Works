@@ -151,6 +151,6 @@ CREATE TABLE databasename.tablename(
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-location 'wasbs://quantumbrserver@quantumb.blob.core.windows.net/data/issue_driver/Univ_Contrib'
+location 'wasbs://*****@*****.blob.core.windows.net/data/issue_driver/Univ_Contrib'
 
 tblproperties("skip.header.line.count"="1");
