@@ -16,37 +16,6 @@ hive -f /home/<File_path and name>.hql
 hive -f /home/<File_path and name>.hql
 
 
-======================================== ETL using SQL 
-
-SELECT 
-      ROWID, OCCURRENCE_TIMESTAMP, PROCESS_TIMESTAMP, default.collect(name,value[0]) AS parameter_value_map 
-      FROM database.table 
-      WHERE ( array_contains(tags, "Header") OR ( (array_contains(tags,"root") OR array_contains(tags,"Root") ) AND ( array_contains(tags,"ECM_Application") OR  array_contains(tags,"OEM Information") OR array_contains(tags, "AFT DPF Ash Load") OR array_contains(tags, "Aggregate Engine Run Time") ) ) )
-      GROUP BY ROWID, OCCURRENCE_TIMESTAMP, PROCESS_TIMESTAMP 
-SELECT 
-rowid,
-occurrence_timestamp,
-process_timestamp,tags[0] as Record_number,default.collect(name,value)  AS audit_value_map 
-from database.table2   
-where  array_contains(tags,"Audit Trail")
-group by rowid,occurrence_timestamp,process_timestamp,tags[0]) auditsectiontable
-LEFT OUTER JOIN 
-(SELECT 
-rowid,
-occurrence_timestamp,
-process_timestamp,default.collect(name,value)  AS parameter_value_map 
-from insite_raw.insite_master
-where (name in 
-('_System_Serial_Number','_Calibration_Version','_ECM_Code','_ECM_Name',
-'_System_Model','_VIN_Or_Equipment_Serial_Number',
-'ToolInstance') 
-) 
-group by rowid,occurrence_timestamp,process_timestamp ) commontable 
-ON auditsectiontable.rowid=commontable.rowid and 
-auditsectiontable.occurrence_timestamp=commontable.occurrence_timestamp and 
-auditsectiontable.process_timestamp=commontable.process_timestamp )unexplodedTable
-lateral view outer explode(audit_trail_codes)dummy as audit_trail_code
-
 ============================================================= Table creation SQL
 
 -- Create temp table
@@ -63,7 +32,7 @@ LOCATION '${hiveconf:HDFSLocation}_temp';
 
 =======================================================================
 -- Create Final external base table 
-CREATE EXTERNAL TABLE IF NOT EXISTS MDSG_INSITE_${hiveconf:JOB_NAME}_BASE_T ( 
+CREATE EXTERNAL TABLE IF NOT EXISTS TableName_${hiveconf:JOB_NAME}_BASE_T ( 
  col_1 STRING,
  FILENAME STRING,
  col_2 STRING, 
@@ -79,10 +48,10 @@ LOCATION '${hiveconf:HDFSLocation}';
 
 -- TODO : Replace INTO instead of OVERWRITE once the master table partition implemented
 -- Insert partition data into final base table
-INSERT OVERWRITE TABLE MDSG_INSITE_${hiveconf:JOB_NAME}_BASE_T PARTITION (OCC_DATE) SELECT OCC_TIMESTAMP,FILENAME,ESN,CALIBRATION_SOFTWARE_PHASE,ECM_CODE,ECM_NAME,ENGINE_MODEL,VIN,PCID,EVENT_ID,ECM_TIME,ECM_REAL_TIME,START_SOOT_FILL_MONITOR_STATUS,END_SOOT_FILL_MONITOR_STATUS,START_DOC_INLET_TEMPERATURE_UNIT,START_DOC_INLET_TEMPERATURE,MAXIMUM_DOC_OUT_TEMPERATURE_DURING_UNIT,MAXIMUM_DOC_OUT_TEMPERATURE_DURING,MAXIMUM_DPF_OUT_TEMPERATURE_DURING_UNIT,MAXIMUM_DPF_OUT_TEMPERATURE_DURING,MAXIMUM_DPF_DELTA_P_DURING_UNIT,MAXIMUM_DPF_DELTA_P_DURING,OCC_DATE FROM ${hiveconf:JOB_NAME}_TEMP DISTRIBUTE BY OCC_DATE SORT BY OCC_DATE;
+INSERT OVERWRITE TABLE TableName_${hiveconf:JOB_NAME}_BASE_T PARTITION (OCC_DATE) SELECT OCC_TIMESTAMP,FILENAME,ESN,CALIBRATION_SOFTWARE_PHASE,ECM_CODE,ECM_NAME,ENGINE_MODEL,VIN,PCID,EVENT_ID,ECM_TIME,ECM_REAL_TIME,START_SOOT_FILL_MONITOR_STATUS,END_SOOT_FILL_MONITOR_STATUS,START_DOC_INLET_TEMPERATURE_UNIT,START_DOC_INLET_TEMPERATURE,MAXIMUM_DOC_OUT_TEMPERATURE_DURING_UNIT,MAXIMUM_DOC_OUT_TEMPERATURE_DURING,MAXIMUM_DPF_OUT_TEMPERATURE_DURING_UNIT,MAXIMUM_DPF_OUT_TEMPERATURE_DURING,MAXIMUM_DPF_DELTA_P_DURING_UNIT,MAXIMUM_DPF_DELTA_P_DURING,OCC_DATE FROM ${hiveconf:JOB_NAME}_TEMP DISTRIBUTE BY OCC_DATE SORT BY OCC_DATE;
 
 -- Final View Creation
-CREATE VIEW IF NOT EXISTS MDSG_INSITE_${hiveconf:JOB_NAME}_V AS SELECT * FROM MDSG_INSITE_${hiveconf:JOB_NAME}_BASE_T;
+CREATE VIEW IF NOT EXISTS TableName_${hiveconf:JOB_NAME}_V AS SELECT * FROM MDSG_INSITE_${hiveconf:JOB_NAME}_BASE_T;
 
 -- DROP tables
 DROP TABLE IF EXISTS ${hiveconf:JOB_NAME}_transient;
@@ -104,78 +73,25 @@ sqoop import -Dorg.apache.sqoop.splitter.allow_text_splitter=true --connect jdbc
 
 =============================================##Run below commands for pushing data to sql server for reporting
 
-spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=overwrite source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=clus_concat_clusters_summary target_type=mssql target_db=quantumb target_schema=reports target_tablename=CLUS_CLUSTER_DETAILS_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400
-
-spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=overwrite source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=clus_concat_window_summary target_type=mssql target_db=quantumb target_schema=reports target_tablename=CLUS_WINDOW_DETAILS_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400
-
 ### Issue driver reporting data push with append
 
-spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=incremental_append source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=ISSUE_DRIVER_ISSUE_DETAIL target_type=mssql target_db=quantumb target_schema=reports target_tablename=ISSUE_DRIVER_ISSUE_DETAIL_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400 update_col=run_analytics_date
-spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=incremental_append source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=ISSUE_DRIVER_UNIVERSAL_VIEW target_type=mssql target_db=quantumb target_schema=reports target_tablename=ISSUE_DRIVER_UNIVERSAL_VIEW_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400 update_col=run_analytics_date
+spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.****.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=incremental_append source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=ISSUE_DRIVER_ISSUE_DETAIL target_type=mssql target_db=quantumb target_schema=reports target_tablename=ISSUE_DRIVER_ISSUE_DETAIL_WEEKLY target_db_url="jdbc:sqlserver://*****.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://*****@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400 update_col=run_analytics_date
+spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.****.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=incremental_append source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=ISSUE_DRIVER_UNIVERSAL_VIEW target_type=mssql target_db=quantumb target_schema=reports target_tablename=ISSUE_DRIVER_UNIVERSAL_VIEW_WEEKLY target_db_url="jdbc:sqlserver://*****.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://*****@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400 update_col=run_analytics_date
 
 ## OM reporting tables data push to sql server
 
 
 spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=overwrite source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=OM_ESN target_type=mssql target_db=quantumb target_schema=reports target_tablename=OM_ESN target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400
-
 spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=overwrite source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=OM_STAT target_type=mssql target_db=quantumb target_schema=reports target_tablename=OM_STAT_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400
 
 
-sqoop import -Dhive.metastore.uris=thrift://hn0-quantu.0per2bzuqjue5ob0duxtyijy4h.dx.internal.cloudapp.net:9083 --connect jdbc:oracle:thin:@acdcslpdb616.aciz.cummins.com:1527:ebup1 --username MSBI_RELIABILITY --password dkabc3!  --table RELDSS.RLD_CLAIM_DETAIL --hive-database quality_reliability --hive-table RLD_CLAIM_DETAIL --hive-import --split-by CLAIM_DETAIL_ID_SEQ --target-dir /hive/warehouse/quality_reliability.db/RLD_CLAIM_DETAIL --hive-delims-replacement '-' &> extract_RLD_CLAIM_DETAIL.log
+sqoop import -Dhive.metastore.uris=thrift://hn0-quantu.*****.dx.internal.cloudapp.net:9083 --connect jdbc:oracle:thin:@*****.aciz.cummins.com:1527:ebup1 --username MSBI_RELIABILITY --password dkabc3!  --table database.table_name --hive-database quality_reliability --hive-table table_name --hive-import --split-by columns_name --target-dir /hive/warehouse/*****.db/RLD_CLAIM_DETAIL --hive-delims-replacement '-' &> extract_sqoop.log
+
+sqoop import -Dhive.metastore.uris=thrift://hn0-quantu.*****.dx.internal.cloudapp.net:9083 --connect jdbc:oracle:thin:@*****.aciz.cummins.com:1527:ebup1 --username MSBI_RELIABILITY --password dkabc3!  --table database.table_name --hive-database quality_reliability --hive-table table_name --hive-import --split-by columns_name --target-dir /hive/warehouse/*****.db/RLD_ENGINE_CLAIM_DETAIL_MV --hive-delims-replacement '-' &> extract_sqoop.log
 
 
-sqoop import -Dhive.metastore.uris=thrift://hn0-quantu.0per2bzuqjue5ob0duxtyijy4h.dx.internal.cloudapp.net:9083 --connect jdbc:oracle:thin:@acdcslpdb616.aciz.cummins.com:1527:ebup1 --username MSBI_RELIABILITY --password dkabc3!  --table RELDSS.RLD_ENGINE_CLAIM_DETAIL_MV --hive-database quality_reliability --hive-table RLD_ENGINE_CLAIM_DETAIL_MV --hive-import --split-by CLAIM_DETAIL_ID_SEQ --target-dir /hive/warehouse/quality_reliability.db/RLD_ENGINE_CLAIM_DETAIL_MV --hive-delims-replacement '-' &> extract_RLD_ENGINE_CLAIM_DETAIL_MV.log
-
-## Writing three table to sql server from Weibull model
-
-spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=overwrite source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=WEIBULL_CODE_PREDICTED_RPH target_type=mssql target_db=quantumb target_schema=reports target_tablename=WEIBULL_CODE_PREDICTED_RPH_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400
-
-spark-submit --files $(for x in `ls -1 /home/sshuser/data_transformer/*.properties`; do readlink -f $x; done | paste -s | sed -e 's/\t/,/g') --class com.cummins.trans.driver.Driver --master yarn --deploy-mode cluster --queue default --name OMTransformer /home/sshuser/data_transformer/data-transformer-0.0.1-SNAPSHOT.jar action=omtrans process_mode=overwrite source_type=hive source_db=quality_uat_reporting source_schema=quality_uat_reporting source_tablename=WEIBULL_INSERVICE_DATE target_type=mssql target_db=quantumb target_schema=reports target_tablename=WEIBULL_INSERVICE_DATE_WEEKLY target_db_url="jdbc:sqlserver://cdsalphasqldb.database.windows.net:1433;database=quantumb" target_db_user=quantumadmin target_db_jeck="/code/data_ingestion/passwords/qb.password.jceks" target_db_alias=qb.password.alias hdfs_fs=wasbs://quantumbrserver@quantumb.blob.core.windows.net  source_cols="A.*" numPartitions=400
-
-
-
---DISCO_DEVIATION - Query 4
---Weekly Job 
-SELECT NVL(vdpm.PART_DESC,'Unknown Desc') PART_DESC, vdda.DEV_ID, vdda.DEV_START_DATE, vdda.DEV_END_DATE, vdda.SERIAL_NO, vdda.DEV_CONTROL_NO, vdda.ABSN, vdda.OPTION_CODE, vdda.ADD_PART_NO, vdda.ADD_QTY, vdda.OMIT_PART_NO, vdda.OMIT_QTY, vdda.DEV_ACTION FROM V_DVTN_DEV_ALL vdda, V_DVTN_PART_MASTER vdpm  WHERE ( ( DECODE(vdda.ADD_PART_NO,NULL,vdda.OMIT_PART_NO,vdda.ADD_PART_NO) = LTRIM(SUBSTR(vdpm.PART_NO(+),1,7),'0')||RTRIM(SUBSTR(vdpm.PART_NO(+),8,2),'0') ) ) AND vdda.SERIAL_NO IN ('D103016BX03', 'D103012BX03')  AND vdda.DEV_START_DATE >=trunc(SYSDATE-7) AND vdda.DEV_START_DATE <trunc(SYSDATE)
-
-
-
---Query#7 DISCO_REPAIRS 
---Weekly  
-SELECT DEFECT_NO,SERIAL_NO,AUDIT_DATETIME,AUDIT_DATE,AUDIT_AREA,AUDIT_TYPE_CODE,AUDIT_USER_ID,FAILURE_CODE,FAILURE_DESC,FLT_PART_NO,FLT_PART_DESC,FLT_CAUSE_AREA,FLT_STATION_NAME,FLT_CELL_NAME,FLT_CLK_NO,FLT_COMMENTS,PREV_MISS_FLAG,REPAIR_AREA,REPAIR_USER_ID,REPAIR_DATETIME,REPAIR_CODE,REPAIR_DESC,REPAIR_PART_NO,REPAIR_PART_DESC,REPAIR_COMMENTS,FIXED_DEFECT_FLAG FROM V_EA_DEFECT_HIST  WHER
-
-
---Query#8 DISCO_ASSEMBLY
-SELECT LS.ASMBLY_LOCATION, LS.ACTUAL_ARRIVAL, LS.ARRIVAL_DATETIME, LS.PRIOR_ARRIVAL, LS.PRIOR_ARRIVAL_DATETIME, LS.RSSQL_ID FROM ARCHIVE.T_EDP_LOC_STAT_HIST_ARC LS, ABAMS.T_WORKORDER_HIST WH WHERE LS.ACTUAL_ARRIVAL = WH.serial_no AND WH.config_no IN ('D103016BX03', 'D103012BX03') AND ARRIVAL_DATETIME >= trunc(SYSDATE-7) AND  ARRIVAL_DATETIME <  trunc(SYSDATE)  AND ( ACTUAL_ARRIVAL like '80%' OR ACTUAL_ARRIVAL like '79%' ) 
-
---Query#14 
-SELECT * FROM ABAMS.T_STATUS_HIST WHERE CHG_DATE >= trunc(SYSDATE-7)  AND CHG_DATE < trunc(SYSDATE)
-
-
-
-======================================================================================================================
-
-
-
-
+======================================================================================================================-=============
 
 =====================================================================================================================================
 
-
-
-
 =====================================================================================================================================
-
-
-
-
-=====================================================================================================================================
-
-
-
-
-=====================================================================================================================================
-
-
-
-
