@@ -1,0 +1,126 @@
+code
+
+
+val locRDD = sc.textFile(“RouterLocationInfo.tsv").map(_.split("\t")).map(r => (r(0), RouterLocation(r(0).toInt,r(1),r(2)))
+
+ counts.collect.saveAsTextFile(“/hdfspath/myuniquedirectory”)
+ 
+ val cars = sqlContext.read.json("/HDFSPath/Cars.json");
+
+// writting the op into Json
+
+op.write.json("/HDFSPath/CarsParquetData") 
+
+//Reading a TSV File with the CSV Format
+val movies4 = spark.read.option("header","true").option("sep", "\t")
+.schema(movieSchema).csv("<path>/book/chapter4/data/movies/movies.tsv")
+movies.printSchema
+
+file_df= spark.read.option("header","true").option("delimiter",",")
+.option("inferSchema", "true").format("csv").load("/home/****/notebooks/faultInfoOutput.csv")
+
+
+sqlContext.registerDataFrameAsTable(new_df, "new_1")
+
+df.createOrReplaceTempView('foo')
+df2 = spark.sql('select * from foo')
+
+// now try to manually provide a schema
+import org.apache.spark.sql.types._
+
+val movieSchema = StructType(Array(StructField("actor_name", StringType, true),
+StructField("movie_title", StringType, true),StructField("produced_year", LongType, true)))
+
+
+
+~
+val theseClaims = claims.filter($"REL_ESN" === "79967439").cache() 
+
+theseEds.select("DSID","DSID_CREATE_DATE").orderBy("DSID_CREATE_DATE").show()
+
+
+df.withColumn("parameter",
+        concat(csvToJsonMap($"parameter"), lit("_SEV_"), 'severity))
+		
+df.withColumnRenamed('old','new')
+
+StageFactPhone = Phone.filter(date_format(col("CSSLastUpdatedDateTime"), "yyyy-MM-dd") >= LastRefreshDate )
+
+
+df.filter(df.name.like('Al%')).collect()
+
+df.filter((col("IsCommercial") == 1)  & (col("RaveOrganizationKey") == 0))
+
+
+BusinessGroupNew = (
+        DimBusinessGroup.select("BusinessGroupKey")
+        .filter(
+            DimBusinessGroup.BusinessGroupName == "Consumer"
+        )
+		
+
+import pyspark.sql.functions as f
+
+df.filter((f.col('d')<5))\
+    .filter(
+        ((f.col('col1') != f.col('col3')) | 
+         (f.col('col2') != f.col('col4')) & (f.col('col1') == f.col('col3')))
+    )\
+    .show()
+	
+	
+df.filter('d<5 and (col1 <> col3 or (col1 = col3 and col2 <> col4))').show()
+
+
+==================== # Row conditional statements
+=====   Pandas
+df['cond'] = df.apply(lambda r: 1 if r.mpg >20 else 2 if r.cyl == 6 else 3, axis=1)
+=====  Pyspark
+import pyspark.sql.functions as F
+df.withColumn('cond', \
+  F.when(df.mpg > 20 , 1)\
+    .when(df.cyl == 6, 2)\
+    .otherwise(3))
+	
+	
+  # Load DimCSSProduct with modified logic for Office, Xbox and Surface required for Cube
+    DimCSSProduct_Cube = DimCSSProduct.select(
+        col("CSSProductKey").alias("CSSProductKey_Cube"),
+        when(lower(col("CSSProductName")).like("%surface%"), "Surface")
+        .when(lower(col("CSSProductName")).like("%xbox%"), "Xbox")
+        .when(lower(col("CSSProductName")).like("%office%365%"), "Office 365 Home")
+        .otherwise(DimCSSProduct.CSSProductName)
+        .alias("CSSProductName_Cube"),
+	
+=====  Pyspark
+left.join(right, on='key')
+left.join(right, left.a== right.b)
+
+row_number()
+        .over(
+            Window.partitionBy(
+                lower(col("SupportType1")),
+                lower(col("SupportType2")),
+                lower(col("SupportType3")),
+            ).orderBy("SupportTypeCommercialKey")
+        )
+        .alias("Rnk"),
+		
+		
+row_number().over(
+                Window.partitionBy("SupportChannelL2").orderBy(
+                    DimSupportChannel.SupportChannelKey
+                )
+            )
+        ).alias("Rnk")
+		
+		
+  (
+                row_number().over(
+                    Window.partitionBy(
+                        DimSupportQueue.SupportQueueKey
+                    ).orderBy(
+                        DimSupportAreaPath.ModifiedDateTime.desc()
+                    )
+                )
+            ).alias("Rnk"),
