@@ -21,7 +21,7 @@ NULL
 give me the results, when i do the different join operation on the col1 between these two tables, give me the result as t1.col1, t2.col1 side by side
 
 
-Inner Join: 2
+Inner Join: 3
 An inner join returns only the matching records between "table1" and "table2" based on the "col1" column. Any rows with NULL values in "col1" will not be included in the join.
 
 SELECT t1.col1, t2.col1
@@ -32,11 +32,14 @@ Result:
 
 
 t1.col1	t2.col1
+1         1
 1	        1
 5	        5
 
 
-Left Join: 5 , col1 not null - 4, Col2 not null - 2
+Left Join: 5 ,
+
+col1 not null - 4, Col2 not null - 2
 
 A left join returns all the records from the left table "table1", and the matching records from the right table "table2". Any non-matching records from "table2" will have NULL values in the resulting table.
 
@@ -49,13 +52,15 @@ Result:
 
 t1.col1	t2.col1
 1	        1
-1	        NULL
+1	        1
 3	        NULL
 5	        5
 NULL	    NULL
 
 
-Right Join: 6, col1 not null - 4, col2 not null - 4
+Right Join: 7 rows
+
+col1 not null - 4, col2 not null - 4
 A right join returns all the records from the right table "table2", and the matching records from the left table "table1". Any non-matching records from "table1" will have NULL values in the resulting table.
 
 SELECT t1.col1, t2.col1
@@ -67,13 +72,15 @@ Result:
 
 t1.col1	t2.col1
 NULL	    NULL
-0	        0
-0	        0
+NULL      0
+NULL      0
 NULL	    NULL
 1	        1
+1         1
 5	        5
 
-Full Outer Join:
+Full Outer Join: 9 rows
+
 A full outer join returns all records from both tables, matching records from both tables, and non-matching records from both tables with NULL values where there are no matches.
 
 SELECT t1.col1, t2.col1
@@ -86,13 +93,15 @@ arduino
 Copy code
 t1.col1	t2.col1
 1	        1
-1	        NULL
+1	        1
 3	        NULL
 5	        5
 NULL	    NULL
 NULL	    NULL
-0	        0
-0	        0
-5	        5
+NULL      0
+NULL      0
+NULL      NULL
 
 Note: that the column names in the result set are prefixed with the table alias (t1 or t2) to avoid ambiguity since the same column names exist in both tables.
+
+CROSS JOIN - number of rows = 5*6 = 30 rows
