@@ -5,7 +5,7 @@ param
     [parameter(Mandatory = $false)] [int] $tokenLifeTimeSeconds = 300
 )
 
-$azureDatabricksPrincipalId = "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d"
+$azureDatabricksPrincipalId = "<place DBX Principle ID>"
 $headers = @{}
 
 $headers["Authorization"] = "Bearer $((az account get-access-token --resource $azureDatabricksPrincipalId | ConvertFrom-Json).accessToken)"
