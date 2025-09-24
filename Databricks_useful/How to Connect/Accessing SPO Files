@@ -97,4 +97,167 @@ else:
     print(f"Failed to upload file: {response.text}")
 
 
+# Code that i use:
 
+Cell 1 - this creates the token for SP 
+
+
+import requests
+
+# Define your tenant ID, client ID, and client secret
+tenant_id = "<Sp tenent ID>"
+client_id = "<Sp client id>"
+client_secret = "<sp Secret>"
+
+# Define the URL for the token request
+token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
+
+# Define the payload for the authentication request
+payload = {
+    'grant_type': 'client_credentials',
+    'client_id': client_id,
+    'client_secret': client_secret,
+    'scope': 'https://graph.microsoft.com/.default'
+}
+
+# Make the request to obtain the access token
+response = requests.post(token_url, data=payload)
+# print(response.text)
+access_token = response.json().get('access_token')
+
+if access_token:
+    print("Access token retrieved successfully.")
+    print(f"Access token: {access_token}")
+else:
+    print("Failed to retrieve access token.")
+
+CELL 2 - Below code gives me the Site ID which i need to access the SPO
+
+
+import requests
+
+# Define the SharePoint site URL
+site_url = "https://graph.microsoft.com/v1.0/sites/nokia.sharepoint.com:/sites/<SPO Site Name>"
+
+headers = {
+    'Authorization': f'Bearer {access_token}'
+}
+
+# Get the site ID
+response = requests.get(site_url, headers=headers)
+
+if response.status_code == 200:
+    site_info = response.json()
+    site_id = site_info['id']
+    print(f"Site ID: {site_id}")
+else:
+    print(f"Failed to get site ID: {response.text}")
+
+
+CELL 3 - Reading Data from SharePoint
+
+import pandas as pd
+import io
+# Define the SharePoint download URL
+download_url = "https://graph.microsoft.com/v1.0/sites/<SiteID>/drive/items/root:/FileName.csv:/content"
+
+headers = {
+    'Authorization': f'Bearer {access_token}',
+    'Content-Type': 'text/csv'
+}
+
+# Download the file
+response = requests.get(download_url, headers=headers)
+
+print(response.status_code)
+
+if response.status_code == 200:
+    csv_data = response.content.decode('utf-8')
+    df_read = pd.read_csv(io.StringIO(csv_data))
+    display(df_read)
+else:
+    print(f"Failed to download file: {response.text}")
+
+
+CELL 4 - Writing Data to SharePoint
+%python
+import pandas as pd
+import io
+import requests
+
+# Define the SharePoint upload URL
+upload_url = "https://graph.microsoft.com/v1.0/sites/<Site ID>/drive/items/root:/FileName.csv:/content"
+
+headers = {
+    'Authorization': f'Bearer {access_token}',
+    'Content-Type': 'text/csv'
+}
+
+df_write = df_read
+
+# Convert DataFrame to CSV
+csv_data = df_write.to_csv(index=False)
+
+# Upload the file
+response = requests.put(upload_url, headers=headers, data=csv_data)
+
+print(response.status_code)
+
+if response.status_code == 201:
+    print("File uploaded successfully")
+else:
+    print(f"Failed to upload file: {response.text}")
+
+
+CELL 5 - Read Excel File
+
+import pandas as pd
+import io
+import requests
+
+# Define the SharePoint download URL for the .xlsx file
+download_url = "https://graph.microsoft.com/v1.0/sites/<Site ID>/drive/items/root:/General/<Folder Path>/File Name.xlsx:/content"
+
+headers = {
+    'Authorization': f'Bearer {access_token}',
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+}
+
+# Download the file
+response = requests.get(download_url, headers=headers)
+
+print(response.status_code)
+
+if response.status_code == 200:
+    xlsx_data = io.BytesIO(response.content)
+    df_read_2 = pd.read_excel(xlsx_data, engine='openpyxl')
+    display(df_read_2)
+else:
+    print(f"Failed to download file: {response.text}")
+
+CELL 6 - Read Excel with Specific Sheet
+
+import pandas as pd
+import io
+import requests
+
+# Define the SharePoint download URL for the .xlsx file
+download_url = "https://graph.microsoft.com/v1.0/sites/<SITE ID>/drive/items/root:/General/Folder Path/FileName.xlsx:/content"
+
+headers = {
+    'Authorization': f'Bearer {access_token}',
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+}
+
+# Download the file
+response = requests.get(download_url, headers=headers)
+
+print(response.status_code)
+
+if response.status_code == 200:
+    xlsx_data = io.BytesIO(response.content)
+    # Specify the sheet name you want to read
+    df_read_3 = pd.read_excel(xlsx_data, sheet_name='sheet 6', engine='openpyxl')
+    display(df_read_3)
+else:
+    print(f"Failed to download file: {response.text}")
