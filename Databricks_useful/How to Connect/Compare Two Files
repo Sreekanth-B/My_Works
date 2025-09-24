@@ -1,0 +1,92 @@
+# Load DataFrames
+df1 = spark.read.csv(file1_path, header=True, inferSchema=True)
+df2 = spark.read.csv(file2_path, header=True, inferSchema=True)
+
+# Add row_id for alignment if no unique identifier exists
+df1 = df1.withColumn("row_id", monotonically_increasing_id())
+df2 = df2.withColumn("row_id", monotonically_increasing_id())
+
+display(df1)
+display(df2)
+
+CELL 2 - Check for missing rows in df2 comparing with df1, if found add these rows as nulls and create df3 
+
+missing_rows = df1.join(df2, on="row_id", how="left_anti")
+#display(missing_rows)
+
+null_columns = [lit(None).alias(c) for c in df2.columns if c != "row_id"]
+missing_rows_with_nulls = missing_rows.select(
+    *null_columns,
+    col("row_id")
+)
+df3 = df2.union(missing_rows_with_nulls)
+
+CELL 3 - Below code checks each and every column in df1 with df3, if both values matched then it will be shows as null if not matched it will show as 2021-Q1 != 2021-Q2
+
+# Join DataFrames on row_id
+joined_df = df1.alias("df1").join(df3.alias("df3"), "row_id")
+
+#display(joined_df)
+# removeing row_id from comparision
+columns_to_check = [col_name for col_name in df1.columns if col_name != "row_id"]
+
+# Identify columns with discrepancies
+discrepancy_df = joined_df.select(
+    *[
+        when(
+            (col(f"df1.{col_name}") != col(f"df3.{col_name}")) | 
+            (col(f"df1.{col_name}").isNull() != col(f"df3.{col_name}").isNull()),  # Null mismatch check
+            1
+        ).alias(f"{col_name}_discrepancy")
+        for col_name in columns_to_check
+    ]
+)
+
+#A list of column names (without the _discrepancy suffix) that have at least one discrepancy (value == 1) in the dataset.
+
+discrepancy_cols = [
+    col_name.replace("_discrepancy", "")
+    for col_name in discrepancy_df.columns
+    if discrepancy_df.filter(col(col_name) == 1).limit(1).count() > 0
+]
+
+# Create a DataFrame with only the discrepant columns
+from pyspark.sql.functions import col, when, lit, concat, coalesce
+
+# Define discrepancy expressions for each column
+discrepancy_exprs = [
+    when(
+        (col(f"df1.{col_name}") != col(f"df3.{col_name}")) | 
+        (col(f"df1.{col_name}").isNull() != col(f"df3.{col_name}").isNull()),  # Include null mismatch
+        concat(
+            coalesce(col(f"df1.{col_name}").cast("string"), lit("NULL")),  # Replace NULL with 'NULL'
+            lit(" != "),
+            coalesce(col(f"df3.{col_name}").cast("string"), lit("NULL"))  # Replace NULL with 'NULL'
+        )
+    ).alias(f"{col_name}_discrepancy")
+    for col_name in discrepancy_cols
+]
+
+# Create the discrepancy DataFrame
+discrepancy_df = joined_df.select("row_id", *discrepancy_exprs)
+
+# Display or process the discrepancy DataFrame
+#discrepancy_df.show()
+
+# Remove rows with no discrepancies
+filtered_discrepancy_df = discrepancy_df.na.drop(how="all", subset=[col for col in discrepancy_df.columns if col != "row_id"])
+
+# drop fields that not needed for compariosn
+#filtered_discrepancy_df = filtered_discrepancy_df.drop("Col_name")
+
+#display(filtered_discrepancy_df)
+# Perform the join
+joined_df = df1.join(filtered_discrepancy_df, on=["row_id"], how="inner")
+
+#display(joined_df)
+df2_columns_to_select = [col_name for col_name in filtered_discrepancy_df.columns if col_name != "row_id"]
+
+# Select 'row_id' from df1 and all columns from df2
+result_df = joined_df.select("<colname like some ID>", *[col(col_name) for col_name in df2_columns_to_select])
+
+display(result_df)
