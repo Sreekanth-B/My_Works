@@ -1,0 +1,41 @@
+trigger:
+  - main
+
+variables:
+  - group: dbw-cicd-cnsoslic-dev
+  - group: dbw-cicd-cnsoslic-prd
+
+   
+  - name: vmImageName
+    value: 'windows-latest'
+  - name: notebooksPath
+    value: "CNS_OSLIC"
+
+pool: 
+  #vmImage: $(vmImageName)  
+  #name: 'ECC-SelfHosted'
+  name: 'oslic-agent-pool-dev'
+  demands: 'Agent.OS -equals Windows_NT'
+
+
+stages:
+  - template: templates/deploy-notebooks.yml
+    parameters:
+      stageId: "Deploy_to_Dev_Environment"
+      env: "dev"
+      environmentName: $(dev-envivonment-name)
+      resourceGroupName: $(dev-resource-group-name)
+      serviceConnection: $(dev-service-connection-name)
+      notebooksPath: $(notebooksPath)
+  
+  - template: templates/deploy-notebooks.yml
+    parameters:
+      dependsOn: ["Deploy_to_Dev_Environment"]
+      stageId: "Deploy_to_Prd_Environment"
+      env: "prd"
+      environmentName: $(prd-envivonment-name)
+      resourceGroupName: $(prd-resource-group-name)
+      serviceConnection: $(prd-service-connection-name)
+      notebooksPath: $(notebooksPath)
+
+ 
