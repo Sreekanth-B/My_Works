@@ -1,0 +1,100 @@
+Step 1 - Create Service principle or application
+
+Step 2 - In App go to API permission and create new microsoft graph permission
+
+Step 3 - Under Microsoft Graph raise Application permission
+
+Step 4 - Select Sites.Selected to raise a new API permission
+
+Step 5 - once raised get it approved by security team or admin team
+
+Step 6 - •	Add the Azure App as Databricks scoped credential
+•	Create access token from the spark configurations for the above Azure App 
+•	Have the data that needs to be written into the sharepoint into dataframe
+•	Use the access token and call the sharepoint link using the graph url and load the dataframe into sharepoint folder
+
+###################### Creating Access Token for Azure App
+
+properties = {
+    "databricks_sp_secret_key": "<DBX Key> ",
+    "databricks_sp_secret_scope": "<DBX Scope>",
+    "databricks_sp_object_id": "<Azure App client ID>",
+    "databricks_sp_tenant_id": "<Azure App tenant ID>",    
+    "is_initial_load": True
+}
+# #Get azure token
+from msal import ConfidentialClientApplication
+
+service_principal_id = properties["databricks_sp_object_id"]
+
+service_principal_secret = properties["databricks_sp_secret_scope"] #databricks_sp_secret
+
+authority = (
+    "https://login.microsoftonline.com/" + properties["databricks_sp_tenant_id"]
+)
+
+resource = "https://database.windows.net//.default"
+
+app = ConfidentialClientApplication(
+    client_id=service_principal_id,
+    client_credential=service_principal_secret,
+    authority=authority,
+)
+result = app.acquire_token_for_client(scopes=[resource])
+prod_token = result["access_token"]
+
+print(prod_token)
+
+
+###################### Reading Data from sharepoint site to Databricks Dataframe 
+
+import pandas as pd
+import io
+# Define the SharePoint download URL
+download_url = "https://graph.microsoft.com/v1.0/sites/3ed8c2d0-34a7-463b-acf8-b1c9c41aa470/drive/items/root:/<path>/FileName.csv:/content"
+
+headers = {
+    'Authorization': f'Bearer {access_token}',
+    'Content-Type': 'text/csv'
+}
+
+# Download the file
+response = requests.get(download_url, headers=headers)
+
+print(response.status_code)
+
+if response.status_code == 200:
+    csv_data = response.content.decode('utf-8')
+    df_read = pd.read_csv(io.StringIO(csv_data))
+    display(df_read)
+else:
+    print(f"Failed to read file: {response.text}")
+
+
+
+###################### Writing Dataframe data into sharepoint site
+
+import requests
+# Define the SharePoint upload URL
+#upload_url = "https://graph.microsoft.com/v1.0/sites/<SPO Site name>/drive/items/root:/<FileName>.csv:/content"
+upload_url = "https://graph.microsoft.com/v1.0/sites/3ed8c2d0-34a7-463b-acf8-b1c9c41aa470/drive/items/root:/<path>/FileName.csv:/content"
+
+#https://nokia.sharepoint.com/sites/<SPO Site name>/Shared%20Documents/General/Folder Path/Filename.xlsx
+headers = {
+    'Authorization': f'Bearer {prod_token}',
+    'Content-Type': 'text/csv'
+}
+
+# Upload the file
+csv_data = df.toPandas().to_csv(index=False)
+response = requests.put(upload_url, headers=headers, data=csv_data)
+
+print(response.status_code)
+
+if response.status_code == 201:
+    print("File uploaded successfully.")
+else:
+    print(f"Failed to upload file: {response.text}")
+
+
+
