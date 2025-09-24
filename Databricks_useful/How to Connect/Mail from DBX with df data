@@ -1,0 +1,83 @@
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+from datetime import datetime
+import ssl
+import io
+import pandas as pd
+%pip install openpyxl
+
+#update smtp mail relay
+
+smtp_server = 'mailrelay.int.<>.com' 
+smtp_port = 25
+sender_email = '<sender mail>.com'
+dev_receiver_emails = ['receiver@123.com','receiver2@123.com']
+
+vendor_email_map = {
+    "ADAX": "ewa.jarosz@nokia.com",
+    "Aerospike": "edyta.lukasik@nokia.com",
+    "Braxo": "ewa.jarosz@nokia.com",
+    "Capgemini Altran": "magdalena.rybka@nokia.com",
+    "Cloudera": "angeles.serrano@nokia.com",
+    "CouthIT": "magdalena.rybka@nokia.com",
+    "CSG_TIBCO": "magdalena.rybka@nokia.com",
+    "Cybertec": "magdalena.rybka@nokia.com",
+    "Datastax": "magdalena.rybka@nokia.com",
+    "ForgeRock": "ewa.jarosz@nokia.com",
+    "GSMA": "ewa.jarosz@nokia.com",
+    "Highsoft": "ewa.jarosz@nokia.com",
+    "MariaDB": "ewa.jarosz@nokia.com",
+    "Mavenir": "edyta.lukasik@nokia.com",
+    "Open Sales Solutions": "magdalena.rybka@nokia.com",
+    "Oracle": "ewa.jarosz@nokia.com",
+    "Red Hat": "edyta.lukasik@nokia.com",
+    "Redis": "edyta.lukasik@nokia.com",
+    "Rogue Wave": "magdalena.rybka@nokia.com",
+    "SAP": "ewa.jarosz@nokia.com",
+    "Telestax": "magdalena.rybka@nokia.com",
+    "Tieto": "ewa.jarosz@nokia.com",
+    "Torsten Reuss": "magdalena.rybka@nokia.com",
+    "TIBCO": "magdalena.rybka@nokia.com"
+}
+
+# Assuming `Vendor_Name` is defined somewhere in the notebook
+vendor_name = Vendor_Name  # Replace with actual vendor name variable
+
+receiver_emails = dev_receiver_emails + [vendor_email_map.get(vendor_name, "")]
+
+# Create the email
+msg = MIMEMultipart()
+msg['From'] = sender_email
+msg['To'] = ", ".join(receiver_emails)
+current_month = datetime.now().strftime("%B")
+msg['Subject'] = f"CNS-OEM SLM- Validation Results for {File_Name}"
+
+# Email body
+body = f"Please find attached Validation Results for {File_Name}"
+msg.attach(MIMEText(body, 'plain'))
+
+File_Name_final = File_Name.replace('.csv','')
+
+# Attach the Excel file
+filename = f"Val_Results_{File_Name_final}.xlsx"
+pandasDF = filtered_discrepancy_df.toPandas()
+excel_buffer = io.BytesIO()
+pandasDF.to_excel(excel_buffer, index=False)
+excel_buffer.seek(0)
+part = MIMEBase('application', 'octet-stream')
+part.set_payload(excel_buffer.read())
+encoders.encode_base64(part)
+part.add_header('Content-Disposition', f"attachment; filename= {filename}")
+msg.attach(part)
+
+with smtplib.SMTP(smtp_server, smtp_port) as server: 
+    context = ssl.create_default_context()
+    context.set_ciphers('HIGH:!DH:!aNULL')
+    server.starttls(context=context)
+    # server.login(sender_email, password)
+    text = msg.as_string()
+    server.sendmail(sender_email, receiver_emails, text)
+    server.quit()
