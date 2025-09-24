@@ -1,0 +1,57 @@
+
+Step 1 - Use the DB connection notebook to setup the connection
+
+Step 2- Run the below codes
+
+Cell 1 - 
+
+df = spark.read \
+                .format("jdbc") \
+                .option("url", conn_2) \
+                .option("query", "SELECT * FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_CATALOG ='DBName'") \
+                .option("accessToken", access_token) \
+                .option("encrypt", "true") \
+                .load()
+
+df.select("VIEW_DEFINITION").show()
+
+CELL 2 - 
+
+## Below Code does - 1.Parses a SQL view definition string, 2.Extracts the table name and the storage path, 
+3.Builds a CREATE TABLE ... USING DELTA LOCATION ... SQL statement, 4.Executes it in Spark to create the table. 
+
+## Overall this will take above view definition from df and splits it into table name and adls location to create table in Databricks
+
+import re
+from pyspark.sql.utils import AnalysisException
+def transform_view_defs(view_def):
+    try:
+        table_name = re.search(r"view [\w.]*", view_def)[0].split(" ")[1]
+    except TypeError as e:
+        raise TypeError("Could find table name in the definition!")
+    try:
+        location = 'abfss://<container>@<>adls.dfs.core.windows.net/'+re.search(r"bulk\s*'[\w_\/]*", view_def)[0].split("'")[1]
+    except TypeError as e:
+        raise TypeError("Could find location in the definition!")
+    s = f'CREATE TABLE IF NOT EXISTS {table_name} USING DELTA LOCATION "{location}"'
+    spark.sql(s)
+
+
+
+errordata={"Table_name":[], "error":[]}
+for view in df.collect():
+    try:
+        transform_view_defs(view['VIEW_DEFINITION'])
+    except Exception as e:
+        errordata["Table_name"].append(f"{view['TABLE_CATALOG']}.{view['TABLE_CATALOG']}.{view['TABLE_NAME']}")
+        errordata["error"].append(e)
+
+
+CELL 3 - TO check what are the table that not created by above code
+
+from datetime import datetime
+import pandas as pd
+errordf=pd.DataFrame(errordata)
+errordf.to_csv(f"view_migration_error_{datetime.now()}.csv")
+errordf
+
